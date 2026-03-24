@@ -1,0 +1,75 @@
+---
+title: "/genie-hacks"
+description: "Browse, search, and contribute community hacks — real-world patterns for provider switching, teams, skills, hooks, cost optimization, and more."
+---
+
+# /genie-hacks — Community Hacks & Patterns
+
+Browse real-world Genie patterns contributed by the community. Search by problem, explore by category, or contribute your own.
+
+## When to Use
+
+- You want to discover tips, tricks, or advanced Genie patterns
+- You're solving a specific problem ("how do I optimize costs?", "how do teams work?")
+- You found a clever technique and want to share it with the community
+
+## Commands
+
+| Command | Description |
+|---------|-------------|
+| `/genie-hacks` | List all hacks (default) |
+| `/genie-hacks list` | List all hacks with title, problem, and category |
+| `/genie-hacks search <keyword>` | Search hacks by keyword in title, problem, or solution |
+| `/genie-hacks show <hack-id>` | Display full hack details with code examples |
+| `/genie-hacks contribute` | Submit a new hack via automated PR flow |
+| `/genie-hacks help <problem>` | Describe a problem, get matched to relevant hacks |
+
+## Examples
+
+```bash
+# Browse all available hacks
+/genie-hacks list
+
+# Find cost-related hacks
+/genie-hacks search cost
+
+# View a specific hack in detail
+/genie-hacks show provider-switching
+
+# Describe your problem, get suggestions
+/genie-hacks help "my agents are too slow"
+
+# Contribute your own hack
+/genie-hacks contribute
+```
+
+## Categories
+
+Hacks are organized by category:
+
+| Category | Description |
+|----------|-------------|
+| **providers** | Model selection, provider switching, BYOA |
+| **teams** | Multi-agent coordination, pipeline parallelization |
+| **skills** | Custom skills, workflow automation |
+| **hooks** | Event-driven automation, auto-spawn triggers |
+| **cost** | Token optimization, budget management |
+| **integration** | External tools, Slack, CI/CD, NATS |
+| **debugging** | Tracing, transcript analysis, fix loops |
+| **batch** | Overnight execution, dream pipelines |
+
+## Contributing
+
+Found a hack? Run `/genie-hacks contribute` and the skill will:
+
+1. Ask you to describe the hack (title, problem, solution, code, category)
+2. Fork the `automagik-dev/docs` repo via GitHub CLI
+3. Append your hack to [genie/hacks.mdx](/genie/hacks) in the correct format
+4. Create a PR with title `hack: <your title>`
+5. Show you the PR URL
+
+All contributions are reviewed by maintainers before merging.
+
+<Card title="Browse All Hacks" icon="lightbulb" href="/genie/hacks">
+  See the full collection of community-contributed hacks and patterns.
+</Card>
