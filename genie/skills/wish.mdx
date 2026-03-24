@@ -1,0 +1,66 @@
+---
+title: "/wish"
+description: "Convert an idea into a structured wish plan with scope, acceptance criteria, and execution groups."
+---
+
+# /wish — Plan Before You Build
+
+Convert a validated idea into an executable wish document at `.genie/wishes/<slug>/WISH.md`.
+
+## When to Use
+
+- User describes non-trivial work that needs planning before implementation
+- User wants to scope, decompose, or formalize a feature/change
+- Prior `/brainstorm` output exists and needs to become actionable
+
+## Flow
+
+1. **Gate check** — if the request is fuzzy, auto-trigger `/brainstorm` first.
+2. **Align intent** — ask one question at a time until success criteria are clear.
+3. **Define scope** — explicit IN and OUT lists (OUT cannot be empty).
+4. **Decompose into groups** — split into small, loosely coupled execution groups.
+5. **Write wish** — create `.genie/wishes/<slug>/WISH.md`.
+6. **Add verification** — every group gets acceptance criteria + a validation command.
+7. **Declare dependencies** — `depends-on` between groups and cross-wish dependencies.
+8. **Handoff** — auto-invoke `/review` on the WISH.md.
+
+## Wish Document Sections
+
+| Section | Required | Notes |
+|---------|----------|-------|
+| Status / Slug / Date | Yes | Status: DRAFT on creation |
+| Summary | Yes | 2–3 sentences: what and why |
+| Scope IN / OUT | Yes | OUT cannot be empty |
+| Decisions | Yes | Key choices with rationale |
+| Success Criteria | Yes | Checkboxes, each testable |
+| Execution Strategy | Yes | Wave-based parallel/sequential plan |
+| Execution Groups | Yes | Goal, deliverables, acceptance criteria, validation |
+| Dependencies | No | `depends-on` / `blocks` using slug |
+| QA Criteria | No | Post-merge verification |
+| Assumptions / Risks | No | Flag what could invalidate the plan |
+
+## Execution Strategy
+
+Every wish must define waves — this forces the planner to think about ordering, parallelism, and dependencies upfront:
+
+```markdown
+### Wave 1 (parallel)
+| Group | Agent | Description |
+|-------|-------|-------------|
+| 1 | engineer | Task A |
+| 2 | engineer | Task B |
+
+### Wave 2 (after Wave 1)
+| Group | Agent | Description |
+|-------|-------|-------------|
+| 3 | engineer | Task C |
+| review | reviewer | Review Groups 1+2 |
+```
+
+## Rules
+
+- No implementation during `/wish` — planning only
+- No vague tasks ("improve everything") — every task must be testable
+- Keep tasks bite-sized and independently shippable
+- Declare cross-wish dependencies early
+- OUT scope must contain at least one concrete exclusion

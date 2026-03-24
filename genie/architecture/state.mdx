@@ -1,0 +1,165 @@
+---
+title: "State Management"
+description: "Wish state machine, worker registry, teams, mailbox, and team chat"
+---
+
+# State Management
+
+Genie tracks state across multiple systems — wishes in Postgres, workers in a global JSON file, messages in per-repo mailboxes, and team configs in global JSON files. Each system is designed for its specific concurrency and durability requirements.
+
+## Wish State Machine
+
+Wish execution is tracked in PostgreSQL via the task service. A wish becomes a parent task, and each execution group becomes a child task with dependency edges.
+
+### State Transitions
+
+```
+blocked → ready → in_progress → done
+                       ↓
+                     failed
+```
+
+| State | Meaning |
+|-------|---------|
+| `blocked` | Waiting for dependencies to complete |
+| `ready` | All dependencies satisfied, can be started |
+| `in_progress` | An agent is actively working on this group |
+| `done` | Group completed successfully |
+
+### Dependency Resolution
+
+When a group completes, `completeGroup()` recalculates all dependent groups. If every dependency of a blocked group is now `done`, that group transitions to `ready`.
+
+```typescript
+// Schemas from wish-state.ts
+const GroupStatusSchema = z.enum(['blocked', 'ready', 'in_progress', 'done']);
+
+const GroupStateSchema = z.object({
+  status: GroupStatusSchema,
+  assignee: z.string().optional(),
+  dependsOn: z.array(z.string()).default([]),
+  startedAt: z.string().optional(),
+  completedAt: z.string().optional(),
+});
+```
+
+The wish state machine stores state in the PG `tasks` + `task_dependencies` tables. PG handles concurrency natively — no file locks are needed for wish state.
+
+## Worker Registry
+
+Every spawned agent is tracked in a global registry at `~/.genie/workers.json`. The registry stores provider metadata, transport info, and lifecycle state.
+
+### Agent States
+
+```
+spawning → working → idle → done
+              ↓        ↓
+           error    suspended
+              ↓
+           permission
+              ↓
+           question
+```
+
+| State | Meaning |
+|-------|---------|
+| `spawning` | Agent process being created |
+| `working` | Actively producing output |
+| `idle` | At prompt, waiting for input |
+| `permission` | Waiting for permission approval |
+| `question` | Waiting for user answer |
+| `done` | Task completed |
+| `error` | Encountered an error |
+| `suspended` | Pane killed, session preserved for resume |
+
+### Agent Record
+
+Each agent record includes:
+
+```typescript
+interface Agent {
+  id: string;            // Unique ID (e.g., "wish-42")
+  paneId: string;        // tmux pane ID (e.g., "%16")
+  session: string;       // tmux session name
+  worktree: string | null; // Git worktree path
+  state: AgentState;     // Current lifecycle state
+  repoPath: string;      // Repository this agent operates in
+  provider?: ProviderName; // "claude" or "codex"
+  transport?: TransportType; // Always "tmux"
+  role?: string;         // "engineer", "reviewer", "qa", "fix"
+  team?: string;         // Team membership
+  claudeSessionId?: string; // For session resume
+  wishSlug?: string;     // Associated wish
+  groupNumber?: number;  // Execution group
+}
+```
+
+The registry uses file locking (`acquireLock()`) to prevent concurrent write corruption from multiple CLI invocations.
+
+## Team Management
+
+Teams are stored as JSON files in `~/.genie/teams/<safe-name>.json`. Each team owns an isolated clone of the repository.
+
+### Team Lifecycle
+
+```
+created → in_progress → done
+                ↓
+             blocked
+```
+
+### Isolation Model
+
+Teams use `git clone --shared` instead of `git worktree` to avoid a known bug where Claude Code workers can flip `core.bare=true` on the parent repo via shared `.git` metadata, silently corrupting it.
+
+```typescript
+interface TeamConfig {
+  name: string;           // Also the git branch name
+  repo: string;           // Source repository path
+  baseBranch: string;     // Branch created from (e.g., "dev")
+  worktreePath: string;   // Absolute path to clone
+  leader?: string;        // Team leader agent name
+  members: string[];      // Member agent names
+  status: TeamStatus;     // "in_progress" | "done" | "blocked"
+  nativeTeamsEnabled?: boolean; // Claude Code native IPC
+}
+```
+
+## Mailbox
+
+Messages persist to `.genie/mailbox/<worker-id>.json` before any push delivery attempt. This ensures durability — even if tmux delivery fails, the message is stored on disk.
+
+### Message Format
+
+```typescript
+interface MailboxMessage {
+  id: string;          // Unique message ID
+  from: string;        // Sender worker ID or "operator"
+  to: string;          // Recipient worker ID
+  body: string;        // Message text
+  createdAt: string;   // ISO timestamp
+  read: boolean;       // Whether recipient has read this
+  deliveredAt: string | null; // null = pending delivery
+}
+```
+
+Delivery is state-aware: messages are queued and pushed to tmux panes only when the worker is idle (not mid-turn). A sent message log is also kept in an append-only JSONL outbox file.
+
+<Warning>
+Mailbox delivery is best-effort. Messages are persisted to disk (durable), but tmux pane injection is not retried. If a pane dies, the message stays with `deliveredAt: null` forever.
+</Warning>
+
+## Team Chat
+
+Each team has a JSONL-based group channel at `<repoPath>/.genie/chat/<team-name>.jsonl`. Messages are appended as newline-delimited JSON for efficient append-only writes.
+
+```typescript
+interface ChatMessage {
+  id: string;        // Unique message ID
+  sender: string;    // Agent name
+  body: string;      // Message text
+  timestamp: string; // ISO timestamp
+}
+```
+
+Team chat is per-worktree — different worktrees for the same team maintain separate chat histories.

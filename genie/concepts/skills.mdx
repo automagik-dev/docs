@@ -1,0 +1,146 @@
+---
+title: "Skills"
+sidebarTitle: "Skills"
+description: "Slash-command prompt programs that encode best practices into reusable workflows."
+---
+
+# Skills
+
+A **skill** is a structured prompt file that encodes a workflow as a slash command. When you type `/brainstorm` or `/work`, you're invoking a skill — a Markdown document with YAML frontmatter that gets loaded into the agent's context.
+
+## How Skills Work
+
+1. You type `/brainstorm` in Claude Code
+2. Claude Code finds `skills/brainstorm/SKILL.md`
+3. The skill's content is injected into the conversation
+4. The agent follows the skill's instructions
+
+Skills are not code — they're prompt programs. They define phases, decision trees, output formats, and validation steps that the agent follows.
+
+## Skill Anatomy
+
+Every skill lives in `skills/<name>/SKILL.md` with this structure:
+
+```yaml
+---
+name: brainstorm
+description: Explore ambiguous or early-stage ideas interactively
+---
+
+# Brainstorm Skill
+
+## Phase 1: Understand the Idea
+...
+
+## Phase 2: Explore Constraints
+...
+```
+
+The frontmatter defines:
+
+| Field | Purpose |
+|-------|---------|
+| `name` | Skill identifier — matches the `/command` name |
+| `description` | One-line summary shown in skill listings |
+
+## Built-in Skills
+
+Genie ships with 14 skills organized by function:
+
+### Core Pipeline
+
+| Skill | Command | Purpose |
+|-------|---------|---------|
+| [Brainstorm](/genie/skills/brainstorm) | `/brainstorm` | Explore ideas interactively, track wish-readiness |
+| [Wish](/genie/skills/wish) | `/wish` | Convert a design into a structured WISH.md |
+| [Work](/genie/skills/work) | `/work` | Execute a wish — dispatch agents per execution group |
+| [Review](/genie/skills/review) | `/review` | Validate work against criteria — SHIP or FIX-FIRST |
+
+### Debugging & Fixing
+
+| Skill | Command | Purpose |
+|-------|---------|---------|
+| [Trace](/genie/skills/trace) | `/trace` | Investigate unknown issues, isolate root cause |
+| [Fix](/genie/skills/fix) | `/fix` | Apply minimal fix for FIX-FIRST gaps |
+| [Report](/genie/skills/report) | `/report` | Full bug investigation with GitHub issue creation |
+
+### Orchestration
+
+| Skill | Command | Purpose |
+|-------|---------|---------|
+| [Council](/genie/skills/council) | `/council` | 10-perspective architectural review |
+| [Dream](/genie/skills/dream) | `/dream` | Batch-execute SHIP-ready wishes overnight |
+| [Genie](/genie/skills/genie) | `/genie` | Transform any session into a Genie orchestrator |
+
+### Utilities
+
+| Skill | Command | Purpose |
+|-------|---------|---------|
+| [Wizard](/genie/skills/wizard) | `/wizard` | Guided onboarding — scaffold to first wish |
+| [Refine](/genie/skills/refine) | `/refine` | Optimize prompts via prompt-optimizer |
+| [Learn](/genie/skills/learn) | `/learn` | Apply behavioral corrections from feedback |
+| [Docs](/genie/skills/docs) | `/docs` | Audit and generate documentation |
+
+## Invoking Skills
+
+Skills are invoked as slash commands:
+
+```
+/brainstorm Add a webhook system for real-time notifications
+```
+
+You can pass arguments — the text after the command becomes context for the skill.
+
+Some skills are also triggered automatically:
+- `/work` is invoked by the team-lead when dispatching execution
+- `/review` is invoked after work completion
+- `/fix` is invoked when review returns FIX-FIRST
+
+## Skill Composition
+
+Skills can delegate to other skills:
+
+- `/wizard` delegates to `/brainstorm` for identity shaping and `/wish` for plan creation
+- `/work` invokes `/review` after execution completes
+- `/report` cascades through `/trace` before filing an issue
+- `/dream` orchestrates `/work` → `/review` loops across multiple wishes
+
+## Creating Custom Skills
+
+To add a custom skill:
+
+1. Create `skills/<name>/SKILL.md`
+2. Add YAML frontmatter with `name` and `description`
+3. Write the skill's instructions in Markdown
+4. The skill becomes available as `/<name>`
+
+```yaml
+---
+name: deploy
+description: Guide deployment to staging and production environments
+---
+
+# Deploy Skill
+
+## Phase 1: Pre-flight Checks
+- Verify all tests pass
+- Check CI status
+- Confirm target environment
+
+## Phase 2: Deploy
+...
+```
+
+Skills installed via the plugin system (in `~/.claude/plugins/genie/skills/`) are available globally across all projects.
+
+## Skill vs. Agent
+
+| | Skill | Agent |
+|---|-------|-------|
+| **What** | A prompt program | A running process |
+| **Lifetime** | Single conversation turn | Persistent tmux session |
+| **State** | Stateless (context is the conversation) | Stateful (worker registry, mailbox) |
+| **Invocation** | `/command` | `genie spawn <role>` |
+| **Use case** | Structured workflow | Long-running autonomous work |
+
+Skills tell agents *what to do*. Agents are *who does it*.

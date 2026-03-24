@@ -1,0 +1,118 @@
+---
+title: "Installation"
+sidebarTitle: "Installation"
+description: "Install Genie CLI, configure prerequisites, and verify your setup."
+---
+
+# Installation
+
+Genie runs on Linux and macOS. It requires a few tools to orchestrate agents effectively.
+
+## Prerequisites
+
+| Tool | Required | Purpose |
+|------|----------|---------|
+| [Node.js](https://nodejs.org/) 18+ or [Bun](https://bun.sh/) | Yes | Runtime for the CLI |
+| [Claude Code](https://docs.anthropic.com/en/docs/claude-code) | Yes | AI agent backend |
+| [tmux](https://github.com/tmux/tmux) | Yes | Agent process management |
+| [Git](https://git-scm.com/) | Yes | Version control and worktrees |
+| [GitHub CLI](https://cli.github.com/) (`gh`) | Recommended | PR creation and issue tracking |
+
+## One-Line Install
+
+The bootstrap script detects your system and installs via the best available method:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/automagik-dev/genie/main/install.sh | bash
+```
+
+This will:
+1. Install the `@automagik/genie` package globally
+2. Symlink the Claude Code plugin to `~/.claude/plugins/genie`
+3. Configure git hooks for agent identity injection
+4. Verify prerequisites with `genie doctor`
+
+## Manual Install
+
+### Via npm
+
+```bash
+npm install -g @automagik/genie
+```
+
+### Via Bun
+
+```bash
+bun install -g @automagik/genie
+```
+
+### From Source
+
+```bash
+git clone https://github.com/automagik-dev/genie.git
+cd genie
+bun install
+bun run build
+bun link
+```
+
+## Post-Install Setup
+
+After installing, run the setup wizard:
+
+```bash
+genie setup
+```
+
+This configures:
+- **Session management** — tmux session naming and window layout
+- **Terminal preferences** — shell, timeouts, read line counts
+- **Shortcuts** — shell aliases and tmux keybindings
+- **Codex integration** — optional OpenAI Codex support
+
+## Verify Installation
+
+Run the diagnostic tool to check everything is configured:
+
+```bash
+genie doctor
+```
+
+```
+Genie Doctor — Checking your setup...
+
+✓ genie CLI found (v4.260324.8)
+✓ Claude Code installed
+✓ tmux available (3.4)
+✓ Git configured
+✓ GitHub CLI authenticated
+✓ Plugin symlink active (~/.claude/plugins/genie → ...)
+✓ Git hooks configured
+✓ Config file exists (~/.genie/config.json)
+
+All checks passed.
+```
+
+## Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `GENIE_HOME` | `~/.genie` | Relocates all global state |
+| `GENIE_AGENT_NAME` | — | Agent identity for hook dispatch |
+| `GENIE_TEAM` | — | Default team when `--team` omitted |
+| `GENIE_IDLE_TIMEOUT_MS` | — | Auto-suspend idle workers |
+
+## Updating
+
+```bash
+genie update          # Stable channel
+genie update --next   # Development builds
+```
+
+## Uninstalling
+
+```bash
+genie uninstall
+```
+
+This removes the CLI, plugin symlink, and git hooks. Your project's `.genie/` state directory is preserved.

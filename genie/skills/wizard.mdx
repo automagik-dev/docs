@@ -1,0 +1,87 @@
+---
+title: "/wizard"
+description: "Guided onboarding — scaffold workspace, shape agent identity, create first wish, execute, and celebrate."
+---
+
+# /wizard — First-Run Onboarding
+
+Walk a new user (or their agent) through the complete Genie setup in five phases. Each phase has clear entry/exit criteria so the wizard can be interrupted and resumed.
+
+## When to Use
+
+- First time running Genie in a new project
+- User explicitly invokes `/wizard`
+- Bootstrap script directed the agent here after install
+- No `.genie/` directory or `AGENTS.md` exists in the current repo
+
+## Phases
+
+### Phase 1: Environment Check
+
+Verify prerequisites are in place:
+
+```
+Wizard Phase 1/5: Environment Check
+  genie CLI    ✅ v4.x.x
+  git repo     ✅
+  .genie/      ⬜ not found — will scaffold
+  AGENTS.md    ⬜ not found — will create
+  CLAUDE.md    ✅ found
+```
+
+If `genie` is not installed, directs the user to install first. If not in a git repo, asks the user to initialize one.
+
+### Phase 2: Agent Identity
+
+1. If `.genie/` does not exist, run `genie` to trigger scaffolding.
+2. Delegate to `/brainstorm` with seed context about shaping the agent identity for this project.
+3. Let `/brainstorm` explore the codebase, ask questions, and track WRS.
+4. Crystallize into an `AGENTS.md` when ready.
+
+**Skip option:** Creates a minimal `AGENTS.md` if the user wants to skip identity shaping.
+
+### Phase 3: First Wish
+
+1. Ask: "What's the first thing you'd like to build or fix?"
+2. If the idea is fuzzy, delegate to `/brainstorm`.
+3. Once concrete, delegate to `/wish` to create a structured wish plan.
+4. Run `/review` to validate the plan.
+
+```
+Wizard Phase 3/5: First Wish
+  Idea         ✅ "Add dark mode to the settings page"
+  Brainstorm   ✅ design crystallized
+  Wish plan    ✅ .genie/wishes/add-dark-mode/WISH.md
+  Review       ✅ SHIP — plan approved
+```
+
+### Phase 4: Execute
+
+1. Show execution summary (groups, estimated agents).
+2. Run `/work` on the approved wish.
+3. Monitor progress and report status.
+4. Run `/review` for final verification.
+
+### Phase 5: Celebrate
+
+Summarize what was accomplished and show next steps:
+
+```
+Your first wish has been granted!
+
+Wish:    add-dark-mode
+Status:  COMPLETE
+Files:   12 files changed, 340 insertions
+Review:  SHIP — all criteria met
+```
+
+Next steps include creating a PR, running another wish, setting up a team, or exploring other skills.
+
+## Resumption
+
+If interrupted and re-invoked, the wizard detects current state:
+
+- `.genie/` exists → skip scaffolding
+- `AGENTS.md` exists → skip identity
+- Approved wish exists → skip to Phase 4
+- Completed wish exists → skip to Phase 5

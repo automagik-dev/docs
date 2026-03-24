@@ -1,0 +1,85 @@
+---
+title: "/dream"
+description: "Batch-execute SHIP-ready wishes overnight — pick wishes, orchestrate workers, review PRs, wake up to results."
+---
+
+# /dream — Overnight Batch Execution
+
+Pick SHIP-ready wishes, build a dependency-ordered execution plan, spawn parallel workers, review PRs, merge to dev, run QA loop, produce a wake-up report.
+
+## When to Use
+
+- Human wants to queue multiple wishes for autonomous overnight execution
+- Multiple SHIP-ready wishes exist in `.genie/brainstorm.md` under `Poured`
+
+## Flow
+
+1. **Pick wishes** from `.genie/brainstorm.md`.
+2. **Generate DREAM.md** with dependency-ordered execution plan.
+3. **Human confirms** DREAM.md (may edit before run).
+4. **Phase 1 — Execute:** dispatch workers per wish via `genie work`.
+5. **Phase 2 — Review + PR:** review each group, create PRs, fix valid issues, CI green.
+6. **Phase 3 — Merge + QA:** merge to dev, spawn QA, test against wish criteria.
+7. **Phase 4 — Report:** write `DREAM-REPORT.md` as the wake-up artifact.
+
+## Picker
+
+1. Read `.genie/brainstorm.md`, locate the `Poured` section.
+2. Parse each SHIP-ready entry, extracting slug and description.
+3. Display numbered list for human selection.
+4. Accept numbers (`1 3 5`) or `all`.
+
+## DREAM.md Generation
+
+For each selected wish:
+1. Read `depends_on` from its WISH.md.
+2. Compute topological sort — assign `merge_order` layers.
+3. Same-layer wishes execute in parallel.
+
+## Phases
+
+### Phase 1: Execute
+
+- Create team: `genie team create dream-<date>`
+- Dispatch workers via `genie work <agent> <slug>#<group>`
+- Monitor via `genie status <slug>`
+- Workers signal completion via `genie send`
+
+### Phase 2: Review + PR
+
+- Leader creates PRs to dev after all groups done
+- Dispatch `/review` per PR
+- On FIX-FIRST: dispatch `/fix` (max 2 loops)
+- CI must be green before proceeding
+
+### Phase 3: Merge + QA
+
+- Merge PRs to dev in `merge_order`
+- Spawn QA: `genie spawn qa`
+- QA loop: test → `/report` → `/trace` → `/fix` → retest
+
+### Phase 4: Report
+
+Write `DREAM-REPORT.md`:
+
+```markdown
+# Dream Report — <date>
+
+## Per-Wish Status
+| merge_order | slug | PR link | CI | Review | Merged | QA |
+|-------------|------|---------|----|--------|--------|----|
+
+## Blocked Wishes
+## QA Findings
+## Follow-ups
+```
+
+Then disband the team: `genie team disband dream-<date>`.
+
+## Rules
+
+- Never early-stop — if a wish is BLOCKED, record reason and continue
+- Never skip Phase 2 — every PR must be reviewed
+- Never skip Phase 3 — every merge must be QA-tested
+- Orchestrator never executes work directly — dispatch via `genie work`
+- Always write DREAM-REPORT.md, even if all wishes BLOCKED

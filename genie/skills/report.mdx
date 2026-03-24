@@ -1,0 +1,80 @@
+---
+title: "/report"
+description: "Investigate bugs comprehensively — cascade through /trace, capture browser evidence, and auto-create a GitHub issue."
+---
+
+# /report — Comprehensive Bug Report
+
+Investigate bugs end-to-end: collect symptoms, run `/trace` for root cause analysis, capture browser evidence, pull observability data, and auto-create a GitHub issue with all findings.
+
+## When to Use
+
+- A bug needs thorough, documented investigation before fixing
+- A GitHub issue is needed with reproduction steps, root cause, and evidence
+- Multiple evidence sources should be combined into one report
+- During QA loop: test failures need investigation
+
+## Flow
+
+### Phase 1: Collect Symptoms
+
+Accept user input:
+- **Bug description** — what's going wrong
+- **URL** (optional) — page or endpoint where the bug manifests
+- **Error messages** — any error text, stack traces, or console output
+- **Expected vs actual behavior**
+
+### Phase 2: Run /trace (Code-Level Investigation)
+
+Always run. Dispatches `/trace` for source analysis, reproduction, root cause hypothesis, and causal chain construction.
+
+### Phase 3: Browser Investigation (Opportunistic)
+
+If a URL or dev server is available, capture:
+- Screenshots of affected pages
+- Console errors and warnings
+- Failed network requests
+
+Uses `agent-browser` when available. Degrades gracefully if not installed.
+
+### Phase 4: Observability Data (Project-Dependent)
+
+Detect and query project-configured observability tools:
+
+| Tool | Detection |
+|------|-----------|
+| Sentry | `SENTRY_DSN` env var, `@sentry/*` in package.json |
+| PostHog | `POSTHOG_KEY` env var |
+| DataDog | `DD_API_KEY` env var |
+| Generic logs | `*.log` files, `logs/` directory |
+
+### Phase 5: Compile Report
+
+Merge all evidence into a structured GitHub issue body with sections for summary, reproduction steps, root cause analysis, evidence (screenshots, console, network, observability), environment, and suggested fix.
+
+### Phase 6: Create GitHub Issue
+
+```bash
+gh issue create --title '<title>' --body '<report>' --label bug
+```
+
+Falls back to printing the report as markdown if `gh` is not authenticated.
+
+## Degradation Rules
+
+Each phase is independent — failure in one never blocks the others:
+
+| Condition | Behavior |
+|-----------|----------|
+| No browser / no URL | Skip Phase 3, add note |
+| No observability tools | Skip Phase 4, add note |
+| No `gh` auth | Print report to stdout |
+| `/trace` fails | Continue with available evidence |
+
+## Rules
+
+- Always run `/trace` first — it's the backbone of every report
+- One question at a time when collecting symptoms
+- Never modify source code — investigation only
+- The report must be self-contained
+- If identical to an existing open issue, link instead of duplicating

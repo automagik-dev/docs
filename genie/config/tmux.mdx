@@ -1,0 +1,194 @@
+---
+title: "tmux Integration"
+description: "Sessions, windows, panes, keyboard shortcuts, and agent transport"
+---
+
+# tmux Integration
+
+tmux is the transport layer for all Genie agents. Every spawned agent runs in a tmux pane, receives messages via `send-keys` injection, and is monitored through pane content capture. Understanding the tmux structure helps with debugging and manual intervention.
+
+## Session Architecture
+
+```
+tmux session: "genie" (or team-specific name)
+├── window: "shell"          # Default interactive window
+├── window: "team-lead"      # Team leader agent
+├── window: "engineer"       # Engineer agent
+│   ├── pane %14             # Primary pane (Claude Code)
+│   └── pane %15             # Sub-pane (if split)
+├── window: "reviewer"       # Reviewer agent
+└── window: "qa"             # QA agent
+```
+
+### Naming Conventions
+
+| Entity | Naming Pattern | Example |
+|--------|---------------|---------|
+| Session | Team name or `genie` | `feat-auth-fix` |
+| Window | Agent role or task ID | `engineer`, `wish-42` |
+| Pane | Auto-assigned by tmux | `%14`, `%15` |
+
+## Agent Lifecycle in tmux
+
+### Spawn
+
+When `genie spawn engineer` runs:
+
+1. Find or create the tmux session (based on team or default)
+2. Create a new window named after the agent role
+3. Launch Claude Code in the window's pane with the appropriate arguments
+4. Register the agent in the worker registry with the pane ID
+
+```bash
+# What genie spawn actually does (simplified):
+tmux new-window -t genie -n engineer
+tmux send-keys -t genie:engineer \
+  'claude --dangerously-skip-permissions \
+   --append-system-prompt-file ~/.genie/prompts/engineer.md' Enter
+```
+
+### Message Delivery
+
+Messages are injected into panes using `tmux send-keys`:
+
+```bash
+tmux send-keys -t %14 'message text here' Enter
+```
+
+Delivery only happens when the agent is detected as idle (at a prompt). The orchestrator detects state by capturing pane content and pattern-matching for prompt indicators.
+
+### State Detection
+
+The orchestrator captures pane content to determine agent state:
+
+```bash
+tmux capture-pane -t %14 -p -S -30  # Capture last 30 lines
+```
+
+State is inferred from the captured output:
+
+| Pattern | Detected State |
+|---------|---------------|
+| Prompt character visible (`>`, `$`) | `idle` |
+| Tool execution in progress | `working` |
+| Permission dialog visible | `permission` |
+| Question prompt visible | `question` |
+| Process exited | `done` |
+
+### Kill and Suspend
+
+```bash
+genie kill engineer     # Kill the tmux pane (agent dies)
+genie stop engineer     # Graceful stop (sends interrupt)
+```
+
+Killed agents transition to `suspended` in the registry. Their session ID is preserved for potential resume.
+
+## Session Management
+
+### Current Session
+
+Genie detects the current tmux session through a fallback chain:
+
+1. **Inside tmux** (`$TMUX` set) — use `display-message` for authoritative session name
+2. **Outside tmux** — `list-sessions`, prefer session matching a hint (team name)
+
+### Auto-Create
+
+When `session.autoCreate` is `true` (default), Genie automatically creates the tmux session if it doesn't exist. This means `genie spawn` works even if tmux has no sessions.
+
+### Team Sessions
+
+Each team gets its own tmux session (or window group). The session name is derived from the sanitized team name:
+
+```
+Team: feat/auth-fix → Session: feat-auth-fix
+```
+
+## Keyboard Shortcuts
+
+Install shortcuts with `genie setup --shortcuts` or `genie shortcuts install`.
+
+### tmux Shortcuts
+
+| Shortcut | Action | How It Works |
+|----------|--------|-------------|
+| `Prefix + G` | Open Genie | Bound via tmux.conf |
+| `Prefix + g` | Quick status | Shows `genie ls` output |
+
+### Shell Aliases
+
+| Alias | Expansion |
+|-------|-----------|
+| `genie` | Launches or attaches to the Genie tmux session |
+
+## Mosaic Layout
+
+For teams with multiple agents, Genie supports a mosaic layout that tiles all agent panes in a single view:
+
+```
+┌──────────────────┬──────────────────┐
+│   team-lead      │   engineer       │
+│                  │                  │
+├──────────────────┼──────────────────┤
+│   reviewer       │   qa             │
+│                  │                  │
+└──────────────────┴──────────────────┘
+```
+
+The mosaic layout is computed by `mosaic-layout.ts` and applied via `tmux select-layout`.
+
+## Configuration
+
+tmux-related settings in `~/.genie/config.json`:
+
+```json
+{
+  "session": {
+    "name": "genie",
+    "defaultWindow": "shell",
+    "autoCreate": true
+  },
+  "terminal": {
+    "execTimeout": 120000,
+    "readLines": 100
+  },
+  "logging": {
+    "tmuxDebug": false
+  }
+}
+```
+
+| Setting | Effect |
+|---------|--------|
+| `session.name` | Default tmux session name |
+| `session.defaultWindow` | Window name for non-agent use |
+| `session.autoCreate` | Create session automatically |
+| `terminal.execTimeout` | Timeout for tmux command execution (ms) |
+| `terminal.readLines` | Lines to capture from pane for state detection |
+| `logging.tmuxDebug` | Enable verbose tmux command logging |
+
+## Troubleshooting
+
+### Agent Not Receiving Messages
+
+1. Check if the pane is alive: `tmux list-panes -t genie -a`
+2. Check agent state: `genie ls` — should show `idle`
+3. Check mailbox for pending messages: look at `.genie/mailbox/<agent>.json`
+
+### Session Not Found
+
+```bash
+# List all tmux sessions
+tmux list-sessions
+
+# Create the default session manually
+tmux new-session -d -s genie
+```
+
+### Pane Content Not Captured
+
+If `genie read` or state detection fails, check:
+- `terminal.readLines` is sufficient (increase if prompts are far from bottom)
+- The pane ID in the worker registry matches an actual tmux pane
+- tmux server hasn't been restarted since agents were spawned

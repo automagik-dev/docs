@@ -1,0 +1,105 @@
+---
+title: "Architecture Overview"
+description: "How Genie v4 components connect — from CLI to database to agents"
+---
+
+# Architecture Overview
+
+Genie v4 is an agent orchestration system that turns wishes (structured plans) into pull requests through autonomous AI agents. The architecture is built around five subsystems that work together.
+
+## High-Level Component Map
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                     genie CLI                           │
+│  (commander.js entry point → src/genie.ts)              │
+├─────────────┬──────────────┬────────────────────────────┤
+│  Skills     │  Commands    │  Hooks                     │
+│  /brainstorm│  team create │  PreToolUse → identity     │
+│  /wish      │  spawn       │  PreToolUse → auto-spawn   │
+│  /work      │  send        │  PostToolUse → nats-emit   │
+│  /review    │  status      │  Stop → nats-emit          │
+└──────┬──────┴──────┬───────┴──────────┬─────────────────┘
+       │             │                  │
+       ▼             ▼                  ▼
+┌─────────────┐ ┌──────────┐  ┌──────────────────┐
+│  Wish State │ │  Agent   │  │  NATS Pub/Sub    │
+│  (PG tasks) │ │ Registry │  │  (observability) │
+└──────┬──────┘ │ (~/.genie│  └────────┬─────────┘
+       │        │ /workers │           │
+       │        │  .json)  │           │
+       │        └────┬─────┘           │
+       │             │                 │
+       ▼             ▼                 ▼
+┌──────────────────────────────────────────────────┐
+│                   pgserve                        │
+│  Embedded PostgreSQL (port 19642)                │
+│  schedules · triggers · runs · tasks · messages  │
+└──────────────────────────────────────────────────┘
+       │
+       ▼
+┌──────────────────────────────────────────────────┐
+│                tmux Transport                    │
+│  Sessions → Windows → Panes (one per agent)     │
+│  send-keys injection · pane capture · state      │
+└──────────────────────────────────────────────────┘
+```
+
+## Subsystems
+
+| Subsystem | Module | Purpose |
+|-----------|--------|---------|
+| **State** | `wish-state.ts`, `agent-registry.ts`, `mailbox.ts`, `team-manager.ts` | Track wish execution groups, worker lifecycle, message delivery, team configs |
+| **Postgres** | `db.ts`, `db-migrations.ts`, `task-service.ts` | Embedded pgserve database for tasks, schedules, conversations, audit events |
+| **Messaging** | `nats-client.ts`, `protocol-router.ts`, `claude-native-teams.ts` | Real-time pub/sub, provider-agnostic routing, Claude Code native IPC bridge |
+| **Scheduler** | `scheduler-daemon.ts`, `cron.ts` | Cron-based trigger firing, lease-based claiming, heartbeat collection |
+| **Transcripts** | `transcript.ts`, `claude-logs.ts`, `codex-logs.ts` | Provider-agnostic log reading from Claude Code and Codex sessions |
+
+## Data Flow: Wish to PR
+
+<Steps>
+  <Step title="Plan">
+    `/brainstorm` → `/wish` creates a `WISH.md` with execution groups and acceptance criteria.
+  </Step>
+  <Step title="Decompose">
+    `/work` reads `WISH.md`, creates PG tasks (parent = wish, children = groups), and resolves dependencies.
+  </Step>
+  <Step title="Dispatch">
+    The team-lead spawns agents into tmux panes via `genie spawn`. Each agent gets a worktree clone and a group assignment.
+  </Step>
+  <Step title="Execute">
+    Agents work autonomously. Hooks inject identity into messages, auto-spawn offline agents, and emit events to NATS.
+  </Step>
+  <Step title="Converge">
+    As groups complete (`genie done`), the wish state machine recalculates dependent groups. Blocked groups become ready.
+  </Step>
+  <Step title="Review">
+    `/review` validates all criteria. If issues are found, `/fix` loops until the reviewer returns SHIP.
+  </Step>
+</Steps>
+
+## State Fragmentation
+
+Genie state is intentionally distributed across four scopes:
+
+| Scope | Location | What Lives Here |
+|-------|----------|-----------------|
+| **Global** | `~/.genie/` | Worker registry, team configs, sessions, pgserve data |
+| **Per-repo** | `<repo>/.genie/` | Wish state, mailbox, team chat |
+| **Per-worktree** | `<worktree>/.genie/` | Team chat (worktree-specific) |
+| **Claude native** | `~/.claude/teams/` | Native team configs, inbox messages |
+
+Worktrees share the main repo's `.genie/` via `git rev-parse --git-common-dir`. The worker registry is global, not per-worktree.
+
+## Environment Variables
+
+| Variable | Effect |
+|----------|--------|
+| `GENIE_HOME` | Relocates all global state from `~/.genie` |
+| `GENIE_AGENT_NAME` | Agent identity for hook dispatch (must be set for auto-spawn) |
+| `GENIE_TEAM` | Default team when `--team` not provided |
+| `GENIE_NATS_URL` | NATS server URL (default: `nats://localhost:4222`) |
+| `GENIE_PG_PORT` | pgserve port (default: `19642`) |
+| `GENIE_MAX_CONCURRENT` | Max concurrent scheduler runs (default: `5`) |
+| `GENIE_IDLE_TIMEOUT_MS` | Auto-suspend idle workers after N ms |
+| `CLAUDECODE=1` | Enables Claude Code features in team-lead |

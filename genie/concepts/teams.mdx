@@ -1,0 +1,200 @@
+---
+title: "Teams"
+sidebarTitle: "Teams"
+description: "Multi-agent squads that coordinate through worktrees, messaging, and shared state."
+---
+
+# Teams
+
+A **team** is a group of agents working together on a wish. The team-lead orchestrates, engineers build, reviewers validate — all in isolated git worktrees with shared state.
+
+## Creating a Team
+
+```bash
+genie team create auth-fix --repo . --wish auth-bug
+```
+
+This command:
+1. Creates a git worktree for isolated work
+2. Spawns a **team-lead** agent
+3. Registers the team in `~/.genie/teams/<name>.json`
+4. The team-lead reads the wish and dispatches workers
+
+<Frame>
+  <CodeGroup>
+```bash Create Team
+$ genie team create auth-fix --repo . --wish auth-bug
+✅ Team "auth-fix" created
+  Worktree: ~/.genie/worktrees/myapp/auth-fix
+  Branch:   team/auth-fix (from dev)
+  Wish:     auth-bug
+  Leader spawned with wish context.
+```
+
+```bash Team Lead Dispatches
+$ genie ls
+AGENT       STATUS    PANE   PROVIDER   MODEL     TEAM
+team-lead   running   %40    claude     opus      auth-fix
+engineer    running   %41    claude     sonnet    auth-fix
+engineer    running   %42    claude     sonnet    auth-fix
+reviewer    idle      %43    claude     sonnet    auth-fix
+
+$ genie status auth-bug
+Wish: auth-bug
+Status: IN_PROGRESS
+
+Wave 1:
+  🔄 Group 1: Fix token validation     in_progress  (engineer %41)
+  🔄 Group 2: Update error handling    in_progress  (engineer %42)
+
+Wave 2:
+  🔒 Group 3: Integration tests        blocked  (depends: 1, 2)
+```
+
+```bash Team Complete
+$ genie status auth-bug
+Wish: auth-bug
+Status: REVIEW
+
+Wave 1:
+  ✅ Group 1: Fix token validation     done     14:30
+  ✅ Group 2: Update error handling    done     14:32
+
+Wave 2:
+  ✅ Group 3: Integration tests        done     14:45
+
+Review: SHIP ✨
+PR #89: "fix: auth token validation and error handling"
+```
+  </CodeGroup>
+</Frame>
+
+## Team Structure
+
+Every team has a hierarchy:
+
+```
+team-lead
+├── engineer (Group 1)
+├── engineer (Group 2)
+├── reviewer
+└── qa
+```
+
+The **team-lead** is the orchestrator — it reads the wish, dispatches execution groups to engineers, runs fix loops when review returns FIX-FIRST, and creates the PR when everything passes.
+
+## Worktree Isolation
+
+Each team works in its own git worktree:
+
+```
+~/.genie/worktrees/<repo>/<team-name>/
+```
+
+Worktrees provide:
+- **Isolation** — each team has its own working tree, no merge conflicts between teams
+- **Shared state** — `.genie/` directory is shared via `git rev-parse --git-common-dir`
+- **Clean cleanup** — `genie team disband` removes the worktree
+
+## Team Lifecycle
+
+```
+create → active → [review] → done/disbanded
+```
+
+| Phase | What happens |
+|-------|-------------|
+| **Create** | Worktree created, team-lead spawned |
+| **Active** | Engineers working on execution groups |
+| **Review** | Work complete, reviewer validating |
+| **Done** | PR created, team can be disbanded |
+| **Disbanded** | Worktree removed, agents stopped |
+
+## Managing Teams
+
+```bash
+genie team ls                          # List active teams
+genie team hire engineer --team auth   # Add an agent to a team
+genie team fire engineer --team auth   # Remove an agent
+genie team done auth                   # Mark team work complete
+genie team disband auth                # Remove team and worktree
+```
+
+## Communication Within Teams
+
+### Direct Messages
+
+Send a message to a specific agent:
+
+```bash
+genie send 'focus on the API layer first' --to engineer --team auth
+```
+
+### Team Broadcast
+
+Message all team members:
+
+```bash
+genie send 'switching to review phase' --to team --team auth
+```
+
+### Reading Team Chat
+
+```bash
+genie chat --team auth
+```
+
+Team chat is stored in `.genie/chat/<team>.jsonl` — a newline-delimited JSON log of all messages.
+
+## Autonomous Execution
+
+When a team is created with a wish, the team-lead runs autonomously:
+
+1. **Reads the wish** — parses execution groups and dependencies
+2. **Dispatches groups** — spawns engineers for independent groups in parallel
+3. **Monitors progress** — checks completion via `genie done` signals
+4. **Runs fix loops** — if review returns FIX-FIRST, dispatches fix agents
+5. **Creates PR** — when review returns SHIP, creates the pull request
+
+The entire flow from `genie team create` to PR can run without human intervention.
+
+## Native Teams (Claude Code Integration)
+
+Genie integrates with Claude Code's native team feature:
+
+```
+~/.claude/teams/<team>/config.json
+```
+
+Native teams provide:
+- Built-in teammate messaging via `SendMessage`
+- Shared task lists in `~/.claude/tasks/<team>/`
+- Team-wide context through team config
+
+Genie bridges both its own team system and Claude Code native teams, so agents can use either communication channel.
+
+## Team State
+
+| File | Location | Purpose |
+|------|----------|---------|
+| Team config | `~/.genie/teams/<name>.json` | Team metadata and member list |
+| Worker registry | `~/.genie/workers.json` | Agent status and tmux sessions |
+| Team chat | `.genie/chat/<team>.jsonl` | Message history |
+| Wish state | `.genie/state/<slug>.json` | Execution progress |
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="One wish per team">
+    Each team should focus on a single wish. If you have multiple wishes, create multiple teams.
+  </Accordion>
+  <Accordion title="Let the team-lead orchestrate">
+    Don't micromanage — the team-lead knows the wish pipeline. Intervene only when blocked.
+  </Accordion>
+  <Accordion title="Use worktrees for parallel work">
+    Worktrees prevent merge conflicts. Two teams working on different wishes in the same repo won't step on each other.
+  </Accordion>
+  <Accordion title="Disband when done">
+    Teams consume tmux sessions and disk space. Disband after the PR is merged.
+  </Accordion>
+</AccordionGroup>

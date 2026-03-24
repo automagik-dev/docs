@@ -1,0 +1,180 @@
+---
+title: "Messaging & Routing"
+description: "NATS pub/sub, protocol router, and Claude Code native teams bridge"
+---
+
+# Messaging & Routing
+
+Genie's messaging layer routes messages between agents regardless of their backing provider (Claude Code or Codex). Three systems work together: NATS for real-time pub/sub, the protocol router for delivery, and the Claude native teams bridge for IPC.
+
+## NATS Pub/Sub
+
+NATS provides real-time observability across the entire agent fleet. The client is a lazy singleton that connects on first use and auto-closes after 500ms idle when there are no active subscriptions.
+
+### Connection Behavior
+
+| Behavior | Detail |
+|----------|--------|
+| Connect | Lazy on first publish/subscribe |
+| Reconnect | Automatic via NATS client |
+| Idle cleanup | 500ms after last active subscription |
+| Unavailable | Silent no-op (NATS is optional) |
+| URL | `GENIE_NATS_URL` or `nats://localhost:4222` |
+
+### Subject Hierarchy
+
+Hook handlers emit events to structured NATS subjects:
+
+| Subject Pattern | Event Source | Data |
+|----------------|--------------|------|
+| `genie.tool.{agent}.call` | PreToolUse (all tools) | Tool name, input, agent, team |
+| `genie.msg.{recipient}` | PostToolUse:SendMessage | From, to, message content |
+| `genie.user.{agent}.prompt` | UserPromptSubmit | Agent name, prompt text |
+| `genie.agent.{agent}.response` | Stop | Agent name, response summary |
+
+All NATS emissions are fire-and-forget — they never block execution. If NATS is unavailable, events are silently dropped.
+
+### Hook Integration
+
+Four hook handlers power the NATS event stream:
+
+```typescript
+// From src/hooks/index.ts
+const handlers = [
+  { name: 'nats-emit-tool',     event: 'PreToolUse',       priority: 30 },
+  { name: 'nats-emit-msg',      event: 'PostToolUse',      priority: 30 },
+  { name: 'nats-emit-user-prompt', event: 'UserPromptSubmit', priority: 30 },
+  { name: 'nats-emit-assistant-response', event: 'Stop',    priority: 30 },
+];
+```
+
+## Protocol Router
+
+The protocol router (`protocol-router.ts`) is provider-agnostic. It routes messages between workers regardless of whether they are backed by Claude or Codex.
+
+### Resolution Order
+
+When a message is sent to a recipient, the router resolves the target through a strict tiered search:
+
+```
+1. Agent directory by name → built-in agents by name
+2. Worker registry: exact ID > role > team:role
+3. Auto-spawn: if agent offline + in directory → spawn → deliver
+4. Native inbox fallback (Claude Code IPC)
+```
+
+### Delivery Flow
+
+```
+genie send "fix the bug" --to engineer
+         │
+         ▼
+  Protocol Router
+         │
+    ┌────┴────┐
+    │ Resolve │  Worker registry lookup
+    │ target  │  (ID > role > team:role)
+    └────┬────┘
+         │
+    ┌────┴────┐
+    │ Persist │  Write to mailbox JSON
+    │ message │  (.genie/mailbox/<id>.json)
+    └────┬────┘
+         │
+    ┌────┴────┐
+    │ Is pane │──No──→ Auto-spawn from template
+    │ alive?  │         Wait up to 15s for idle
+    └────┬────┘
+         │ Yes
+    ┌────┴────┐
+    │Is worker│──No──→ Queue for later delivery
+    │  idle?  │
+    └────┬────┘
+         │ Yes
+    ┌────┴────────┐
+    │ tmux        │  send-keys injection
+    │ send-keys   │  into the pane
+    └─────────────┘
+```
+
+### Auto-Spawn
+
+When a message targets an offline agent that exists in the directory or has a saved spawn template, the router automatically spawns a new instance:
+
+- Spawn from saved template (provider, team, role, skill, cwd)
+- Wait up to 15 seconds for the worker to reach idle state
+- Poll every 1 second for pane readiness
+- Deliver message once idle, or queue if timeout expires
+
+## Claude Code Native Teams
+
+The native teams bridge (`claude-native-teams.ts`) connects Genie's team/worker system with Claude Code's internal teammate IPC protocol.
+
+### What Native Teams Provide
+
+| Feature | Mechanism |
+|---------|-----------|
+| Inbox polling | Filesystem-based — agents auto-poll `~/.claude/teams/<team>/inbox/<agent>/` |
+| Member registry | `config.json` in team directory lists all members |
+| Shutdown protocol | Structured JSON messages for graceful teardown |
+| Plan approval | Structured JSON messages for plan review flow |
+| Direct messages | File drops to inbox directories |
+
+### Directory Structure
+
+```
+~/.claude/teams/<team-name>/
+├── config.json          # Team config: name, members, lead
+├── inbox/
+│   ├── engineer/
+│   │   ├── msg-001.json # Pending messages
+│   │   └── msg-002.json
+│   └── reviewer/
+│       └── msg-003.json
+└── ...
+```
+
+### Member Registration
+
+When a worker joins a team with native teams enabled, it is registered in the team's `config.json`:
+
+```typescript
+interface NativeTeamMember {
+  agentId: string;
+  name: string;
+  agentType: string;
+  joinedAt: number;
+  tmuxPaneId?: string;
+  cwd?: string;
+  backendType: 'tmux' | 'in-process';
+  color: string;           // Visual distinction in UI
+  planModeRequired: boolean;
+  isActive: boolean;
+}
+```
+
+### Dual Delivery
+
+When native teams are enabled, the protocol router attempts both delivery mechanisms:
+
+1. **Native inbox** — file drop to `~/.claude/teams/<team>/inbox/<agent>/`
+2. **tmux send-keys** — direct pane injection (traditional path)
+
+This ensures messages arrive even if one delivery mechanism is unavailable.
+
+## Event Aggregator
+
+The event aggregator (`event-aggregator.ts`) subscribes to the normalized event stream and maintains per-worker dashboard state:
+
+```typescript
+interface WorkerDashboardState {
+  paneId: string;
+  wishId?: string;
+  status: 'running' | 'waiting' | 'idle' | 'stopped';
+  lastEvent?: { type: string; toolName?: string; timestamp: number };
+  lastActivityAt: number;
+  eventCount: number;
+}
+```
+
+When the event stream is unavailable, the aggregator falls back to building state from the worker registry.

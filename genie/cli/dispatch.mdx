@@ -1,0 +1,137 @@
+---
+title: "Dispatch"
+description: "Context-injecting dispatch commands — brainstorm, wish, work, review, done, reset, status."
+---
+
+# Dispatch Commands
+
+Context-injecting spawn commands that bridge the wish state machine and agent spawn. Each command extracts relevant context from wish artifacts and injects it into the spawned agent.
+
+## `genie brainstorm`
+
+Spawn an agent with brainstorm DRAFT.md content.
+
+```bash
+genie brainstorm <agent> <slug>
+```
+
+```bash Terminal
+$ genie brainstorm engineer auth-flow
+Spawning engineer with brainstorm context...
+  Slug: auth-flow
+  Draft: .genie/brainstorms/auth-flow/DRAFT.md
+  Context injected via --append-system-prompt-file
+```
+
+## `genie wish`
+
+Spawn an agent with DESIGN.md content.
+
+```bash
+genie wish <agent> <slug>
+```
+
+```bash Terminal
+$ genie wish engineer add-oauth
+Spawning engineer with design context...
+  Slug: add-oauth
+  Design: .genie/brainstorms/add-oauth/DESIGN.md
+  Context injected via --append-system-prompt-file
+```
+
+## `genie work`
+
+Check state, start execution group, spawn agent with wish context.
+
+```bash
+genie work <agent> <slug>#<group>
+```
+
+```bash Terminal
+$ genie work engineer add-oauth#1
+Group 1 status: ready → in_progress
+Spawning engineer with group context...
+  Wish: .genie/wishes/add-oauth/WISH.md
+  Group: 1 — "API endpoints"
+  Context: wish summary + scope + group deliverables
+```
+
+## `genie review`
+
+Spawn a reviewer with group context and git diff.
+
+```bash
+genie review <agent> <slug>#<group>
+```
+
+```bash Terminal
+$ genie review reviewer add-oauth#1
+Spawning reviewer with review context...
+  Wish: .genie/wishes/add-oauth/WISH.md
+  Group: 1 — "API endpoints"
+  Git diff: 12 files changed
+  Context: acceptance criteria + diff
+```
+
+## `genie done`
+
+Mark an execution group as done, unblock dependents, push work, and notify the team lead on wave completion.
+
+```bash
+genie done <slug>#<group>
+```
+
+```bash Terminal
+$ genie done add-oauth#1
+✅ Group 1 marked done.
+  Dependents unblocked: Group 3
+  Wave 1: 2/2 complete
+  Notified team-lead: "Wave 1 complete"
+```
+
+## `genie status`
+
+Pretty-print wish state overview.
+
+```bash
+genie status <slug>
+```
+
+```bash Terminal
+$ genie status add-oauth
+Wish: add-oauth
+Status: IN_PROGRESS
+
+Wave 1:
+  ✅ Group 1: API endpoints              done     Mar 24, 14:30
+  🔄 Group 2: Database migrations        in_progress
+
+Wave 2:
+  🔒 Group 3: Frontend integration       blocked  (depends: 1, 2)
+
+Wave 3:
+  🔒 Group 4: Tests                      blocked  (depends: 3)
+  🟢 review: Final review                ready
+```
+
+## `genie reset`
+
+Reset a stuck or failed execution group back to ready state.
+
+```bash
+genie reset <slug>#<group>
+```
+
+```bash Terminal
+$ genie reset add-oauth#2
+🔄 Group 2 reset to "ready".
+```
+
+## Context Injection
+
+All dispatch commands inject:
+1. The file path to the full document (so the agent can read it)
+2. The extracted section content (so the agent has immediate context)
+3. Wish-level context when available (summary, scope, decisions)
+
+Context is written to a temp file and passed via `--append-system-prompt-file`.

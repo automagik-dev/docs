@@ -1,0 +1,154 @@
+---
+title: "Agents"
+sidebarTitle: "Agents"
+description: "Autonomous workers with identities, roles, and lifecycle management."
+---
+
+# Agents
+
+An **agent** in Genie is a Claude Code (or Codex) instance running in a tmux pane with a defined identity and role. Agents are spawned, managed, and coordinated through the CLI.
+
+## Agent Identity
+
+Every agent has three identity files that shape its behavior:
+
+### SOUL.md
+
+The agent's core identity — purpose, temperament, and principles. This is injected into the agent's system prompt at startup.
+
+```markdown
+# Engineer Soul
+
+You are an execution-focused engineer. You implement features
+and fixes per the execution group assigned to you.
+
+## Principles
+- Read before writing — understand existing code first
+- Ship the minimum — don't over-engineer
+- Test what you build — if it's not tested, it's not done
+```
+
+### HEARTBEAT.md
+
+The checklist an agent runs on each `/loop` iteration. Defines what to check, what to do, and when to exit.
+
+```markdown
+# Engineer Heartbeat
+
+1. Check task assignments
+2. Read wish execution group
+3. Implement deliverables
+4. Run validation commands
+5. Report completion to team-lead
+6. If no assignments, exit
+```
+
+### AGENTS.md
+
+Agent configuration — spawn profiles, default models, and team assignments. Placed in the project root to configure project-specific agent behavior.
+
+## Built-in Roles
+
+Genie ships with specialized agent roles:
+
+| Role | Type | Purpose |
+|------|------|---------|
+| **team-lead** | Leader | Orchestrates wish execution, dispatches workers, manages PRs |
+| **pm** | Leader | Project management — backlog coordination, team oversight |
+| **engineer** | Executor | Implements features and fixes per execution group |
+| **fix** | Executor | Repairs FIX-FIRST gaps from review |
+| **refactor** | Executor | Structural code improvements |
+| **docs** | Executor | Documentation generation and validation |
+| **reviewer** | Validator | Quality gates — returns SHIP or FIX-FIRST |
+| **qa** | Validator | Acceptance criteria verification on dev branch |
+| **trace** | Investigator | Root cause analysis for unknown failures |
+| **learn** | Learner | Behavioral correction from user feedback |
+| **council** | Deliberator | Multi-perspective architectural review |
+
+## Spawning Agents
+
+```bash
+genie spawn engineer                    # Basic spawn
+genie spawn engineer --team my-team     # Spawn into a team
+genie spawn reviewer --model opus       # Specify model
+genie spawn engineer --skill work       # Pre-load a skill
+```
+
+Each spawn creates a tmux pane and registers the agent in the global worker registry (`~/.genie/workers.json`).
+
+## Agent Lifecycle
+
+```
+spawn → active → [suspended] → stopped/killed
+                    ↑    ↓
+                  resume  stop
+```
+
+| State | Meaning |
+|-------|---------|
+| `active` | Running in a tmux pane, processing tasks |
+| `suspended` | Paused (idle timeout or manual stop), session preserved |
+| `stopped` | Gracefully stopped, session saved for resume |
+| `killed` | Force-terminated, session lost |
+
+### Managing Agents
+
+```bash
+genie ls                    # List all agents with status
+genie read engineer         # Read agent's terminal output
+genie stop engineer         # Graceful stop (preserves session)
+genie resume engineer       # Resume a stopped agent
+genie kill engineer         # Force kill (no session save)
+genie answer engineer yes   # Answer a pending question
+```
+
+## Agent Communication
+
+Agents communicate through two channels:
+
+### Direct Messages (Mailbox)
+
+Point-to-point messages stored in `.genie/mailbox/<worker>.json`:
+
+```bash
+genie send 'implement the auth module' --to engineer
+genie inbox                 # Check your messages
+```
+
+### Team Chat
+
+Broadcast messages visible to all team members, stored in `.genie/chat/<team>.jsonl`:
+
+```bash
+genie send 'group 1 is complete' --to team
+genie chat                  # Read team chat history
+```
+
+## Worker Registry
+
+All spawned agents are tracked globally:
+
+```
+~/.genie/workers.json
+```
+
+This registry maps agent names to their tmux sessions, PIDs, teams, and status. The `genie ls` command reads this file.
+
+## Council: Multi-Agent Deliberation
+
+The **council** is a special agent mode that spawns 10 specialist perspectives for architectural review:
+
+| Specialist | Focus |
+|-----------|-------|
+| Questioner | Challenge assumptions — "Why? Is there a simpler way?" |
+| Benchmarker | Performance evidence — "Show me the benchmarks." |
+| Simplifier | Complexity reduction — "Delete code. Ship features." |
+| Sentinel | Security oversight — "Where are the secrets?" |
+| Ergonomist | Developer experience — "If you need docs, the API failed." |
+| Architect | Systems thinking — "Talk is cheap. Show me the code." |
+| Operator | Operations reality — "No one wants to run your code." |
+| Deployer | Zero-config deployment — "Zero-config with infinite scale." |
+| Measurer | Observability — "Measure, don't guess." |
+| Tracer | Production debugging — "You will debug this in production." |
+
+Use `/council` to invoke a multi-perspective review of any architectural decision.

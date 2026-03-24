@@ -1,0 +1,123 @@
+---
+title: "Infrastructure"
+description: "Setup, diagnostics, updates, and terminal shortcuts — setup, doctor, update, shortcuts."
+---
+
+# Infrastructure Commands
+
+Commands for setting up Genie, diagnosing issues, updating, and configuring terminal shortcuts.
+
+## `genie setup`
+
+Interactive wizard for configuring Genie settings.
+
+```bash
+genie setup [options]
+```
+
+```bash Terminal
+$ genie setup
+╔════════════════════════════════════════════════════════════════╗
+║                  ✨ Genie Setup Wizard ✨                     ║
+╠════════════════════════════════════════════════════════════════╣
+║  Terminal: tmux                                               ║
+║  Session:  auto                                               ║
+║  Codex:    not configured                                     ║
+╚════════════════════════════════════════════════════════════════╝
+
+? Configure terminal shortcuts? (Y/n)
+? Set up Codex integration? (Y/n)
+? Configure session naming? (auto/manual)
+```
+
+### Options
+
+| Flag | Description |
+|------|-------------|
+| `--quick` | Skip interactive prompts, use defaults |
+| `--shortcuts` | Only configure terminal shortcuts |
+| `--codex` | Only configure Codex integration |
+| `--terminal` | Only configure terminal settings |
+| `--session` | Only configure session naming |
+| `--reset` | Reset all settings to defaults |
+| `--show` | Show current configuration |
+
+```bash Terminal
+$ genie setup --show
+Genie Configuration:
+  Config: ~/.genie/config.json
+  Terminal: tmux
+  Session naming: auto
+  Shortcuts: installed
+  Codex: configured (OTel relay on port 4318)
+```
+
+## `genie doctor`
+
+Diagnose the Genie installation and environment.
+
+```bash
+genie doctor
+```
+
+```bash Terminal
+$ genie doctor
+Genie Doctor — Checking your environment...
+
+  genie CLI       ✅ v4.260324.8
+  bun runtime     ✅ v1.2.x
+  tmux            ✅ v3.4
+  git             ✅ v2.43.0
+  claude code     ✅ installed
+  PostgreSQL      ✅ connected (pgserve)
+  NATS            ⚠️  not running (optional)
+  .genie/         ✅ scaffolded
+  AGENTS.md       ✅ found
+  CLAUDE.md       ✅ found
+
+Summary: 9/10 checks passed. 1 warning.
+```
+
+## `genie update`
+
+Update Genie to the latest version.
+
+```bash
+genie update
+```
+
+```bash Terminal
+$ genie update
+Checking for updates...
+  Current: v4.260324.7
+  Latest:  v4.260324.8
+Updating...
+  ✅ Updated to v4.260324.8
+```
+
+## `genie shortcuts`
+
+Configure Warp-like keyboard shortcuts for tmux.
+
+```bash
+genie shortcuts
+```
+
+Generates and installs:
+
+| Platform | Config | Shortcuts |
+|----------|--------|-----------|
+| tmux | `~/.tmux.conf` | Ctrl+T (new tab), Ctrl+S (vertical split), Ctrl+Shift+S (horizontal split) |
+| Termux | `~/.termux/termux.properties` | F1 (new tab), F2 (vsplit), F3 (hsplit) |
+| Shell | `~/.bashrc` / `~/.zshrc` | Helper functions + disable Ctrl+S flow control |
+
+```bash Terminal
+$ genie shortcuts
+Installing keyboard shortcuts...
+  tmux config:    ✅ written to ~/.tmux.conf
+  shell config:   ✅ appended to ~/.zshrc
+  termux config:  ⬜ skipped (not on Termux)
+
+Shortcuts installed! Restart tmux to apply:
+  tmux source ~/.tmux.conf
+```

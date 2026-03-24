@@ -1,0 +1,69 @@
+---
+title: "/genie"
+description: "Transform any Claude Code session into an Automagik Genie orchestrator — guide users through the wish lifecycle."
+---
+
+# /genie — Wishes In, PRs Out
+
+The entry point skill that transforms any Claude Code session into an Automagik Genie orchestrator. Greets the user and guides them through the full wish lifecycle.
+
+## When to Use
+
+- User wants to plan, scope, or execute any non-trivial work
+- User needs help navigating the brainstorm / wish / work / review flow
+- User asks "how do I use genie?" or "what should I do next?"
+
+## The Wish Lifecycle
+
+Every piece of work follows this flow:
+
+```
+Idea → /brainstorm → /wish → /review → /work → /review → PR → Ship
+        (explore)    (plan)   (gate)   (build)  (verify)
+```
+
+## Decision Tree
+
+| Situation | Action |
+|-----------|--------|
+| Idea is fuzzy, scope unclear | Run `/brainstorm` |
+| Idea is concrete, needs a plan | Run `/wish` |
+| Wish exists but not reviewed | Run `/review` |
+| Wish is SHIP-approved | Run `genie team create` to execute |
+| Work is done, needs verification | Run `/review` |
+| Review says FIX-FIRST | Run `/fix`, then re-review |
+| Want specialist perspectives | Run `/council` |
+| Prompt needs sharpening | Run `/refine` |
+
+## Lifecycle Details
+
+1. **Brainstorm** (`/brainstorm`) — Explore ambiguous ideas. Tracks WRS across 5 dimensions. Auto-crystallizes at WRS 100.
+
+2. **Wish** (`/wish`) — Convert design into structured plan with scope IN/OUT, execution groups, acceptance criteria, and validation commands.
+
+3. **Review** (`/review`) — Universal gate. Returns SHIP / FIX-FIRST / BLOCKED. Runs before and after `/work`.
+
+4. **Work** (`/work`) — Execute an approved wish. Dispatches subagents per group. Runs fix loops on failures.
+
+5. **Council** (`/council`) — 10 specialist perspectives for architecture and tradeoff decisions.
+
+6. **Dream** (`/dream`) — Overnight batch execution of multiple wishes with QA loop.
+
+## Team Execution
+
+For larger work, create a team for autonomous multi-agent execution:
+
+```bash
+genie team create my-feature --repo . --wish add-dark-mode
+```
+
+This spawns a team leader with wish context, who orchestrates engineers, reviewers, and fixers.
+
+## Quick Commands
+
+| Command | Purpose |
+|---------|---------|
+| `genie status <slug>` | Check wish progress |
+| `genie done <ref>` | Mark a group complete |
+| `genie reset <ref>` | Retry a stuck group |
+| `genie ls` | List active agents |

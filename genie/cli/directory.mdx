@@ -1,0 +1,114 @@
+---
+title: "Directory"
+description: "Agent directory CRUD — add, remove, list, and edit agent registrations."
+---
+
+# Directory Commands
+
+Agent directory management — register, remove, list, and edit agent entries.
+
+## `genie dir add`
+
+Register an agent in the directory.
+
+```bash
+genie dir add <name> --dir <path> [options]
+```
+
+```bash Terminal
+$ genie dir add sofia --dir ~/agents/sofia --model opus --roles engineer,reviewer
+Agent "sofia" registered (project).
+  Dir: ~/agents/sofia
+  Prompt mode: append
+  Model: opus
+  Roles: engineer, reviewer
+```
+
+### Options
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--dir <path>` | Agent folder (CWD + AGENTS.md) | **Required** |
+| `--repo <path>` | Default git repo | — |
+| `--prompt-mode <mode>` | Prompt mode: append or system | `append` |
+| `--model <model>` | Default model (sonnet, opus, codex) | — |
+| `--roles <roles...>` | Built-in roles this agent can orchestrate | — |
+| `--global` | Write to global directory instead of project | — |
+
+## `genie dir rm`
+
+Remove an agent from the directory.
+
+```bash
+genie dir rm <name> [--global]
+```
+
+```bash Terminal
+$ genie dir rm sofia
+Agent "sofia" removed from project directory.
+```
+
+## `genie dir ls`
+
+List all registered agents or show details for a specific agent.
+
+```bash
+genie dir ls [<name>]
+```
+
+```bash Terminal
+$ genie dir ls
+AGENT     DIR                    MODEL    ROLES              SCOPE
+sofia     ~/agents/sofia         opus     engineer,reviewer  project
+marco     ~/agents/marco         sonnet   engineer           global
+
+$ genie dir ls sofia
+Agent: sofia
+  Dir:         ~/agents/sofia
+  Repo:        ~/projects/myapp
+  Prompt mode: append
+  Model:       opus
+  Roles:       engineer, reviewer
+  Scope:       project
+```
+
+## `genie dir edit`
+
+Update fields on an existing agent entry.
+
+```bash
+genie dir edit <name> [options]
+```
+
+```bash Terminal
+$ genie dir edit sofia --model sonnet --roles engineer
+Agent "sofia" updated.
+  Model: opus → sonnet
+  Roles: engineer,reviewer → engineer
+```
+
+## `genie agent register`
+
+Register an agent locally and auto-register in Omni (if configured).
+
+```bash
+genie agent register <name>
+```
+
+```bash Terminal
+$ genie agent register sofia
+Agent "sofia" registered locally.
+  Omni registration: ✅ connected to omni-api
+  Provider: automagik-genie
+```
+
+## Scope
+
+Agent entries can be stored at two levels:
+
+| Scope | Location | Use case |
+|-------|----------|----------|
+| **Project** | `.genie/directory.json` | Agents specific to this repo |
+| **Global** | `~/.genie/directory.json` | Agents available across all repos |
+
+Use `--global` to target the global directory.

@@ -1,0 +1,207 @@
+---
+title: "Agents"
+description: "Agent lifecycle commands — spawn, kill, stop, resume, ls, history, read, answer."
+---
+
+# Agent Commands
+
+Top-level commands for managing agent lifecycle — spawning, stopping, listing, and inspecting agents.
+
+### Agent Lifecycle at a Glance
+
+<Frame>
+  <CodeGroup>
+```bash Spawn
+$ genie spawn engineer
+Spawning engineer...
+  Provider: claude
+  Model: sonnet
+  Pane: %42
+  Session: myapp
+
+$ genie spawn reviewer --model opus
+Spawning reviewer...
+  Provider: claude
+  Model: opus
+  Pane: %43
+  Session: myapp
+```
+
+```bash List & Monitor
+$ genie ls
+AGENT       STATUS    PANE   PROVIDER   MODEL
+engineer    running   %42    claude     sonnet
+reviewer    running   %43    claude     opus
+fixer       stopped   %44    claude     sonnet
+
+$ genie history engineer
+Session Summary for engineer (compressed):
+  Duration: 12m
+  Files modified: src/auth/middleware.ts, src/auth/config.ts
+  Key actions:
+    1. Read WISH.md for Group 1 context
+    2. Implemented OAuth middleware
+    3. Added token validation
+    4. Ran tests — all passing
+  Status: Complete
+```
+
+```bash Read & Interact
+$ genie read engineer
+[engineer %42] Last 5 messages:
+
+  assistant: Reading WISH.md for Group 1 deliverables...
+  tool:      Read(.genie/wishes/add-oauth/WISH.md)
+  assistant: Implementing OAuth middleware in src/auth/
+  tool:      Write(src/auth/middleware.ts)
+  assistant: All tests passing. Group 1 complete.
+
+$ genie answer engineer 'focus on edge cases in token refresh'
+Message sent to engineer (pane %42).
+```
+
+```bash Stop & Cleanup
+$ genie stop engineer
+Stopped agent "engineer". Use 'genie resume engineer' to continue.
+
+$ genie resume engineer
+Resumed engineer in pane %42.
+
+$ genie kill reviewer
+Killed agent "reviewer" (pane %43).
+```
+  </CodeGroup>
+</Frame>
+
+## `genie spawn`
+
+Spawn a new agent in a tmux pane.
+
+```bash
+genie spawn <name> [--model <model>] [--provider <provider>]
+```
+
+```bash Terminal
+$ genie spawn engineer
+Spawning engineer...
+  Provider: claude
+  Model: sonnet
+  Pane: %42
+  Session: myapp
+```
+
+Built-in agent roles: `engineer`, `reviewer`, `fixer`, `tracer`, `qa`, `docs`.
+
+### Options
+
+| Flag | Description |
+|------|-------------|
+| `--model <model>` | Model override (sonnet, opus, codex) |
+| `--provider <provider>` | Provider (claude, codex) |
+
+## `genie resume`
+
+Resume a stopped agent or all stopped agents.
+
+```bash
+genie resume <name>
+genie resume --all
+```
+
+```bash Terminal
+$ genie resume engineer
+Resumed engineer in pane %42.
+
+$ genie resume --all
+Resumed 3 agents: engineer, reviewer, fixer
+```
+
+## `genie kill`
+
+Terminate an agent and its tmux pane.
+
+```bash
+genie kill <name>
+```
+
+```bash Terminal
+$ genie kill engineer
+Killed agent "engineer" (pane %42).
+```
+
+## `genie stop`
+
+Gracefully stop an agent (preserves state for resume).
+
+```bash
+genie stop <name>
+```
+
+```bash Terminal
+$ genie stop engineer
+Stopped agent "engineer". Use 'genie resume engineer' to continue.
+```
+
+## `genie ls`
+
+List all active agents.
+
+```bash
+genie ls
+```
+
+```bash Terminal
+$ genie ls
+AGENT       STATUS    PANE   PROVIDER   MODEL
+engineer    running   %42    claude     sonnet
+reviewer    running   %43    claude     sonnet
+fixer       stopped   %44    claude     sonnet
+```
+
+## `genie history`
+
+View a compressed summary of an agent's session by parsing provider logs.
+
+```bash
+genie history <agent> [options]
+```
+
+```bash Terminal
+$ genie history engineer
+Session Summary for engineer (compressed):
+  Duration: 12m
+  Files modified: src/auth/middleware.ts, src/auth/config.ts
+  Key actions:
+    1. Read WISH.md for Group 1 context
+    2. Implemented OAuth middleware
+    3. Added token validation
+    4. Ran tests — all passing
+  Status: Complete
+```
+
+### Options
+
+| Flag | Description |
+|------|-------------|
+| `--full` | Full conversation (not compressed) |
+| `--since <n>` | Last N user/assistant exchanges |
+| `--last <n>` | Last N transcript entries |
+| `--type <role>` | Filter by role (user, assistant, tool) |
+| `--json` | JSON output |
+| `--ndjson` | Newline-delimited JSON (pipeable to jq) |
+
+## `genie read`
+
+Read an agent's current transcript or output.
+
+```bash
+genie read <agent>
+```
+
+## `genie answer`
+
+Send a response to an agent that is waiting for input.
+
+```bash
+genie answer <agent> '<response>'
+```
