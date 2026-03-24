@@ -15,23 +15,23 @@ Real-world patterns discovered by Genie users. Each hack solves a specific probl
 **Have a hack?** See [Contributing](#contributing) at the bottom to submit yours via PR.
 
 <CardGroup cols={2}>
-  <Card title="Provider Switching" icon="shuffle" href="#hack-1-provider-switching-for-speed-vs-safety">
+  <Card title="Provider switching" icon="shuffle" href="#hack-1-provider-switching-for-speed-vs-safety">
     Use the right model for the right job
   </Card>
-  <Card title="Teams & Coordination" icon="users" href="#hack-3-pipeline-parallelization">
+  <Card title="Teams & coordination" icon="users" href="#hack-3-pipeline-parallelization">
     Multi-agent speed and org-scale patterns
   </Card>
-  <Card title="Skills & Automation" icon="wand-magic-sparkles" href="#hack-5-overnight-batch-execution">
+  <Card title="Skills & automation" icon="wand-magic-sparkles" href="#hack-5-overnight-batch-execution">
     Batch runs and custom workflows
   </Card>
-  <Card title="Hooks & Integration" icon="plug" href="#hack-7-auto-spawn-on-wish-creation">
+  <Card title="Hooks & integration" icon="plug" href="#hack-7-auto-spawn-on-wish-creation">
     Event-driven automation and external tools
   </Card>
 </CardGroup>
 
 ---
 
-## Provider Switching
+## Provider switching
 
 ### Hack 1: Provider Switching for Speed vs Safety
 
@@ -82,7 +82,7 @@ genie spawn reviewer --provider claude --model opus             # general review
 
 ---
 
-## Teams & Coordination
+## Teams & coordination
 
 ### Hack 3: Pipeline Parallelization
 
@@ -141,7 +141,7 @@ genie team create ui-team --repo . --wish ui-refresh
 
 ---
 
-## Skills & Automation
+## Skills & automation
 
 ### Hack 5: Overnight Batch Execution
 
@@ -230,7 +230,7 @@ See [Skills concept guide](/genie/concepts/skills) for frontmatter options and t
 
 ---
 
-## Hooks & Integration
+## Hooks & integration
 
 ### Hack 7: Auto-Spawn on Wish Creation
 
@@ -365,7 +365,7 @@ gh repo fork automagik-dev/docs --clone
 # 3. Create a PR
 git add genie/hacks.mdx
 git commit -m "hack: your hack title"
-gh pr create --base dev --title "hack: your hack title" --body "
+gh pr create --base main --title "hack: your hack title" --body "
 ## New Hack
 
 **Category:** providers | teams | skills | hooks
