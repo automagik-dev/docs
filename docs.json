@@ -29,7 +29,8 @@
               "genie/concepts/wishes",
               "genie/concepts/agents",
               "genie/concepts/teams",
-              "genie/concepts/skills"
+              "genie/concepts/skills",
+              "genie/concepts/byoa"
             ]
           },
           {
