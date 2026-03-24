@@ -20,6 +20,55 @@ This command:
 3. Registers the team in `~/.genie/teams/<name>.json`
 4. The team-lead reads the wish and dispatches workers
 
+<Frame>
+  <CodeGroup>
+```bash Create Team
+$ genie team create auth-fix --repo . --wish auth-bug
+✅ Team "auth-fix" created
+  Worktree: ~/.genie/worktrees/myapp/auth-fix
+  Branch:   team/auth-fix (from dev)
+  Wish:     auth-bug
+  Leader spawned with wish context.
+```
+
+```bash Team Lead Dispatches
+$ genie ls
+AGENT       STATUS    PANE   PROVIDER   MODEL     TEAM
+team-lead   running   %40    claude     opus      auth-fix
+engineer    running   %41    claude     sonnet    auth-fix
+engineer    running   %42    claude     sonnet    auth-fix
+reviewer    idle      %43    claude     sonnet    auth-fix
+
+$ genie status auth-bug
+Wish: auth-bug
+Status: IN_PROGRESS
+
+Wave 1:
+  🔄 Group 1: Fix token validation     in_progress  (engineer %41)
+  🔄 Group 2: Update error handling    in_progress  (engineer %42)
+
+Wave 2:
+  🔒 Group 3: Integration tests        blocked  (depends: 1, 2)
+```
+
+```bash Team Complete
+$ genie status auth-bug
+Wish: auth-bug
+Status: REVIEW
+
+Wave 1:
+  ✅ Group 1: Fix token validation     done     14:30
+  ✅ Group 2: Update error handling    done     14:32
+
+Wave 2:
+  ✅ Group 3: Integration tests        done     14:45
+
+Review: SHIP ✨
+PR #89: "fix: auth token validation and error handling"
+```
+  </CodeGroup>
+</Frame>
+
 ## Team Structure
 
 Every team has a hierarchy:

@@ -7,6 +7,72 @@ description: "Agent lifecycle commands — spawn, kill, stop, resume, ls, histor
 
 Top-level commands for managing agent lifecycle — spawning, stopping, listing, and inspecting agents.
 
+### Agent Lifecycle at a Glance
+
+<Frame>
+  <CodeGroup>
+```bash Spawn
+$ genie spawn engineer
+Spawning engineer...
+  Provider: claude
+  Model: sonnet
+  Pane: %42
+  Session: myapp
+
+$ genie spawn reviewer --model opus
+Spawning reviewer...
+  Provider: claude
+  Model: opus
+  Pane: %43
+  Session: myapp
+```
+
+```bash List & Monitor
+$ genie ls
+AGENT       STATUS    PANE   PROVIDER   MODEL
+engineer    running   %42    claude     sonnet
+reviewer    running   %43    claude     opus
+fixer       stopped   %44    claude     sonnet
+
+$ genie history engineer
+Session Summary for engineer (compressed):
+  Duration: 12m
+  Files modified: src/auth/middleware.ts, src/auth/config.ts
+  Key actions:
+    1. Read WISH.md for Group 1 context
+    2. Implemented OAuth middleware
+    3. Added token validation
+    4. Ran tests — all passing
+  Status: Complete
+```
+
+```bash Read & Interact
+$ genie read engineer
+[engineer %42] Last 5 messages:
+
+  assistant: Reading WISH.md for Group 1 deliverables...
+  tool:      Read(.genie/wishes/add-oauth/WISH.md)
+  assistant: Implementing OAuth middleware in src/auth/
+  tool:      Write(src/auth/middleware.ts)
+  assistant: All tests passing. Group 1 complete.
+
+$ genie answer engineer 'focus on edge cases in token refresh'
+Message sent to engineer (pane %42).
+```
+
+```bash Stop & Cleanup
+$ genie stop engineer
+Stopped agent "engineer". Use 'genie resume engineer' to continue.
+
+$ genie resume engineer
+Resumed engineer in pane %42.
+
+$ genie kill reviewer
+Killed agent "reviewer" (pane %43).
+```
+  </CodeGroup>
+</Frame>
+
 ## `genie spawn`
 
 Spawn a new agent in a tmux pane.

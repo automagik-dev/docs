@@ -40,10 +40,34 @@ Get Genie running and ship your first feature — all through your AI agent.
     then use /wizard for guided onboarding.
     ```
 
-    Genie scaffolds your project with:
-    - `AGENTS.md` — agent directory and roles
-    - `SOUL.md` — your agent's identity and principles
-    - `.genie/` — state directory for wishes, mailbox, and chat
+    Genie detects a fresh project and scaffolds everything:
+
+    <Frame>
+      <CodeGroup>
+```bash Scaffold Flow
+$ genie
+🔍 Scanning project...
+
+⚠ No AGENTS.md found — this looks like a fresh project.
+
+Scaffolding your agent workspace...
+  Creating AGENTS.md...        ✓
+  Creating SOUL.md...          ✓
+  Creating .genie/wishes/...   ✓
+  Creating .genie/state/...    ✓
+  Configuring git hooks...     ✓
+
+✨ Project scaffolded successfully!
+
+Your agent workspace is ready:
+  AGENTS.md    → agent directory and roles
+  SOUL.md      → agent identity and principles
+  .genie/      → wishes, state, mailbox, chat
+
+Next: run /wizard for guided onboarding.
+```
+      </CodeGroup>
+    </Frame>
   </Step>
 
   <Step title="Brainstorm Your First Idea">
@@ -93,7 +117,80 @@ Get Genie running and ship your first feature — all through your AI agent.
 
 ## What Just Happened?
 
-You went from an idea to a pull request using five slash commands:
+You went from an idea to a pull request using five slash commands. Here's the full pipeline in action:
+
+<Frame>
+  <CodeGroup>
+```bash /brainstorm
+$ /brainstorm Add a dark mode toggle to the settings page
+
+🧠 Brainstorming "dark-mode-toggle"...
+
+Exploring scope...
+  ✓ Dark mode CSS variables
+  ✓ Toggle component in settings
+  ✓ Persistent preference via localStorage
+
+Identifying constraints...
+  ✓ Must avoid FOUC on page load
+  ✓ Existing component tests must pass
+
+Design crystallized → ready for /wish
+  Draft: .genie/brainstorms/dark-mode-toggle/DESIGN.md
+```
+
+```bash /wish
+$ /wish
+
+📋 Converting brainstorm to wish...
+  Source: .genie/brainstorms/dark-mode-toggle/DESIGN.md
+
+Writing WISH.md...
+  ✓ Summary and scope
+  ✓ 4 success criteria
+  ✓ 2 execution groups (1 parallel, 1 sequential)
+
+Wish created: .genie/wishes/dark-mode-toggle/WISH.md
+Status: APPROVED — ready for /work
+```
+
+```bash /work
+$ /work
+
+🔨 Executing wish "dark-mode-toggle"...
+
+Wave 1 (parallel):
+  ✅ Group 1: CSS Variables         engineer  done   14:30
+  ✅ Group 2: Toggle Component      engineer  done   14:32
+
+All groups complete. Running validation...
+  ✓ bun test — 42 passed, 0 failed
+  ✓ bun run typecheck — no errors
+
+Ready for /review
+```
+
+```bash /review
+$ /review
+
+🔍 Reviewing wish "dark-mode-toggle"...
+
+Checking criteria:
+  ✅ Toggle renders in settings page
+  ✅ CSS variables switch between light/dark
+  ✅ Preference persists across sessions
+  ✅ No FOUC on page load
+  ✅ All existing tests pass
+
+Verdict: SHIP ✨
+
+Creating pull request...
+  PR #47: "feat: add dark mode toggle to settings"
+  Branch: feat/dark-mode-toggle → dev
+  URL: https://github.com/myapp/myapp/pull/47
+```
+  </CodeGroup>
+</Frame>
 
 | Step | Skill | Output |
 |------|-------|--------|
