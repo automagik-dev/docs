@@ -19,6 +19,7 @@
             "group": "Getting Started",
             "pages": [
               "genie/index",
+              "genie/features",
               "genie/quickstart",
               "genie/installation"
             ]
