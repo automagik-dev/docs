@@ -3,9 +3,11 @@ title: "Contributing"
 description: "Development setup, code style, quality gates, and plugin development"
 ---
 
+{/* Genie is built by exhausted developers, for exhausted developers. You'll fit right in. */}
+
 # Contributing
 
-Genie is built with Bun and TypeScript. This guide covers setting up a development environment, running quality gates, and building plugins.
+Genie is built with Bun and TypeScript. This guide covers setting up a development environment, running quality gates, and building plugins. We build in public because that's the only honest way to build developer tools.
 
 ## Development Setup
 
@@ -261,3 +263,18 @@ test/<description>
 - **Hook dispatch has a 15-second hard timeout** — handlers that exceed this silently timeout.
 - **System prompt injection can fail silently** — if the prompt file write fails, Claude Code dies on startup trying to read it.
 - **Mailbox delivery is best-effort** — dead pane = message stays `deliveredAt: null` forever.
+
+---
+
+## Community
+
+Genie is open source and we want your help — code, docs, bug reports, wild ideas, even polite disagreements about our architecture choices. Especially those, actually.
+
+<CardGroup cols={2}>
+  <Card title="Discord" icon="discord" href="https://discord.gg/automagik">
+    Chat with contributors, ask questions, share what you're building.
+  </Card>
+  <Card title="GitHub" icon="github" href="https://github.com/automagik-dev/genie">
+    Issues, PRs, and the code itself. Star if you're feeling generous.
+  </Card>
+</CardGroup>
