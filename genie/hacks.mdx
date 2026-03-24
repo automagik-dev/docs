@@ -1,0 +1,385 @@
+---
+title: "Genie Hacks"
+sidebarTitle: "Hacks & Tips"
+description: "Community-contributed patterns, techniques, and cost tips for getting the most out of Genie."
+---
+
+# Genie Hacks
+
+Real-world patterns discovered by Genie users. Each hack solves a specific problem with a concrete, tested solution.
+
+**What is a hack?** A non-obvious technique that makes Genie faster, cheaper, or more capable — beyond what the docs explicitly cover.
+
+**How to browse:** Scan the categories below, or use `/genie-hacks search <keyword>` to find hacks by problem.
+
+**Have a hack?** See [Contributing](#contributing) at the bottom to submit yours via PR.
+
+<CardGroup cols={2}>
+  <Card title="Provider switching" icon="shuffle" href="#hack-1-provider-switching-for-speed-vs-safety">
+    Use the right model for the right job
+  </Card>
+  <Card title="Teams & coordination" icon="users" href="#hack-3-pipeline-parallelization">
+    Multi-agent speed and org-scale patterns
+  </Card>
+  <Card title="Skills & automation" icon="wand-magic-sparkles" href="#hack-5-overnight-batch-execution">
+    Batch runs and custom workflows
+  </Card>
+  <Card title="Hooks & integration" icon="plug" href="#hack-7-auto-spawn-on-wish-creation">
+    Event-driven automation and external tools
+  </Card>
+</CardGroup>
+
+---
+
+## Provider switching
+
+### Hack 1: Provider Switching for Speed vs Safety
+
+**Problem:** You want fast iteration during development but thorough review before merging. Using the same model for both wastes time or misses bugs.
+
+**Solution:** Use `--provider` and `--model` flags on `genie spawn` to assign different models to different roles. Fast models (Sonnet, Codex) handle implementation; capable models (Opus) handle review and architecture.
+
+```bash
+# Fast engineers for implementation (Sonnet is 5x faster, 80% cheaper)
+genie spawn engineer --provider claude --model sonnet
+
+# Thorough reviewer for quality gates (Opus catches subtle bugs)
+genie spawn reviewer --provider claude --model opus
+
+# Or use Codex for pure code generation tasks
+genie spawn engineer --provider codex --model codex-mini
+```
+
+**Benefit:** 3-5x faster implementation cycles with the same review quality. Typical cost reduction of 60-70% on engineering tasks while maintaining Opus-level review.
+
+**When to use:** Any team with more than one agent. Especially effective for wishes with many execution groups where implementation is straightforward but review needs to be thorough.
+
+---
+
+### Hack 2: BYOA (Bring Your Own API) for Domain Expertise
+
+**Problem:** Your project has domain-specific patterns (ML pipelines, blockchain contracts, embedded systems) that general models handle poorly. You want to use a fine-tuned or specialized model.
+
+**Solution:** Configure a custom provider in your Genie setup that points to any OpenAI-compatible API. Genie's provider system is model-agnostic — anything that speaks the chat completions protocol works.
+
+```bash
+# Set up a custom provider endpoint
+export OPENAI_API_BASE="https://your-custom-model.example.com/v1"
+export OPENAI_API_KEY="your-key"
+
+# Spawn an agent using your custom model
+genie spawn engineer --provider openai --model your-domain-model
+
+# Mix providers in the same team
+genie team create ml-feature --repo . --wish ml-pipeline
+genie spawn engineer --provider openai --model your-ml-model   # domain expert
+genie spawn reviewer --provider claude --model opus             # general reviewer
+```
+
+**Benefit:** Domain-specific models produce better first-pass code for specialized tasks, reducing fix loops. The general-purpose reviewer catches integration issues the specialist misses.
+
+**When to use:** When your codebase has strong domain conventions that general models don't follow well. Common for ML/data pipelines, smart contracts, embedded C, or projects with heavy DSL usage.
+
+---
+
+## Teams & coordination
+
+### Hack 3: Pipeline Parallelization
+
+**Problem:** A wish with 6 execution groups takes forever when run sequentially. Each group takes 10-15 minutes, so the total is over an hour.
+
+**Solution:** Structure your wish with independent execution groups and let Genie's `/work` orchestrator dispatch them in parallel waves. Groups without dependencies run simultaneously.
+
+```bash
+# In your WISH.md, structure groups for parallelism:
+# Wave 1 (parallel): Group 1, Group 2, Group 3 — no dependencies
+# Wave 2 (parallel): Group 4, Group 5 — depends on Wave 1
+# Wave 3: Group 6 — integration, depends on all
+
+# The team-lead dispatches Wave 1 agents in parallel
+genie team create fast-ship --repo . --wish my-feature
+# Team-lead auto-detects independent groups and spawns 3 engineers simultaneously
+
+# Monitor all agents at once
+genie status my-feature
+# Wave 1:
+#   🔄 Group 1: API endpoints        in_progress  (engineer %41)
+#   🔄 Group 2: Database migrations   in_progress  (engineer %42)
+#   🔄 Group 3: Frontend components   in_progress  (engineer %43)
+```
+
+**Benefit:** A 6-group wish that takes 90 minutes sequentially finishes in ~30 minutes with 3 parallel agents. The bottleneck shifts from execution to review.
+
+**When to use:** Wishes with 3+ execution groups where at least 2 groups have no shared dependencies. Best for feature work that spans backend, frontend, and infrastructure.
+
+---
+
+### Hack 4: Multi-Team Coordination (Org-Scale)
+
+**Problem:** You have multiple wishes in flight across different parts of the codebase. Teams step on each other, cause merge conflicts, and duplicate work.
+
+**Solution:** Use separate worktrees per team — Genie does this automatically with `genie team create`. Each team gets an isolated git worktree branching from `dev`, so they can't interfere with each other. Coordinate merges through the `/dream` orchestrator which handles dependency ordering.
+
+```bash
+# Each team gets its own worktree — zero conflicts during development
+genie team create auth-team --repo . --wish auth-overhaul
+genie team create api-team --repo . --wish api-v2
+genie team create ui-team --repo . --wish ui-refresh
+
+# Teams work in isolation:
+# ~/.genie/worktrees/myapp/auth-team/  → branch: team/auth-team
+# ~/.genie/worktrees/myapp/api-team/   → branch: team/api-team
+# ~/.genie/worktrees/myapp/ui-team/    → branch: team/ui-team
+
+# When wishes are SHIP-ready, use /dream to merge in dependency order
+# /dream picks SHIP-ready wishes, resolves ordering, merges to dev sequentially
+```
+
+**Benefit:** Zero merge conflicts during development. Each team operates independently. The `/dream` orchestrator handles merge ordering so dependent wishes merge in the right sequence.
+
+**When to use:** When you have 2+ wishes that touch different parts of the codebase. Essential for teams running overnight batch execution where merge order matters.
+
+---
+
+## Skills & automation
+
+### Hack 5: Overnight Batch Execution
+
+**Problem:** You have 5 approved wishes queued up. Running them one-by-one during work hours wastes your time monitoring agents.
+
+**Solution:** Use the `/dream` skill to batch-execute SHIP-ready wishes overnight. Dream picks wishes from your brainstorm backlog, builds a dependency-ordered plan, spawns parallel workers, reviews PRs, and produces a wake-up report.
+
+```bash
+# Queue wishes during the day
+/brainstorm    # Explore ideas
+/wish          # Crystallize into structured plans
+/review        # Get SHIP approval on plans
+
+# At end of day, kick off overnight batch
+/dream
+
+# Dream shows you the execution plan:
+# DREAM.md — Execution Plan
+# ┌─────────┬──────────────────┬─────────────┐
+# │ Order   │ Wish             │ Dependencies│
+# ├─────────┼──────────────────┼─────────────┤
+# │ 1       │ auth-overhaul    │ none        │
+# │ 1       │ api-v2           │ none        │
+# │ 2       │ ui-refresh       │ api-v2      │
+# │ 3       │ integration-test │ all         │
+# └─────────┴──────────────────┴─────────────┘
+# Confirm? [y/N]
+
+# Wake up to DREAM-REPORT.md:
+# ✅ auth-overhaul  — PR #142, merged to dev, QA passed
+# ✅ api-v2         — PR #143, merged to dev, QA passed
+# ⚠️  ui-refresh     — PR #144, FIX-FIRST (2 issues), fix loop exhausted
+# ✅ integration-test — PR #145, merged to dev, QA passed
+```
+
+**Benefit:** Wake up to completed PRs instead of starting work from scratch. A typical overnight run ships 3-5 wishes while you sleep.
+
+**When to use:** When you have 2+ SHIP-ready wishes in your brainstorm backlog. Best triggered at end of day — give it 8+ hours for complex wish sets.
+
+<Info>
+See the [/dream skill reference](/genie/skills/dream) for the full phase breakdown and configuration options.
+</Info>
+
+---
+
+### Hack 6: Custom Skill for Repeated Workflows
+
+**Problem:** You keep typing the same sequence of commands for a recurring task — like running migrations, seeding test data, and restarting the dev server. It's error-prone and tedious to explain each time.
+
+**Solution:** Create a custom skill file. Skills are just Markdown with YAML frontmatter — drop a file in `skills/<name>/SKILL.md` and it becomes a slash command instantly. No code, no registration, no build step.
+
+```bash
+# Create your custom skill
+mkdir -p skills/reset-dev
+cat > skills/reset-dev/SKILL.md << 'EOF'
+---
+name: reset-dev
+description: Reset dev environment — migrate, seed, restart
+---
+
+# Reset Dev Environment
+
+Run these steps in order:
+
+1. **Stop services:** `docker compose down`
+2. **Reset database:** `docker compose run --rm api rails db:reset`
+3. **Run migrations:** `docker compose run --rm api rails db:migrate`
+4. **Seed data:** `docker compose run --rm api rails db:seed`
+5. **Start services:** `docker compose up -d`
+6. **Verify:** `curl -s http://localhost:3000/health | jq .status`
+
+Report the health check result when done.
+EOF
+
+# Now use it anytime:
+# /reset-dev
+```
+
+**Benefit:** Encode your team's tribal knowledge into reusable, version-controlled workflows. New team members (human or agent) get the same consistency.
+
+**When to use:** Any workflow you've explained more than twice. Common examples: deploy to staging, run specific test suites, update API docs, generate client SDKs.
+
+<Info>
+See [Skills concept guide](/genie/concepts/skills) for frontmatter options and trigger configuration.
+</Info>
+
+---
+
+## Hooks & integration
+
+### Hack 7: Auto-Spawn on Wish Creation
+
+**Problem:** After creating a wish with `/wish`, you still have to manually create a team and spawn agents. That's 2-3 extra commands before work begins.
+
+**Solution:** Genie's hook system fires events on every tool use. The `auto-spawn` handler already restarts crashed agents — you can extend this pattern by adding a hook that listens for wish file creation and automatically kicks off a team.
+
+```bash
+# In your Claude Code settings (~/.claude/settings.json), add a hook:
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write",
+        "hooks": [
+          "bash -c 'if echo \"$CLAUDE_TOOL_INPUT\" | grep -q \"WISH.md\"; then SLUG=$(echo \"$CLAUDE_TOOL_INPUT\" | grep -oP \"wishes/\\K[^/]+\"); genie team create \"auto-$SLUG\" --repo . --wish \"$SLUG\"; fi'"
+        ]
+      }
+    ]
+  }
+}
+
+# Now when /wish writes a WISH.md file, a team auto-spawns:
+# 1. /wish crystallizes your idea into .genie/wishes/my-feature/WISH.md
+# 2. PostToolUse:Write fires
+# 3. Hook detects WISH.md path, extracts slug
+# 4. genie team create auto-my-feature --repo . --wish my-feature
+# 5. Team-lead spawns, reads wish, starts dispatching
+```
+
+**Benefit:** Zero-friction from idea to execution. Type `/wish`, describe what you want, and agents start working immediately after the plan is written.
+
+**When to use:** When you want a fully autonomous pipeline where brainstorming flows directly into execution. Combine with `/dream` for batch mode.
+
+<Warning>
+This auto-spawns a team for every wish creation. Add a confirmation step or status check if you want human approval before execution begins.
+</Warning>
+
+---
+
+### Hack 8: Slack/Discord Integration via NATS Hooks
+
+**Problem:** You want to monitor agent progress from Slack or Discord instead of watching tmux panes. You also want to trigger agents from chat.
+
+**Solution:** Genie emits events to NATS on every tool call, message delivery, and agent response. Subscribe to these NATS subjects and forward them to your chat platform's webhook API.
+
+```bash
+# Genie already emits these NATS events (built-in hooks):
+# genie.tool.{agent}.call    — every tool use
+# genie.msg.{recipient}      — every message delivery
+# genie.user.{agent}.prompt  — every user prompt
+# genie.agent.{agent}.response — every assistant response
+
+# Simple NATS → Slack forwarder (Node.js example):
+import { connect } from 'nats'
+const nc = await connect({ servers: 'nats://localhost:4222' })
+
+// Subscribe to all agent responses
+const sub = nc.subscribe('genie.agent.*.response')
+for await (const msg of sub) {
+  const event = JSON.parse(new TextDecoder().decode(msg.data))
+
+  // Post to Slack webhook
+  await fetch(process.env.SLACK_WEBHOOK_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      text: `🤖 *${event.agent}*: ${event.summary}`,
+      channel: '#genie-updates'
+    })
+  })
+}
+
+# Or use the NATS CLI for quick monitoring:
+nats sub "genie.agent.>" --raw
+```
+
+**Benefit:** Real-time visibility into agent work from anywhere. No need to SSH into the server or watch tmux. Teams can monitor overnight `/dream` runs from their phones.
+
+**When to use:** Remote teams, overnight batch runs, or any scenario where you're not sitting in front of the terminal. Especially useful with `/dream` for wake-up notifications.
+
+<Info>
+See the [Hooks reference](/genie/config/hooks) for the full list of NATS subjects and payload formats.
+</Info>
+
+---
+
+## Contributing
+
+Have a hack that's not listed here? We'd love to add it.
+
+### Format
+
+Every hack follows this structure:
+
+```markdown
+### Hack N: Your Hack Title
+
+**Problem:** What situation does this solve? (1-2 sentences)
+
+**Solution:** How does it work? (Brief explanation)
+
+\`\`\`bash
+# Concrete commands or code
+\`\`\`
+
+**Benefit:** What do you gain? (Quantify if possible)
+
+**When to use:** In what situations should someone reach for this?
+```
+
+### Categories
+
+| Category | Slug | Examples |
+|----------|------|----------|
+| Provider Switching | `providers` | Model selection, custom APIs, cost optimization |
+| Teams & Coordination | `teams` | Parallelization, multi-team, merge strategies |
+| Skills & Automation | `skills` | Custom skills, batch execution, workflow encoding |
+| Hooks & Integration | `hooks` | Event-driven automation, external tool integration |
+
+### Submit via PR
+
+The fastest way to contribute:
+
+```bash
+# 1. Fork the docs repo
+gh repo fork automagik-dev/docs --clone
+
+# 2. Add your hack to genie/hacks.mdx
+#    Follow the format above — problem → solution → code → benefit → when
+
+# 3. Create a PR
+git add genie/hacks.mdx
+git commit -m "hack: your hack title"
+gh pr create --base main --title "hack: your hack title" --body "
+## New Hack
+
+**Category:** providers | teams | skills | hooks
+**Problem:** Brief description
+**Tested on:** Genie version, OS, provider
+"
+```
+
+Or use `/genie-hacks contribute` for guided PR creation.
+
+### Community
+
+Questions, feedback, or hack ideas that aren't ready for a PR yet? Join the conversation:
+
+<Card title="Discord" icon="discord" href="https://discord.gg/automagik">
+  Share hacks, get help, and discuss patterns with other Genie users.
+</Card>

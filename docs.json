@@ -48,7 +48,8 @@
               "genie/skills/dream",
               "genie/skills/learn",
               "genie/skills/docs",
-              "genie/skills/genie"
+              "genie/skills/genie",
+              "genie/skills/genie-hacks"
             ]
           },
           {
@@ -82,6 +83,12 @@
               "genie/architecture/messaging",
               "genie/architecture/scheduler",
               "genie/architecture/transcripts"
+            ]
+          },
+          {
+            "group": "Hacks & Tips",
+            "pages": [
+              "genie/hacks"
             ]
           },
           {

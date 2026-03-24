@@ -1,65 +1,133 @@
 ---
-title: "Introduction"
+title: "What is Genie?"
 sidebarTitle: "What is Genie?"
-description: "Agent orchestration for your codebase. Wishes in, PRs out."
+description: "The orchestration layer for multi-agent development. Your agents are powerful — Genie makes them work together."
 ---
 
-# What is Genie?
+# Genie is the orchestration layer for multi-agent development
 
-Genie is a CLI that turns AI coding agents into autonomous software teams. You describe what you want — a **wish** — and Genie orchestrates agents to brainstorm, plan, implement, review, and ship it as a pull request.
+<Note>
+  **Research Preview** — We're testing a hypothesis: that orchestration is the missing piece between "AI can code" and "AI can ship." This is experimental software. APIs will change, things will break, and we're building in public because that's the only way to build something real. Join [Discord](https://discord.gg/automagik) to shape what this becomes.
+</Note>
 
-<CardGroup cols={2}>
-  <Card title="Agent-First" icon="robot">
-    Designed for AI agents, not humans. Paste one command into your agent and Genie takes over.
-  </Card>
-  <Card title="Full Pipeline" icon="arrows-spin">
-    From brainstorm to merged PR — brainstorm, wish, work, review, ship.
-  </Card>
-  <Card title="Team Orchestration" icon="users">
-    Spawn engineers, reviewers, and QA agents that coordinate through tmux and messaging.
-  </Card>
-  <Card title="Skill System" icon="wand-magic-sparkles">
-    14 built-in skills — from `/brainstorm` to `/dream` — each a composable prompt program.
-  </Card>
-</CardGroup>
+## The problem isn't AI — it's context collapse
 
-## How It Works
+It's 11 PM. You have 7 tabs open. Each one is an AI agent. Each one is brilliant in isolation. And each one has completely forgotten what the others are doing.
 
-Genie wraps Claude Code (and Codex) with an orchestration layer that manages:
+Tab 1 refactored the auth module an hour ago. Tab 4 is still importing the old interface. Tab 6 is writing tests against a schema that Tab 2 changed twenty minutes ago. You've re-explained the project structure three times — once per agent, because none of them talk to each other.
 
-- **Wishes** — structured plans with scope, acceptance criteria, and execution groups
-- **Agents** — tmux-based workers with identities, roles, and heartbeats
-- **Teams** — multi-agent squads that share state via worktrees and messaging
-- **Skills** — slash-command prompt programs that encode best practices
+You're not coding anymore. You're a human clipboard. Copy context from Tab 1, paste into Tab 4. Realize Tab 4 hallucinated an import path because it never saw the refactor. Fix it yourself. Open Tab 7 to deal with the merge conflict that Tab 3 and Tab 5 created by touching the same file simultaneously, each unaware the other existed.
 
-## The Pipeline
+This is what exhaustion feels like in 2026. Not "AI doesn't work" — AI works fine. The problem is that **you're the orchestration layer**, and you're terrible at it. Not because you're bad at your job, but because holding seven parallel execution contexts in your head while also doing the actual thinking work is a job for a system, not a person.
 
-Every feature follows the same lifecycle:
+**This is context collapse.** Not a failure of any single agent, but the absence of anything holding them together. Seven brilliant musicians, no conductor, no sheet music, no shared key signature. The music is cacophony — and you're the one with the headache.
+
+## Genie is the conductor
+
+Here's the idea: what if you described the work once and something else handled the coordination?
+
+Genie doesn't replace your agents — it orchestrates them. You capture your intent once. Genie broadcasts it to every agent that needs it, in a structured format they can all read. Then it executes the work in parallel — isolated worktrees, shared state, cross-agent messaging — so agents actually know what each other are doing.
+
+- **Capture once** — write a wish, define the scope, set acceptance criteria. Done. You never re-explain.
+- **Broadcast to all** — every agent reads from the same plan, the same context, the same ground truth
+- **Coordinated execution** — parallel work across isolated branches, no merge conflicts during development
+- **Agents talk to agents** — cross-agent messaging means Tab 4 knows what Tab 1 did, without you copying anything
+
+You describe what you want. Genie breaks it into parallelizable work units, assigns agents, manages their state, and assembles the result into a pull request. You review and merge. That's it.
 
 ```
 /brainstorm → /wish → /work → /review → ship
 ```
 
-1. **Brainstorm** — explore the idea, identify constraints, crystallize scope
-2. **Wish** — produce a structured plan with acceptance criteria and execution groups
-3. **Work** — dispatch engineers per execution group with fix loops
-4. **Review** — validate against criteria, return SHIP or FIX-FIRST
-5. **Ship** — PR created, ready for human merge
+## What this gives you
 
-## Quick Start
+The practical version, for the exhausted:
 
-The fastest way to get started:
+- **No more re-explaining** — context is structural, not conversational. Write it once, every agent inherits it.
+- **Parallel execution** — five agents working simultaneously across isolated worktrees. No stepping on each other.
+- **Reproducible workflows** — wishes are versioned artifacts. Run the same plan twice, get consistent results.
+- **Overnight mode** — dispatch a team before bed. Wake up to a pull request. Seriously.
+- **Bring your own agent** — Claude, Codex, Open Claw, or that custom thing you built last weekend. Genie doesn't care.
+- **Portable context** — your wishes, skills, and team configs live in your repo. Switch machines, switch agents, keep everything.
+
+## Bring your own agent
+
+Genie is agent-agnostic. It's an orchestration protocol, not a wrapper around one vendor. Use whatever agent fits the job — or mix them on the same team.
+
+| Agent | Setup | Best For |
+|-------|-------|----------|
+| **Claude Code** | Works out of the box | Deepest integration — native plugin, team support, hooks |
+| **Codex** | `genie setup --codex` | OpenAI's agent — full transcript and team support |
+| **Open Claw** | `genie setup --open-claw` | Open-source option, community-maintained adapter |
+| **Custom (BYOA)** | `genie setup --custom` | Any CLI agent with stdout/stderr — bring your own |
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/automagik-dev/genie/main/install.sh | bash
+# Mix providers on the same team — fast engineers, thorough reviewer
+genie spawn engineer --provider claude --model sonnet
+genie spawn engineer --provider codex --model codex-mini
+genie spawn reviewer --provider claude --model opus
 ```
 
-Then paste this into your AI agent:
+Your agents are interchangeable. Switch mid-project, mix on a team, or write your own adapter. Genie doesn't care which agent you use — it cares that the work ships.
 
-```
-You are now a Genie-powered agent. Run `genie` to start, then use /wizard for guided onboarding.
-```
+<Tip>
+  See the [Hacks page](/genie/hacks) for community patterns on provider switching, cost optimization, and BYOA configurations.
+</Tip>
 
-<Card title="Quickstart Guide" icon="rocket" href="/genie/quickstart">
-  Step-by-step guide from install to your first shipped PR.
-</Card>
+## 8 core capabilities
+
+| Capability | What It Does | Key Feature |
+|------------|-------------|-------------|
+| **Wishes** | Structured plans with scope, criteria, and execution groups | Parallelizable work units with dependency ordering |
+| **Skills** | 14 built-in slash commands — composable prompt programs | `/brainstorm` through `/dream` — each encodes a best practice |
+| **Teams** | Multi-agent squads with shared state | Isolated worktrees per team, zero conflicts during dev |
+| **Agents** | tmux-based workers with identity, roles, and heartbeats | Auto-spawn, crash recovery, idle suspension |
+| **BYOA** | Provider-agnostic agent orchestration | Claude, Codex, Open Claw, or any custom CLI agent |
+| **Worktrees** | Git worktree isolation per team | Parallel branches, automatic cleanup, shared `.genie/` state |
+| **Messaging** | Cross-agent communication system | Mailbox delivery, team chat, broadcast, structured routing |
+| **Hooks** | Event-driven automation on every tool call | Auto-spawn, identity injection, NATS integration |
+
+## How it works
+
+Every feature follows the same lifecycle — from vague idea to merged pull request:
+
+<Steps>
+  <Step title="Brainstorm">
+    Explore the idea. Identify constraints, scope, and design decisions. The `/brainstorm` skill guides you through this interactively until the idea is crisp enough to plan.
+  </Step>
+  <Step title="Wish">
+    Convert the brainstorm into a structured plan — `WISH.md` — with scope, acceptance criteria, and parallelizable execution groups. This is the contract between you and the agents.
+  </Step>
+  <Step title="Work">
+    Genie dispatches agents per execution group. Independent groups run in parallel across isolated worktrees. Each agent knows its scope, its criteria, and how to validate its own output.
+  </Step>
+  <Step title="Review">
+    A reviewer agent validates all work against the wish criteria. The verdict is **SHIP** or **FIX-FIRST**. Fix loops run automatically — up to the configured retry limit.
+  </Step>
+  <Step title="Ship">
+    A pull request is created, targeting `dev`. You review and merge. The agents did the work; you made the decision.
+  </Step>
+</Steps>
+
+## Desktop is coming
+
+Genie is CLI-first today — built for agents and developers who live in the terminal. But we're building a desktop application for Q2 2026 that brings the same orchestration to a visual interface: wish boards, agent dashboards, real-time team monitoring.
+
+The CLI isn't going anywhere. The desktop is another surface for the same system.
+
+## Get started
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/genie/quickstart">
+    From zero to your first PR in five minutes.
+  </Card>
+  <Card title="Core Concepts" icon="book" href="/genie/concepts/wishes">
+    Understand wishes, agents, teams, and skills.
+  </Card>
+  <Card title="Genie Hacks" icon="lightbulb" href="/genie/hacks">
+    Community patterns, techniques, and cost tips from power users.
+  </Card>
+  <Card title="Discord" icon="discord" href="https://discord.gg/automagik">
+    Community, feedback, and support.
+  </Card>
+</CardGroup>
