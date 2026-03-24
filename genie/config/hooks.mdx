@@ -1,0 +1,164 @@
+---
+title: "Hooks"
+description: "Hook system — auto-spawn, identity injection, NATS emit, and branch guards"
+---
+
+# Hooks
+
+Genie's hook system intercepts Claude Code events to add orchestration capabilities. Hooks run as a chain-of-responsibility — each handler can allow, deny, or modify the tool use before it executes.
+
+## How Hooks Work
+
+Claude Code fires events at specific lifecycle points. Genie registers a hook command (`genie hook dispatch`) that receives JSON on stdin, routes to matching handlers, and returns a JSON decision on stdout.
+
+```
+Claude Code Event → stdin JSON → genie hook dispatch → handlers → stdout JSON
+```
+
+### Event Types
+
+| Category | Events | Behavior |
+|----------|--------|----------|
+| **Blocking** | `PreToolUse`, `UserPromptSubmit`, `TeammateIdle`, `TaskCompleted`, `PermissionRequest` | Chain of responsibility — handlers run in priority order. A `deny` short-circuits. |
+| **Non-blocking** | `PostToolUse`, `SessionStart`, `SessionEnd`, `Stop`, `SubagentStart`, `SubagentStop`, `Notification`, `ConfigChange`, `WorktreeCreate`, `WorktreeRemove`, `PreCompact` | Fire-and-forget — all handlers run, output is ignored. |
+
+### Handler Chain
+
+For blocking events, handlers run in priority order (lower = first):
+
+1. If any handler returns `deny` → short-circuit, return immediately
+2. If a handler returns `updatedInput` → merge into payload for next handler
+3. If a handler returns `allow` or void → continue to next handler
+
+## Built-in Handlers
+
+### identity-inject (Priority: 10)
+
+**Event:** `PreToolUse:SendMessage`
+
+Injects `[from:<agent-name>]` into SendMessage content so recipients always know who sent the message, even across teams.
+
+```
+Before: "Fix the auth bug"
+After:  "[from:team-lead] Fix the auth bug"
+```
+
+The agent name comes from `GENIE_AGENT_NAME` environment variable, set automatically by `genie spawn`.
+
+### auto-spawn (Priority: 20)
+
+**Event:** `PreToolUse:SendMessage`
+
+When an agent sends a message to a recipient that doesn't have a live tmux pane, this handler respawns them from their saved template.
+
+Resolution order:
+1. Check worker registry for live pane → skip if alive
+2. Check agent directory for recipient identity
+3. Check saved spawn templates → spawn from template
+
+This enables "self-healing" teams — if an agent crashes, sending it a message automatically restarts it.
+
+### nats-emit-tool (Priority: 30)
+
+**Event:** `PreToolUse` (all tools)
+
+Publishes tool call events to `genie.tool.{agent}.call` on NATS. Fire-and-forget.
+
+### nats-emit-msg (Priority: 30)
+
+**Event:** `PostToolUse:SendMessage`
+
+Publishes message delivery events to `genie.msg.{recipient}` on NATS.
+
+### nats-emit-user-prompt (Priority: 30)
+
+**Event:** `UserPromptSubmit`
+
+Publishes user prompt events to `genie.user.{agent}.prompt` on NATS.
+
+### nats-emit-assistant-response (Priority: 30)
+
+**Event:** `Stop`
+
+Publishes assistant response events to `genie.agent.{agent}.response` on NATS.
+
+### branch-guard
+
+**Event:** `PreToolUse`
+
+Prevents agents from committing or pushing to protected branches (`main`, `master`). Returns `deny` if the current branch is protected and the tool is a git write operation.
+
+## Hook Payload
+
+The JSON payload sent to hook handlers:
+
+```typescript
+interface HookPayload {
+  session_id?: string;
+  cwd?: string;
+  tool_name?: string;
+  tool_use_id?: string;
+  hook_event_name: string;
+  permission_mode?: string;
+  tool_input?: Record<string, unknown>;
+  tool_result?: unknown;
+  teammate_name?: string;
+  team_name?: string;
+  task_id?: string;
+  task_subject?: string;
+}
+```
+
+## Hook Response
+
+Handlers return a decision object:
+
+```typescript
+interface HookDecision {
+  decision?: 'allow' | 'deny' | 'ask';
+  reason?: string;
+  updatedInput?: Record<string, unknown>;
+}
+```
+
+| Decision | Effect |
+|----------|--------|
+| `allow` | Continue to next handler |
+| `deny` | Short-circuit, block the tool use with reason |
+| `ask` | Prompt the user for confirmation |
+| `updatedInput` | Modify the tool input for subsequent handlers |
+
+## Registration
+
+Hooks are registered in Claude Code's settings:
+
+```json
+{
+  "hooks": {
+    "PreToolUse": [{
+      "matcher": ".*",
+      "hooks": ["genie hook dispatch"]
+    }],
+    "PostToolUse": [{
+      "matcher": "SendMessage",
+      "hooks": ["genie hook dispatch"]
+    }],
+    "UserPromptSubmit": [{
+      "hooks": ["genie hook dispatch"]
+    }],
+    "Stop": [{
+      "hooks": ["genie hook dispatch"]
+    }]
+  }
+}
+```
+
+## Gotchas
+
+<Warning>
+**15-second hard timeout** — Hook dispatch has a 15-second timeout. Handlers that take longer silently timeout, blocking the tool use. No retry is attempted.
+</Warning>
+
+- **GENIE_AGENT_NAME must be set** for identity injection and auto-spawn to work. This is set automatically by `genie spawn` but must be manually set if running agents outside Genie.
+- **NATS handlers degrade silently** — if NATS is unavailable, events are simply dropped. No error is raised.
+- **Auto-spawn has a 15-second ready timeout** — if the spawned agent doesn't reach idle within 15 seconds, the message is queued for later delivery.

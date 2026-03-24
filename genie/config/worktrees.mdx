@@ -1,0 +1,157 @@
+---
+title: "Worktrees & Isolation"
+description: "Git clone --shared isolation, worktree paths, and cleanup"
+---
+
+# Worktrees & Isolation
+
+When Genie creates a team, it provisions an isolated copy of the repository so agents can work on different branches without conflicts. Understanding this isolation model is important for debugging file paths and cleanup.
+
+## Isolation Model
+
+Genie uses `git clone --shared` instead of `git worktree` for team isolation.
+
+### Why Not git worktree?
+
+A known bug in Claude Code can flip `core.bare=true` on the parent repository via shared `.git` metadata when using standard git worktrees. This silently corrupts the parent repo, making all worktrees non-functional.
+
+`git clone --shared` creates a full clone that shares object storage with the parent (saving disk space) but has its own `.git` directory — safe from metadata corruption.
+
+### How It Works
+
+```
+genie team create auth-fix --repo /home/user/myproject --wish auth-bug
+         │
+         ▼
+  1. Resolve worktree base directory
+     (~/.genie/worktrees/ or config terminal.worktreeBase)
+         │
+         ▼
+  2. git clone --shared /home/user/myproject ~/.genie/worktrees/myproject/auth-fix
+         │
+         ▼
+  3. git checkout -b feat/auth-fix   (team name IS the branch name)
+         │
+         ▼
+  4. Store team config at ~/.genie/teams/auth-fix.json
+```
+
+## Directory Structure
+
+```
+~/.genie/worktrees/
+└── <repo-name>/
+    └── <team-name>/          # Full clone, shared objects
+        ├── .git/             # Independent git directory
+        ├── .genie/           # Shared via git-common-dir
+        │   ├── state/        # Wish state (shared)
+        │   ├── mailbox/      # Message queues (shared)
+        │   └── chat/         # Team chat (per-worktree)
+        └── src/              # Working copy
+```
+
+### Shared vs. Independent State
+
+| State | Shared? | Why |
+|-------|---------|-----|
+| Wish state (`.genie/state/`) | Shared | All agents on same wish need consistent state |
+| Mailbox (`.genie/mailbox/`) | Shared | Messages must be visible across all team members |
+| Team chat (`.genie/chat/`) | Per-worktree | Different worktrees may have different team contexts |
+| Git objects | Shared (via `--shared`) | Saves disk space |
+| Git refs/branches | Independent | Each worktree has its own branch |
+
+## Configuring the Base Directory
+
+The worktree base directory defaults to `~/.genie/worktrees/`. Override it in config:
+
+```json
+{
+  "terminal": {
+    "worktreeBase": "/data/genie-worktrees"
+  }
+}
+```
+
+Or set `GENIE_HOME` to relocate everything:
+
+```bash
+export GENIE_HOME=/data/genie
+# Worktrees go to /data/genie/worktrees/
+```
+
+## Path Resolution
+
+When a team is created, the worktree path is computed as:
+
+```
+<worktreeBase>/<repo-basename>/<team-name>
+```
+
+For example:
+- Repo: `/home/user/projects/my-api`
+- Team: `feat/auth-fix`
+- Result: `~/.genie/worktrees/my-api/feat--auth-fix`
+
+Note that slashes in team names are converted to double-dashes for filesystem safety.
+
+## Team Config File
+
+Each team stores its full configuration at `~/.genie/teams/<safe-name>.json`:
+
+```json
+{
+  "name": "feat/auth-fix",
+  "repo": "/home/user/projects/my-api",
+  "baseBranch": "dev",
+  "worktreePath": "/home/user/.genie/worktrees/my-api/feat--auth-fix",
+  "leader": "team-lead",
+  "members": ["team-lead", "engineer", "reviewer"],
+  "status": "in_progress",
+  "createdAt": "2026-03-24T10:00:00.000Z",
+  "nativeTeamsEnabled": true,
+  "tmuxSessionName": "feat-auth-fix"
+}
+```
+
+## Cleanup
+
+### Disbanding a Team
+
+```bash
+genie team disband auth-fix
+```
+
+This removes:
+- The team config file (`~/.genie/teams/auth-fix.json`)
+- All worker registry entries for team members
+- tmux windows/panes for team agents
+- Native team directory (`~/.claude/teams/auth-fix/`)
+
+<Warning>
+Team disband does **not** delete the worktree directory by default. This preserves uncommitted work. Delete manually if you want to reclaim disk space:
+
+```bash
+rm -rf ~/.genie/worktrees/my-api/feat--auth-fix
+```
+</Warning>
+
+### Cleaning Up Orphaned Worktrees
+
+If worktrees accumulate from disbanded teams, clean them up:
+
+```bash
+# List all worktree directories
+ls ~/.genie/worktrees/
+
+# Check which teams are still active
+genie team ls
+
+# Remove worktrees for disbanded teams
+rm -rf ~/.genie/worktrees/<repo>/<team>
+```
+
+## Worktree Gotchas
+
+- **Worktrees share `.genie/` state** via `git rev-parse --git-common-dir`. Changes to wish state in one worktree are visible in all others for the same repo.
+- **Team name IS the branch name** — conventional prefixes (`feat/`, `fix/`, `chore/`) are required.
+- **The `--shared` flag** means git objects are hardlinked. Deleting the parent repo's objects can break worktrees. Don't run `git gc --prune` on the parent while worktrees exist.

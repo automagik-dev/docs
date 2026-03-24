@@ -1,0 +1,263 @@
+---
+title: "Contributing"
+description: "Development setup, code style, quality gates, and plugin development"
+---
+
+# Contributing
+
+Genie is built with Bun and TypeScript. This guide covers setting up a development environment, running quality gates, and building plugins.
+
+## Development Setup
+
+### Prerequisites
+
+| Tool | Version | Purpose |
+|------|---------|---------|
+| [Bun](https://bun.sh) | 1.x | Runtime, bundler, test runner |
+| [tmux](https://github.com/tmux/tmux) | 3.x+ | Agent transport (required) |
+| [git](https://git-scm.com) | 2.x+ | Version control, worktrees |
+| Claude Code | Latest | AI agent backend |
+
+### Clone and Install
+
+```bash
+git clone https://github.com/automagik-dev/genie.git
+cd genie
+bun install
+```
+
+### Build
+
+Genie bundles to a single file for distribution:
+
+```bash
+bun run build
+```
+
+This produces `dist/genie.js` (~305KB minified) with all dependencies inlined. The shebang `#!/usr/bin/env bun` makes it directly executable. No runtime dependencies need to be co-located.
+
+### Run from Source
+
+During development, run directly from source:
+
+```bash
+bun run src/genie.ts
+```
+
+Or link globally for the `genie` command to point at your source:
+
+```bash
+bun link
+```
+
+## Code Style
+
+Genie uses [Biome](https://biomejs.dev/) for formatting and linting.
+
+| Rule | Setting |
+|------|---------|
+| Quotes | Single quotes |
+| Indentation | 2 spaces |
+| Line width | 120 characters |
+| Trailing commas | Always |
+| Commits | Conventional commits (commitlint) |
+
+### No console.log
+
+`console.log` is banned in source files via a Biome rule. Use structured logging or the CLI output functions instead. The rule is relaxed in test files.
+
+## Quality Gates
+
+Run the full quality gate with:
+
+```bash
+bun run check
+```
+
+This runs four checks in sequence:
+
+| Gate | Command | What It Checks |
+|------|---------|----------------|
+| Type check | `bun run typecheck` | `tsc --noEmit` — all type errors |
+| Lint | `bun run lint` | Biome rules — formatting, code quality |
+| Dead code | `bun run dead-code` | `bunx knip` — unused exports, dependencies |
+| Tests | `bun test` | All `*.test.ts` files |
+
+<Note>
+`bun run dead-code` (knip) has pre-existing false positives for biome, commitlint, and husky devDeps. These are not regressions.
+</Note>
+
+### Running Individual Gates
+
+```bash
+bun run typecheck           # Type checking only
+bun run lint                # Linting only
+bun run dead-code           # Dead code detection only
+bun test                    # All tests
+bun test src/lib/wish-state.test.ts  # Single file
+```
+
+## Testing
+
+### Framework
+
+Tests use `bun:test` (import from `'bun:test'`).
+
+### Conventions
+
+| Convention | Detail |
+|-----------|--------|
+| File pattern | Colocated `*.test.ts` next to source |
+| Fixtures | tmpdir with cleanup in `afterEach` |
+| Git tests | Real git repos in `/tmp`, not mocks |
+| Concurrency | `Promise.allSettled()` pattern |
+| Isolation | Set `process.env.GENIE_HOME` to tmpdir |
+
+### Example Test
+
+```typescript
+import { afterEach, describe, expect, test } from 'bun:test';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
+
+describe('myModule', () => {
+  let tempDir: string;
+
+  afterEach(() => {
+    if (tempDir) rmSync(tempDir, { recursive: true, force: true });
+  });
+
+  test('does the thing', () => {
+    tempDir = mkdtempSync(join(tmpdir(), 'genie-test-'));
+    process.env.GENIE_HOME = tempDir;
+
+    // ... test code ...
+
+    expect(result).toBe(expected);
+  });
+});
+```
+
+## Project Structure
+
+```
+src/
+├── genie.ts                 # CLI entry point (commander.js)
+├── lib/                     # Core modules
+│   ├── wish-state.ts        # PG-backed wish state machine
+│   ├── agent-registry.ts    # Worker registry (global JSON)
+│   ├── team-manager.ts      # Team CRUD with git clone --shared
+│   ├── protocol-router.ts   # Provider-agnostic message routing
+│   ├── mailbox.ts           # Durable message store
+│   ├── nats-client.ts       # NATS pub/sub singleton
+│   ├── db.ts                # pgserve connection management
+│   ├── db-migrations.ts     # SQL migration runner
+│   ├── task-service.ts      # PG CRUD for task lifecycle
+│   ├── scheduler-daemon.ts  # Cron trigger loop
+│   ├── transcript.ts        # Provider-agnostic log reading
+│   ├── claude-logs.ts       # Claude Code log parser
+│   ├── codex-logs.ts        # Codex log parser
+│   ├── auto-approve.ts      # Layered trust configuration
+│   └── tmux.ts              # tmux wrapper
+├── term-commands/           # CLI command handlers
+├── genie-commands/          # Setup/utility commands
+├── hooks/                   # Claude Code hook system
+│   ├── index.ts             # Hook dispatch entry
+│   └── handlers/            # Individual hook handlers
+├── db/migrations/           # SQL migration files
+├── types/                   # Shared Zod schemas
+└── ...
+skills/                      # Skill prompt files (SKILL.md)
+```
+
+## Plugin Development
+
+Genie supports plugins that extend the CLI with additional commands, hooks, and skills.
+
+### Plugin Structure
+
+```
+plugins/<plugin-name>/
+├── package.json            # Plugin metadata
+├── settings.json           # Claude Code settings overlay
+├── hooks/
+│   └── hooks.json          # Additional hook definitions
+├── .claude-plugin/
+│   └── plugin.json         # Plugin registration
+└── src/                    # Plugin source code
+```
+
+### Plugin Registration
+
+Plugins are registered in `openclaw.plugin.json` at the repo root:
+
+```json
+{
+  "name": "genie",
+  "version": "1.0.0",
+  "plugins": ["plugins/genie"]
+}
+```
+
+### Adding Skills
+
+Skills are markdown files that define agent behavior. To add a new skill:
+
+1. Create `skills/<skill-name>/SKILL.md`
+2. Add frontmatter with `name`, `description`, and optional `triggers`
+3. Write the skill prompt in the body
+
+```markdown
+---
+name: my-skill
+description: Does something useful
+triggers:
+  - "/my-skill"
+  - "run my skill"
+---
+
+# My Skill
+
+Instructions for the agent when this skill is invoked...
+```
+
+Skills are loaded dynamically — no registration needed beyond creating the file.
+
+## Commit Conventions
+
+Genie uses [conventional commits](https://www.conventionalcommits.org/) enforced by commitlint:
+
+| Prefix | Use |
+|--------|-----|
+| `feat:` | New features |
+| `fix:` | Bug fixes |
+| `chore:` | Maintenance |
+| `docs:` | Documentation |
+| `refactor:` | Code restructuring |
+| `test:` | Test additions/fixes |
+
+### Branch Naming
+
+```
+feat/<description>
+fix/<description>
+chore/<description>
+docs/<description>
+refactor/<description>
+test/<description>
+```
+
+### PR Workflow
+
+1. Branch from `dev`
+2. Make changes, commit with conventional messages
+3. Push and create PR targeting `dev`
+4. Human reviews and merges `dev` → `main` when ready
+
+## Known Gotchas
+
+- **File lock timeout force-removes are intentional** — prevents deadlocks from crashed processes. The `open('wx')` after unlink is atomic, so only one process wins.
+- **Hook dispatch has a 15-second hard timeout** — handlers that exceed this silently timeout.
+- **System prompt injection can fail silently** — if the prompt file write fails, Claude Code dies on startup trying to read it.
+- **Mailbox delivery is best-effort** — dead pane = message stays `deliveredAt: null` forever.

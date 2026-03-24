@@ -1,0 +1,194 @@
+---
+title: "Transcripts"
+description: "Provider-agnostic log parsing for Claude Code and Codex sessions"
+---
+
+# Transcripts
+
+Genie reads agent conversation logs from both Claude Code and Codex through a unified transcript abstraction. This enables commands like `genie read <agent>` to work regardless of which AI provider backs the agent.
+
+## Architecture
+
+```
+genie read engineer --last 10
+         │
+         ▼
+  ┌──────────────┐
+  │  transcript   │  Provider-agnostic dispatcher
+  │   .ts         │
+  └───────┬──────┘
+          │
+    ┌─────┴─────┐
+    │  Which     │
+    │  provider? │
+    └─────┬─────┘
+     ┌────┴────┐
+     │         │
+     ▼         ▼
+┌──────────┐ ┌──────────┐
+│ claude-  │ │ codex-   │
+│ logs.ts  │ │ logs.ts  │
+└──────────┘ └──────────┘
+     │              │
+     ▼              ▼
+ ~/.claude/     ~/.codex/
+ projects/      sessions/
+ <hash>/        <YYYY>/<MM>/
+ <uuid>.jsonl   <DD>/rollout-*.jsonl
+```
+
+## Unified Entry Format
+
+Both providers normalize their logs into a common `TranscriptEntry` format:
+
+```typescript
+interface TranscriptEntry {
+  role: TranscriptRole;     // 'user' | 'assistant' | 'system' | 'tool_call' | 'tool_result'
+  timestamp: string;        // ISO timestamp
+  text: string;             // Extracted text content
+  toolCall?: {              // Present when role === 'tool_call'
+    id: string;
+    name: string;
+    input: Record<string, unknown>;
+  };
+  provider: ProviderName;   // 'claude' or 'codex'
+  model?: string;           // Model name if available
+  usage?: {                 // Token usage if available
+    input: number;
+    output: number;
+  };
+  raw: Record<string, unknown>; // Original entry for --raw mode
+}
+```
+
+## Filtering
+
+Transcripts support three filter dimensions, applied in order:
+
+```
+since → roles → last
+```
+
+```typescript
+interface TranscriptFilter {
+  last?: number;           // Return only last N entries
+  since?: string;          // Only entries after this ISO timestamp
+  roles?: TranscriptRole[]; // Only entries matching these roles
+}
+```
+
+Example: "Show the last 5 assistant messages since noon"
+
+```typescript
+const entries = await readTranscript(worker, {
+  last: 5,
+  roles: ['assistant'],
+  since: '2026-03-24T12:00:00Z',
+});
+```
+
+## Claude Code Logs
+
+Claude Code stores logs in a project-scoped directory:
+
+```
+~/.claude/projects/<project-hash>/<session-uuid>.jsonl
+```
+
+The project hash is derived from the workspace path with slashes replaced by dashes:
+```
+/home/genie/workspace/myproject → -home-genie-workspace-myproject
+```
+
+### Log Entry Types
+
+| Type | Content |
+|------|---------|
+| `user` | User messages |
+| `assistant` | Claude responses (may include `tool_use` content blocks) |
+| `progress` | Progress updates, tool results, hook events |
+| `system` | System messages |
+| `file-history-snapshot` | File tracking snapshots |
+| `queue-operation` | Message queue operations |
+
+### Tool Call Extraction
+
+Tool calls are embedded in assistant messages as content blocks:
+
+```json
+{
+  "type": "assistant",
+  "message": {
+    "content": [
+      { "type": "text", "text": "Let me read that file." },
+      {
+        "type": "tool_use",
+        "id": "toolu_abc123",
+        "name": "Read",
+        "input": { "file_path": "/src/main.ts" }
+      }
+    ]
+  }
+}
+```
+
+The transcript parser extracts these into separate `tool_call` entries.
+
+## Codex Logs
+
+Codex stores session logs in a date-hierarchical directory:
+
+```
+~/.codex/sessions/<YYYY>/<MM>/<DD>/rollout-<timestamp>-<uuid>.jsonl
+```
+
+Thread metadata lives in a SQLite database at `~/.codex/state_5.sqlite`. The `threads` table maps workspace CWDs to rollout file paths.
+
+### Log Discovery
+
+Discovery follows a two-step strategy:
+
+1. **SQLite lookup** — query `threads` table for the most recent rollout matching the worker's CWD
+2. **Directory scan** — if SQLite is unavailable or stale, scan session directories by date
+
+```typescript
+// SQLite discovery
+const row = db.query(
+  'SELECT rollout_path FROM threads WHERE cwd = ? ORDER BY updated_at DESC LIMIT 1'
+).get(cwd);
+```
+
+### Event Types
+
+| Type | Content |
+|------|---------|
+| `session_meta` | Session initialization metadata |
+| `response_item` | Model messages (user, assistant, tool calls, reasoning) |
+| `event_msg` | Turn lifecycle (user_message, agent_message, task_complete) |
+| `turn_context` | Per-turn workspace metadata |
+
+## Provider Detection
+
+The transcript system detects the provider from the agent's registry record:
+
+```typescript
+async function readTranscript(worker: Agent, filter?: TranscriptFilter) {
+  const provider = worker.provider ?? 'claude'; // Default to Claude
+
+  if (provider === 'codex') {
+    return readFromCodex(worker, filter);
+  }
+  return readFromClaude(worker, filter);
+}
+```
+
+Both providers implement the same `TranscriptProvider` interface:
+
+```typescript
+interface TranscriptProvider {
+  discoverLogPath(worker: Agent): Promise<string | null>;
+  readEntries(logPath: string): Promise<TranscriptEntry[]>;
+}
+```
+
+This makes adding new provider adapters (e.g., for future AI coding tools) straightforward — implement the interface, register in the dispatcher.

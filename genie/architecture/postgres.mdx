@@ -1,0 +1,161 @@
+---
+title: "PostgreSQL (pgserve)"
+description: "Embedded PostgreSQL database, migrations, and the task service"
+---
+
+# PostgreSQL (pgserve)
+
+Genie embeds [pgserve](https://github.com/nicholasgasior/pgserve) as a persistent database. One PostgreSQL instance runs per machine on port 19642, auto-started on demand. The connection is a lazy singleton — pgserve only starts when something actually needs the database.
+
+## How pgserve Works
+
+```
+CLI command needs DB → getConnection() → is port 19642 listening?
+                                              │
+                                    ┌─────────┴──────────┐
+                                    │ Yes                 │ No
+                                    │ Return cached       │ Start pgserve
+                                    │ connection          │ Run migrations
+                                    │                     │ Return connection
+                                    └─────────────────────┘
+```
+
+### Connection Details
+
+| Setting | Value |
+|---------|-------|
+| Default port | `19642` |
+| Host | `127.0.0.1` |
+| Database name | `genie` |
+| Data directory | `~/.genie/data/pgserve/` |
+| Port lockfile | `~/.genie/pgserve.port` |
+| Migration marker | `~/.genie/pgserve.migrated` |
+
+### Crash Recovery
+
+On startup, `killOrphanedPostgres()` reads `postmaster.pid` from the data directory, verifies the PID is actually a postgres process (not a reused PID), then sends SIGTERM with a 5-second grace period before escalating to SIGKILL.
+
+## Schema Overview
+
+The database schema is organized across three migration files:
+
+### Migration 001: Core Schema
+
+Seven tables for the scheduler and observability:
+
+| Table | Purpose |
+|-------|---------|
+| `schedules` | Cron-like schedule definitions with status (active/paused/deleted) |
+| `triggers` | Individual fire instances with lease-based claiming |
+| `runs` | Execution attempts with trace IDs and exit codes |
+| `heartbeats` | Worker liveness tracking (alive/idle/busy/dead) |
+| `audit_events` | Immutable log of all state transitions |
+| `agent_checkpoints` | Session resume state (wish, group, phase, context) |
+| `machine_snapshots` | Machine state snapshots (workers, teams, CPU, memory) |
+
+### Migration 002: Task Lifecycle
+
+Eleven tables for the full task management system:
+
+| Table | Purpose |
+|-------|---------|
+| `task_types` | Dynamic pipeline definitions (e.g., "Software Development" with 7 stages) |
+| `tasks` | Unified work entity — human and agent tasks with priority, timeline, blocking |
+| `task_actors` | Polymorphic assignment (local, genie_os_user, omni_agent) |
+| `task_dependencies` | Edges between tasks (depends_on, blocks, relates_to) |
+| `task_stage_log` | Audit trail for stage transitions with run traceability |
+| `conversations` | Chat containers (DM or group) linked to entities |
+| `conversation_members` | Membership-based permissions |
+| `messages` | All messages across all conversations |
+| `tags` | Classification labels with colors |
+| `task_tags` | Join table for task-tag relationships |
+| `notification_preferences` | Per-actor channel config (WhatsApp, Slack, email, etc.) |
+
+### Migration 003: Projects
+
+Project-level scoping for multi-repo task management.
+
+## Built-in Task Pipeline
+
+The `software` task type defines a 7-stage pipeline that maps to Genie skills:
+
+```
+draft → brainstorm → wish → build → review → qa → ship
+         /brainstorm   /wish  /work   /review  /qa
+```
+
+Each stage has a gate type (`human`, `agent`, or `human+agent`) that determines whether the stage can auto-advance:
+
+| Stage | Gate | Auto-advance | Skill |
+|-------|------|-------------|-------|
+| Draft | human | No | — |
+| Brainstorm | human+agent | No | `/brainstorm` |
+| Wish | human | No | `/wish` |
+| Build | agent | Yes | `/work` |
+| Review | human | No | `/review` |
+| QA | agent | Yes | `/qa` |
+| Ship | human | No | — |
+
+## LISTEN/NOTIFY
+
+PostgreSQL's `LISTEN/NOTIFY` mechanism provides real-time event streaming without polling:
+
+| Channel | Fires When | Payload |
+|---------|-----------|---------|
+| `genie_trigger_due` | New pending trigger inserted | Trigger ID |
+| `genie_audit_event` | Any audit event logged | `entity_type:event_type:entity_id` |
+| `genie_task_stage` | Task stage changes | `task_id:old_stage:new_stage` |
+| `genie_message` | New message posted | `conversation_id:message_id:sender_id` |
+| `genie_task_dep` | Dependency added/removed | `task_id:added/removed:dep_id:dep_type` |
+
+The scheduler daemon subscribes to `genie_trigger_due` for real-time trigger notification, with a 30-second poll fallback as a safety net.
+
+## Task Service API
+
+The task service (`task-service.ts`) provides CRUD operations scoped by `repo_path`:
+
+```typescript
+// Create a task
+const task = await createTask(sql, repoPath, {
+  title: "Implement auth middleware",
+  priority: "high",
+  wishFile: ".genie/wishes/auth-fix/WISH.md",
+  groupName: "1",
+});
+
+// Assign an actor
+await addActor(sql, task.id, {
+  actorType: "local",
+  actorId: "engineer-1",
+}, "assignee");
+
+// Add dependencies
+await addDependency(sql, task.id, otherTask.id, "depends_on");
+```
+
+### Execution Locking
+
+Tasks support atomic checkout via `checkout_run_id` and `execution_locked_at` fields. This prevents two agents from claiming the same task simultaneously:
+
+```sql
+UPDATE tasks
+SET checkout_run_id = $1, execution_locked_at = now()
+WHERE id = $2 AND checkout_run_id IS NULL
+RETURNING *;
+```
+
+The lock expires after `checkout_timeout_ms` (default: 600,000ms / 10 minutes).
+
+## Migration Runner
+
+Migrations are loaded from `src/db/migrations/` in lexicographic order. The `_genie_migrations` table tracks which migrations have been applied:
+
+```sql
+CREATE TABLE _genie_migrations (
+  id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  name TEXT UNIQUE NOT NULL,
+  applied_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+```
+
+Each migration runs in its own transaction. If a migration fails, subsequent migrations are skipped and the error is thrown.

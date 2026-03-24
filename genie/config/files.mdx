@@ -1,0 +1,217 @@
+---
+title: "Configuration Files"
+description: "config.json schema, settings.json, environment variables, and auto-approve configuration"
+---
+
+# Configuration Files
+
+Genie uses several configuration files across different scopes. The main config file is `~/.genie/config.json`, but auto-approve rules, Claude Code settings, and environment variables also affect behavior.
+
+## config.json
+
+**Location:** `~/.genie/config.json`
+
+The primary configuration file, managed by `genie setup` or edited directly. Validated by a Zod schema on every load — invalid configs fall back to defaults with a warning.
+
+### Full Schema
+
+```json
+{
+  "version": 2,
+  "session": {
+    "name": "genie",
+    "defaultWindow": "shell",
+    "autoCreate": true
+  },
+  "terminal": {
+    "execTimeout": 120000,
+    "readLines": 100,
+    "worktreeBase": "~/.genie/worktrees"
+  },
+  "logging": {
+    "tmuxDebug": false,
+    "verbose": false
+  },
+  "shell": {
+    "preference": "auto"
+  },
+  "shortcuts": {
+    "tmuxInstalled": false,
+    "shellInstalled": false
+  },
+  "codex": {
+    "configured": false
+  },
+  "installMethod": "bun",
+  "updateChannel": "latest",
+  "setupComplete": true,
+  "workerProfiles": {
+    "default": {
+      "launcher": "claude",
+      "claudeArgs": ["--dangerously-skip-permissions"]
+    },
+    "safe": {
+      "launcher": "claude",
+      "claudeArgs": []
+    }
+  },
+  "defaultWorkerProfile": "default",
+  "councilPresets": {
+    "default": {
+      "left": "default",
+      "right": "default",
+      "skill": "council"
+    }
+  },
+  "systemPromptMode": "append",
+  "omni": {
+    "apiUrl": "http://localhost:3008",
+    "apiKey": "...",
+    "defaultInstanceId": "..."
+  }
+}
+```
+
+### Key Sections
+
+<AccordionGroup>
+  <Accordion title="Worker Profiles">
+    Worker profiles define how to launch Claude Code workers. Each profile specifies a launcher binary and CLI arguments.
+
+    ```json
+    "workerProfiles": {
+      "default": {
+        "launcher": "claude",
+        "claudeArgs": ["--dangerously-skip-permissions"]
+      },
+      "safe": {
+        "launcher": "claude",
+        "claudeArgs": []
+      }
+    }
+    ```
+
+    Use profiles with: `genie spawn engineer --profile safe`
+  </Accordion>
+
+  <Accordion title="Council Presets">
+    Council presets configure dual-model deliberation for the `/council` skill:
+
+    ```json
+    "councilPresets": {
+      "default": {
+        "left": "default",
+        "right": "default",
+        "skill": "council"
+      }
+    }
+    ```
+
+    Each preset pairs two worker profiles (left/right panes) with a skill.
+  </Accordion>
+
+  <Accordion title="System Prompt Mode">
+    Controls how Genie injects system prompts into Claude Code workers:
+
+    | Mode | Flag | Behavior |
+    |------|------|----------|
+    | `replace` | `--system-prompt-file` | Replaces Claude Code's default system prompt |
+    | `append` | `--append-system-prompt-file` | Preserves Claude Code default, appends Genie context |
+  </Accordion>
+
+  <Accordion title="Omni Integration">
+    Connects Genie to the Omni unified messaging platform:
+
+    ```json
+    "omni": {
+      "apiUrl": "http://localhost:3008",
+      "apiKey": "your-api-key",
+      "defaultInstanceId": "instance-uuid"
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Auto-Approve Configuration
+
+Genie supports layered trust configuration for automatic tool approval.
+
+**Config hierarchy** (lower overrides higher):
+
+1. **Global defaults:** `~/.config/genie/auto-approve.yaml`
+2. **Repo-level:** `.genie/auto-approve.yaml` in each repo
+3. **Wish-level:** `## Auto-Approve` section in WISH.md
+
+### YAML Schema
+
+```yaml
+# ~/.config/genie/auto-approve.yaml
+defaults:
+  allow:
+    - Read
+    - Glob
+    - Grep
+  deny:
+    - Bash
+  bash_allow_patterns:
+    - "^git status"
+    - "^bun test"
+  bash_deny_patterns:
+    - "^rm -rf"
+    - "^git push.*--force"
+
+repos:
+  /home/user/myproject:
+    inherit: global    # or "none" to start fresh
+    allow:
+      - Write
+      - Edit
+    bash_allow_patterns:
+      - "^bun run"
+```
+
+### Evaluation Order
+
+For each tool use, the auto-approve engine:
+
+1. Checks deny lists first (deny wins over allow)
+2. Checks allow lists
+3. For Bash commands, checks `bash_deny_patterns` then `bash_allow_patterns`
+4. Merges layers: wish > repo > global defaults
+
+## Environment Variables
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `GENIE_HOME` | `~/.genie` | Relocates all global state |
+| `GENIE_AGENT_NAME` | — | Agent identity for hooks (required for auto-spawn) |
+| `GENIE_TEAM` | — | Default team name |
+| `GENIE_NATS_URL` | `nats://localhost:4222` | NATS server URL |
+| `GENIE_PG_PORT` | `19642` | pgserve PostgreSQL port |
+| `GENIE_MAX_CONCURRENT` | `5` | Max concurrent scheduler runs |
+| `GENIE_IDLE_TIMEOUT_MS` | — | Auto-suspend idle workers after N ms |
+| `CLAUDECODE` | — | Set to `1` to enable Claude Code features |
+| `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` | — | Set to `1` for native teammate UI |
+
+## Claude Code Settings
+
+Genie integrates with Claude Code's settings at `~/.claude/settings.json`. The hook system is registered there:
+
+```json
+{
+  "hooks": {
+    "PreToolUse": [{
+      "matcher": ".*",
+      "hooks": ["genie hook dispatch"]
+    }],
+    "PostToolUse": [{
+      "matcher": "SendMessage",
+      "hooks": ["genie hook dispatch"]
+    }]
+  }
+}
+```
+
+<Note>
+Genie never modifies `~/.claude/settings.json` directly. Hook registration is done during `genie setup` with user confirmation.
+</Note>

@@ -1,0 +1,128 @@
+---
+title: "Setup Wizard"
+description: "Interactive setup wizard walkthrough for configuring Genie"
+---
+
+# Setup Wizard
+
+Genie includes an interactive setup wizard that configures your environment step by step. Run it with:
+
+```bash
+genie setup
+```
+
+Or skip interactive prompts with sensible defaults:
+
+```bash
+genie setup --quick
+```
+
+## What Setup Configures
+
+The wizard walks through several sections, each configurable independently:
+
+### 1. System Check
+
+Before configuration, setup verifies prerequisites:
+
+| Requirement | Check |
+|-------------|-------|
+| tmux | Binary in PATH (required for agent spawn) |
+| git | Binary in PATH (required for worktrees) |
+| Claude Code | `claude` binary available |
+| Codex | `codex` binary available (optional) |
+
+<Warning>
+tmux is required — there is no fallback. If tmux is not installed, agent spawning will fail.
+</Warning>
+
+### 2. Session Configuration
+
+Configure the default tmux session:
+
+| Setting | Default | Purpose |
+|---------|---------|---------|
+| `session.name` | `genie` | tmux session name |
+| `session.defaultWindow` | `shell` | Default window name |
+| `session.autoCreate` | `true` | Auto-create session if missing |
+
+### 3. Terminal Configuration
+
+Configure terminal behavior:
+
+| Setting | Default | Purpose |
+|---------|---------|---------|
+| `terminal.execTimeout` | `120000` (2 min) | tmux command execution timeout |
+| `terminal.readLines` | `100` | Lines to capture from pane |
+| `terminal.worktreeBase` | `~/.genie/worktrees` | Base directory for team worktrees |
+
+### 4. Codex Integration
+
+If Codex is detected, setup configures the OpenTelemetry bridge:
+
+```bash
+genie setup --codex
+```
+
+This writes the Codex OTel config to enable structured log output that Genie's transcript system can parse.
+
+### 5. Keyboard Shortcuts
+
+Install tmux and shell shortcuts for quick access:
+
+```bash
+genie setup --shortcuts
+```
+
+| Shortcut | Action |
+|----------|--------|
+| `Ctrl+G` (tmux) | Open Genie TUI |
+| `genie` (shell) | Launch Genie session |
+
+## Section-Specific Setup
+
+Run only the section you need:
+
+```bash
+genie setup --shortcuts  # Only install shortcuts
+genie setup --codex      # Only configure Codex
+genie setup --terminal   # Only terminal settings
+genie setup --session    # Only session settings
+```
+
+## Showing Current Config
+
+View the current configuration without making changes:
+
+```bash
+genie setup --show
+```
+
+## Resetting Configuration
+
+Reset all settings to defaults:
+
+```bash
+genie setup --reset
+```
+
+This deletes `~/.genie/config.json` and re-creates it with default values.
+
+## Post-Setup Verification
+
+After setup, verify your installation with the doctor command:
+
+```bash
+genie doctor
+```
+
+Doctor checks:
+- All required binaries are available
+- tmux server is running
+- Configuration file is valid
+- pgserve can start
+- Git hooks are installed (if applicable)
+
+## Config File Location
+
+Setup creates and manages `~/.genie/config.json`. See [Configuration Files](/genie/config/files) for the full schema.
