@@ -1,16 +1,21 @@
 ---
 title: "Quickstart"
 sidebarTitle: "Quickstart"
-description: "From zero to your first shipped PR in five minutes."
+description: "From zero to your first shipped PR in five minutes — with the agent you already use."
 ---
 
 # Quickstart
 
-Get Genie running and ship your first feature — all through your AI agent.
+Get Genie running and ship your first feature — with whatever AI agent you prefer.
+
+<Note>
+  **Research Preview** — Genie is experimental. Things will break, APIs will change, and we want your feedback.
+  Join [Discord](https://discord.gg/automagik) to tell us what's working and what isn't.
+</Note>
 
 <Steps>
   <Step title="Install Genie">
-    Run the bootstrap script. It installs the CLI, sets up the Claude Code plugin, and configures git hooks.
+    Run the bootstrap script. It installs the CLI, sets up plugins, and configures git hooks.
 
     ```bash
     curl -fsSL https://raw.githubusercontent.com/automagik-dev/genie/main/install.sh | bash
@@ -25,15 +30,34 @@ Get Genie running and ship your first feature — all through your AI agent.
     Expected output:
     ```
     ✓ genie CLI found
-    ✓ Claude Code installed
+    ✓ Agent detected
     ✓ tmux available
     ✓ Plugin symlink active
     ✓ Git hooks configured
     ```
   </Step>
 
+  <Step title="Choose Your Agent">
+    Genie is an orchestration layer, not an agent. It works **with** your agent — whichever one you prefer. We don't care which one you marry; we care that the wedding runs on time.
+
+    | Agent | Setup | Notes |
+    |-------|-------|-------|
+    | **Claude Code** | Installed by default | Recommended — deepest integration, native plugin support |
+    | **Codex** | `genie setup --codex` | OpenAI's agent. Full transcript + team support |
+    | **Open Claw** | `genie setup --open-claw` | Open-source option. Community-maintained adapter |
+    | **Custom (BYOA)** | `genie setup --custom` | Bring Your Own Agent — any CLI agent with stdout/stderr |
+
+    Claude Code ships out of the box. For other agents, run the setup command above and Genie configures the adapter automatically.
+
+    <Tip>
+      **Bring Your Own Agent** — Genie's adapter system means you're never locked in.
+      Switch agents mid-project, mix agents on the same team, or write your own adapter.
+      See the [adapter docs](/genie/architecture) for details.
+    </Tip>
+  </Step>
+
   <Step title="Paste Into Your Agent">
-    Open Claude Code in your project directory and paste:
+    Open your agent in your project directory and paste:
 
     ```
     You are now a Genie-powered agent. Run `genie` to initialize,
@@ -117,7 +141,7 @@ Next: run /wizard for guided onboarding.
 
 ## What Just Happened?
 
-You went from an idea to a pull request using five slash commands. Here's the full pipeline in action:
+You went from an idea to a pull request using five slash commands — and your agent did the actual work. Here's the full pipeline:
 
 <Frame>
   <CodeGroup>
@@ -208,5 +232,11 @@ Creating pull request...
   </Card>
   <Card title="Skills Reference" icon="wand-magic-sparkles" href="/genie/skills/brainstorm">
     Browse all 14 built-in skills.
+  </Card>
+  <Card title="Hacks & Tips" icon="lightbulb" href="/genie/hacks">
+    Community patterns, cost tips, and power-user techniques.
+  </Card>
+  <Card title="Architecture" icon="sitemap" href="/genie/architecture">
+    How Genie orchestrates agents under the hood.
   </Card>
 </CardGroup>

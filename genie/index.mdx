@@ -7,33 +7,48 @@ description: "The orchestration layer for multi-agent development. Your agents a
 # Genie is the orchestration layer for multi-agent development
 
 <Note>
-  **Research Preview** — Genie is experimental software under active development. APIs will change, things will break, and we're building in public. That's the point. Join [Discord](https://discord.gg/automagik) to shape what this becomes.
+  **Research Preview** — We're testing a hypothesis: that orchestration is the missing piece between "AI can code" and "AI can ship." This is experimental software. APIs will change, things will break, and we're building in public because that's the only way to build something real. Join [Discord](https://discord.gg/automagik) to shape what this becomes.
 </Note>
 
 ## The problem isn't AI — it's context collapse
 
-AI agents are table stakes. The problem isn't whether they can code — it's whether they can code **together**.
+It's 11 PM. You have 7 tabs open. Each one is an AI agent. Each one is brilliant in isolation. And each one has completely forgotten what the others are doing.
 
-You've felt this. You have five agents open. One is refactoring the auth module. Another is building the API endpoint that depends on it. A third is writing tests against an interface that changed twenty minutes ago. None of them know what the others are doing.
+Tab 1 refactored the auth module an hour ago. Tab 4 is still importing the old interface. Tab 6 is writing tests against a schema that Tab 2 changed twenty minutes ago. You've re-explained the project structure three times — once per agent, because none of them talk to each other.
 
-So you re-explain. You copy context between tabs. You paste the same file three times into three different conversations. And when the third agent hallucinates an import path because it never saw the refactor — you fix it yourself, defeated, wondering why you're the bottleneck in a system that was supposed to remove bottlenecks.
+You're not coding anymore. You're a human clipboard. Copy context from Tab 1, paste into Tab 4. Realize Tab 4 hallucinated an import path because it never saw the refactor. Fix it yourself. Open Tab 7 to deal with the merge conflict that Tab 3 and Tab 5 created by touching the same file simultaneously, each unaware the other existed.
 
-**This is context collapse.** Not a failure of any single agent, but the absence of anything holding them together. Five brilliant musicians, no conductor, no sheet music, no shared key signature.
+This is what exhaustion feels like in 2026. Not "AI doesn't work" — AI works fine. The problem is that **you're the orchestration layer**, and you're terrible at it. Not because you're bad at your job, but because holding seven parallel execution contexts in your head while also doing the actual thinking work is a job for a system, not a person.
+
+**This is context collapse.** Not a failure of any single agent, but the absence of anything holding them together. Seven brilliant musicians, no conductor, no sheet music, no shared key signature. The music is cacophony — and you're the one with the headache.
 
 ## Genie is the conductor
 
-Genie doesn't replace your agents — it orchestrates them. It's the layer between your intent and their execution that handles everything agents can't handle alone:
+Here's the idea: what if you described the work once and something else handled the coordination?
 
-- **Shared context** — every agent reads from the same wish, the same scope, the same acceptance criteria
-- **Coordinated execution** — parallel work across isolated worktrees, no merge conflicts during development
-- **Structured lifecycle** — brainstorm, plan, build, review, ship — not "figure it out"
-- **Cross-agent messaging** — agents talk to each other, not through you
+Genie doesn't replace your agents — it orchestrates them. You capture your intent once. Genie broadcasts it to every agent that needs it, in a structured format they can all read. Then it executes the work in parallel — isolated worktrees, shared state, cross-agent messaging — so agents actually know what each other are doing.
+
+- **Capture once** — write a wish, define the scope, set acceptance criteria. Done. You never re-explain.
+- **Broadcast to all** — every agent reads from the same plan, the same context, the same ground truth
+- **Coordinated execution** — parallel work across isolated branches, no merge conflicts during development
+- **Agents talk to agents** — cross-agent messaging means Tab 4 knows what Tab 1 did, without you copying anything
 
 You describe what you want. Genie breaks it into parallelizable work units, assigns agents, manages their state, and assembles the result into a pull request. You review and merge. That's it.
 
 ```
 /brainstorm → /wish → /work → /review → ship
 ```
+
+## What this gives you
+
+The practical version, for the exhausted:
+
+- **No more re-explaining** — context is structural, not conversational. Write it once, every agent inherits it.
+- **Parallel execution** — five agents working simultaneously across isolated worktrees. No stepping on each other.
+- **Reproducible workflows** — wishes are versioned artifacts. Run the same plan twice, get consistent results.
+- **Overnight mode** — dispatch a team before bed. Wake up to a pull request. Seriously.
+- **Bring Your Own Agent** — Claude, Codex, Open Claw, or that custom thing you built last weekend. Genie doesn't care.
+- **Portable context** — your wishes, skills, and team configs live in your repo. Switch machines, switch agents, keep everything.
 
 ## Bring Your Own Agent
 
