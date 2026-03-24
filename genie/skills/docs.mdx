@@ -1,0 +1,50 @@
+---
+title: "/docs"
+description: "Audit, generate, and validate documentation against the codebase."
+---
+
+# /docs — Documentation Generation
+
+Audit existing documentation, identify gaps, generate what's missing, and validate every claim against actual code.
+
+## When to Use
+
+- Codebase has undocumented modules, APIs, or workflows
+- Existing documentation is stale or references removed features
+- A wish deliverable includes documentation
+- After significant code changes that invalidate existing docs
+
+## Documentation Surfaces
+
+| Type | Location | Purpose |
+|------|----------|---------|
+| **README** | `README.md`, `*/README.md` | Project/module overview, setup, usage |
+| **CLAUDE.md** | `CLAUDE.md`, `*/CLAUDE.md` | Project conventions for AI agents |
+| **API docs** | `docs/api/`, inline JSDoc/TSDoc | Endpoint contracts, schemas |
+| **Architecture** | `docs/architecture.md` | System design, data flow |
+| **Inline docs** | JSDoc, TSDoc, docstrings | Function/class-level documentation |
+
+CLAUDE.md is a **first-class documentation surface** — it should always reflect the current state of the project.
+
+## Flow
+
+1. **Audit existing docs** — scan all documentation surfaces, map what exists.
+2. **Identify gaps** — compare documentation against actual code, find what's missing or outdated.
+3. **Generate** — write documentation to fill the gaps, matching project conventions.
+4. **Validate against code** — verify every claim: file paths exist, APIs match, behaviors are accurate.
+5. **Report** — return list of created/updated files with validation results.
+
+## Dispatch
+
+```bash
+# Spawn a docs subagent
+genie spawn docs
+```
+
+## Rules
+
+- Validate every claim against actual code — no fiction
+- No dead references — every path, function, and API mentioned must exist
+- Match existing project conventions for documentation style
+- Never document features that don't exist yet
+- Include validation evidence in the report

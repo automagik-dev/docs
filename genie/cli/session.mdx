@@ -1,0 +1,68 @@
+---
+title: "Session"
+description: "Start and manage Genie sessions — genie, genie --session"
+---
+
+# Session Commands
+
+The `genie` command is the primary entry point. Running it from any folder creates or attaches a tmux session named after that folder.
+
+## `genie`
+
+Start or attach to a Genie session for the current directory.
+
+```bash
+genie
+```
+
+**Architecture:** Each folder gets its own tmux session. Running `genie` from `~/projects/myapp` creates a session named `myapp`.
+
+```bash Terminal
+$ genie
+╔════════════════════════════════════════════════════════════════╗
+║                    ✨ Automagik Genie ✨                      ║
+╠════════════════════════════════════════════════════════════════╣
+║  Session: myapp                                               ║
+║  Repo:    ~/projects/myapp                                    ║
+║  Branch:  feat/add-auth                                       ║
+╚════════════════════════════════════════════════════════════════╝
+```
+
+### Options
+
+| Flag | Description |
+|------|-------------|
+| `--session <name>` | Override session name (instead of folder-based) |
+| `--name <name>` | Set agent name for the session |
+| `--dir <path>` | Override working directory |
+| `--reset` | Reset the session (kills existing, starts fresh) |
+
+### Session Naming
+
+Sessions are named after `basename(cwd)`. When multiple folders share the same basename, a 4-character hash is appended for disambiguation:
+
+```bash Terminal
+$ cd ~/projects/myapp && genie        # Session: myapp
+$ cd ~/work/api-server && genie       # Session: api-server
+$ cd ~/other/api-server && genie      # Session: api-server-c7b1
+```
+
+### Session with Teams
+
+When a team is active, the session integrates with Claude Code's native team features:
+
+```bash Terminal
+$ genie --session my-feature
+# Creates tmux session "my-feature" with:
+#   Window 0: team-lead (with AGENTS.md context)
+#   Window 1+: spawned agents appear here
+```
+
+## `genie --version`
+
+Print the installed Genie version.
+
+```bash Terminal
+$ genie --version
+4.260324.8
+```

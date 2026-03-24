@@ -1,0 +1,79 @@
+---
+title: "/review"
+description: "Validate plans, execution, or PRs against wish criteria — returns SHIP / FIX-FIRST / BLOCKED."
+---
+
+# /review — Universal Review Gate
+
+Validate any artifact against its wish criteria. Always dispatched as a separate subagent — never review your own work inline.
+
+## When to Use
+
+- **Before `/work`** — validate a wish plan is ready for execution
+- **After `/work`** — verify implementation meets acceptance criteria
+- **Before merge** — check a PR diff against wish scope
+
+## Flow
+
+1. **Detect target** — determine what is being reviewed (wish draft, completed work, or PR diff).
+2. **Select pipeline** — match target to Plan, Execution, or PR checklist.
+3. **Run checklist** — evaluate each criterion, collecting evidence.
+4. **Run validations** — execute any validation commands; capture pass/fail output.
+5. **Tag gaps** — classify every unmet criterion by severity.
+6. **Return verdict** — SHIP, FIX-FIRST, or BLOCKED.
+7. **Write next steps** — exact fixes, files, and commands for each gap.
+
+## Pipelines
+
+### Plan Review (before /work)
+
+- Problem statement is one sentence and testable
+- Scope IN has concrete deliverables
+- Scope OUT is explicit
+- Every task has testable acceptance criteria
+- Tasks are bite-sized and independently shippable
+- Dependencies tagged
+- Validation commands exist for each group
+
+### Execution Review (after /work)
+
+- All acceptance criteria met with evidence
+- Validation commands run and passing
+- No scope creep — only wish-scoped changes
+- Quality pass: security, maintainability, correctness
+- No regressions introduced
+
+### PR Review (before merge)
+
+- Diff matches wish scope — no unrelated changes
+- No secrets, credentials, or hardcoded tokens in diff
+- Tests pass
+- Commit messages reference wish slug
+
+## Severity & Verdicts
+
+| Severity | Meaning | Blocks? |
+|----------|---------|---------|
+| CRITICAL | Security flaw, data loss, crash | Yes |
+| HIGH | Bug, major perf issue | Yes |
+| MEDIUM | Code smell, minor issue | No |
+| LOW | Style, naming preference | No |
+
+| Verdict | Condition | Next step |
+|---------|-----------|-----------|
+| **SHIP** | Zero CRITICAL/HIGH gaps | Proceed to next phase |
+| **FIX-FIRST** | Any CRITICAL/HIGH gap | Auto-invoke `/fix` |
+| **BLOCKED** | Scope or architecture issue | Escalate to human |
+
+### Auto-Fix on FIX-FIRST
+
+1. Auto-invoke `/fix` with the severity-tagged gap list.
+2. After fix, re-run `/review` (max 2 fix loops).
+3. If still FIX-FIRST after 2 loops, escalate as BLOCKED.
+
+## Rules
+
+- Never mark PASS without evidence
+- Never ship with CRITICAL or HIGH gaps
+- Never implement fixes during review — hand off to `/fix`
+- Every FAIL includes actionable fix (file, command, what to change)

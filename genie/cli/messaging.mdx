@@ -1,0 +1,92 @@
+---
+title: "Messaging"
+description: "Agent communication — send, broadcast, inbox, chat."
+---
+
+# Messaging Commands
+
+PG-backed messaging commands between agents. Replaces file-based mailbox with PostgreSQL conversations and messages tables.
+
+## `genie send`
+
+Send a direct message to a specific agent via PG conversation.
+
+```bash
+genie send '<message>' --to <name>
+```
+
+```bash Terminal
+$ genie send 'Group 1 complete — all criteria met' --to team-lead
+Message sent to team-lead.
+  Conversation: DM with team-lead
+  Timestamp: 2026-03-24T14:30:00Z
+```
+
+### Sender Identity Detection
+
+The sender is auto-detected using this cascade:
+1. `GENIE_AGENT_NAME` env var (explicit override)
+2. `TMUX_PANE` → worker registry lookup
+3. `TMUX_PANE` → native team config match
+4. Fallback: `cli`
+
+## `genie broadcast`
+
+Send a message to the team conversation.
+
+```bash
+genie broadcast '<message>'
+```
+
+```bash Terminal
+$ genie broadcast 'Wave 1 complete. Starting Wave 2.'
+Broadcast to team "auth-rewrite":
+  Message: Wave 1 complete. Starting Wave 2.
+  Recipients: team-lead, engineer, reviewer
+```
+
+## `genie inbox`
+
+List conversations with recent messages.
+
+```bash
+genie inbox
+```
+
+```bash Terminal
+$ genie inbox
+CONVERSATION          LAST MESSAGE                              TIME
+DM: team-lead        "Group 2 ready for review"                2m ago
+DM: engineer          "Starting Group 3 implementation"         5m ago
+Team: auth-rewrite    "Wave 1 complete. Starting Wave 2."       8m ago
+```
+
+## `genie chat`
+
+Send to a specific conversation, create threads, or list conversations.
+
+### Send to conversation
+
+```bash
+genie chat <conversation_id> '<message>'
+```
+
+### Create a thread
+
+```bash
+genie chat thread <message_id>
+```
+
+### List conversations
+
+```bash
+genie chat list [--team <name>] [--type dm|team|thread]
+```
+
+```bash Terminal
+$ genie chat list --team auth-rewrite
+CONVERSATION          TYPE    MESSAGES   LAST ACTIVITY
+auth-rewrite          team    42         2m ago
+DM: team-lead         dm      12         5m ago
+Thread: #msg-123      thread  3          8m ago
+```

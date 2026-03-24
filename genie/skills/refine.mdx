@@ -1,0 +1,71 @@
+---
+title: "/refine"
+description: "Transform a brief or prompt into a structured, production-ready prompt via prompt-optimizer."
+---
+
+# /refine — Prompt Optimizer
+
+Transform any brief, draft, or one-liner into a production-ready structured prompt.
+
+## When to Use
+
+- User wants to improve a prompt or brief
+- User references `/refine` with text or a file path
+- A worker needs to optimize a prompt before dispatching it
+
+## Modes
+
+### File Mode
+
+```bash
+/refine @path/to/file.md
+```
+
+Reads the target file, optimizes it, and **overwrites in place**.
+
+### Text Mode
+
+```bash
+/refine <text>
+```
+
+Optimizes the text and writes to `/tmp/prompts/<slug>.md`.
+
+## Flow
+
+1. **Detect mode** — argument starts with `@` → file mode; otherwise → text mode.
+2. **Read input** — file mode reads the target file; text mode uses the raw argument.
+3. **Spawn refiner subagent** — system prompt = the Prompt Optimizer, input = user text.
+4. **Receive output** — the subagent returns the optimized prompt body only.
+5. **Write output** — file mode overwrites source; text mode writes to `/tmp/prompts/`.
+6. **Report** — print the path of the written file.
+
+## Prompt Type Detection
+
+The optimizer classifies prompts and applies type-specific patterns:
+
+| Type | Detection Signals | Required Sections |
+|------|-------------------|-------------------|
+| **Task** | "fix", "implement", "build" | Role, Mission, D/I/V, Success Criteria |
+| **Agent** | "persona", "assistant", "act as" | Identity, Behaviors, Escalation |
+| **Workflow** | "process", "pipeline", "multi-step" | Phases, Hand-offs, Validation |
+| **Evaluator** | "review", "audit", "score" | Rubric, Evidence, Pass/Fail |
+| **Creative** | "brainstorm", "explore", "ideas" | Brief, Divergence, Convergence |
+| **Meta** | "improve this prompt", "optimize" | Current State, Gaps, Directives |
+
+## Core Patterns
+
+The optimizer applies these structural patterns:
+
+- **D/I/V (Discovery / Implementation / Verification)** — task decomposition with rollback points
+- **Success/Failure Boundaries** — concrete criteria with pass/fail markers
+- **Concrete Examples** — code samples over descriptions
+- **Scope Controls** — explicit boundaries to prevent scope creep
+
+## Rules
+
+- Never add wrapper text or commentary to the output file
+- Never execute the prompt — only rewrite it
+- Single-turn execution only — no clarification loops
+- File mode overwrites in place
+- Text mode always writes to `/tmp/prompts/`

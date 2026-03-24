@@ -1,0 +1,54 @@
+---
+title: "/trace"
+description: "Investigate unknown issues — reproduces, traces, and reports root cause for /fix handoff."
+---
+
+# /trace — Investigation and Root Cause Analysis
+
+Investigate unknown failures. Dispatch a trace subagent to reproduce, trace, and isolate root cause — then hand the report to `/fix`.
+
+## When to Use
+
+- A failure exists but the cause is unknown
+- Stack traces or error messages don't point to an obvious defect
+- Multiple files or systems may be involved
+- `/review` encounters a failure with unclear root cause
+
+## Flow
+
+1. **Collect symptoms** — gather error messages, stack traces, logs, and expected vs actual behavior.
+2. **Dispatch tracer** — the spawned agent performs a read-only inline investigation.
+3. **Investigate** — the tracer autonomously reproduces, hypothesizes, traces, and isolates root cause.
+4. **Signal findings** — tracer reports back to the leader via `genie send`.
+5. **Receive report** — structured diagnosis.
+6. **Hand off** — pass the report to `/fix` or escalate.
+
+## Report Format
+
+```
+Root cause:              What's actually broken — file, line, condition
+Evidence:                Reproduction steps, traces, proof
+Causal chain:            Root cause → intermediate effects → observed symptom
+Recommended correction:  What to change, where, why
+Affected scope:          Other files or features impacted
+Confidence:              high / medium / low
+```
+
+## Dispatch
+
+Trace runs in **isolation** — the subagent must not modify any source files.
+
+```bash
+# Spawn a tracer subagent (read-only investigation)
+genie spawn tracer
+```
+
+The tracer uses only read-only tools: Read, Bash, Glob, Grep. No Write, no Edit.
+
+## Rules
+
+- Never fix during trace — investigation only, always separate from correction
+- Always reproduce before theorizing
+- Evidence required — every root cause claim must include file paths, line numbers, and a causal chain
+- Hand off to `/fix` — trace produces a report, `/fix` applies the correction
+- If root cause spans multiple systems, report each separately with confidence levels

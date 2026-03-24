@@ -1,0 +1,85 @@
+---
+title: "/brainstorm"
+description: "Explore ambiguous or early-stage ideas interactively — tracks wish-readiness and crystallizes into a design."
+---
+
+# /brainstorm — Explore Before Planning
+
+Collaborate on fuzzy ideas until they are concrete enough for `/wish`.
+
+## When to Use
+
+- User has an idea but unclear scope or approach
+- Requirements are ambiguous and need interactive refinement
+- User explicitly invokes `/brainstorm`
+
+## Flow
+
+1. **Read context** — scan current code, docs, conventions. Check `.genie/brainstorm.md` for an existing entry matching the topic.
+2. **Init persistence** — create `.genie/brainstorms/<slug>/DRAFT.md` immediately.
+3. **Clarify intent** — one question at a time, prefer multiple-choice.
+4. **Show WRS bar** after every exchange.
+5. **Persist draft** when WRS changes or every 2 minutes.
+6. **Propose approaches** — 2–3 options with trade-offs. Recommend one.
+7. **Crystallize** when WRS = 100 — write `DESIGN.md`, update jar, hand off.
+
+## Wish Readiness Score (WRS)
+
+Five dimensions, 20 points each. Displayed after every exchange.
+
+| Dimension | Filled when… |
+|-----------|-------------|
+| **Problem** | One-sentence problem statement is clear |
+| **Scope** | IN and OUT boundaries defined |
+| **Decisions** | Key technical/design choices made with rationale |
+| **Risks** | Assumptions, constraints, failure modes identified |
+| **Criteria** | At least one testable acceptance criterion exists |
+
+```
+WRS: ██████░░░░ 60/100
+ Problem ✅ | Scope ✅ | Decisions ✅ | Risks ░ | Criteria ░
+```
+
+## Brainstorm Jar
+
+An index at `.genie/brainstorm.md` tracks all topics across sessions with four sections:
+
+| Section | Purpose |
+|---------|---------|
+| **Raw** | New ideas, just captured |
+| **Simmering** | Under active discussion |
+| **Ready** | WRS = 100, ready to crystallize |
+| **Poured** | Crystallized into a wish |
+
+## Crystallize
+
+Triggered automatically when WRS = 100:
+
+1. Write `.genie/brainstorms/<slug>/DESIGN.md` from the draft.
+2. Move entry to Poured in the jar with a wish link.
+3. Auto-invoke `/review` (plan review) on the design.
+
+## Output Options
+
+| Complexity | Output |
+|-----------|--------|
+| Standard | Write `DESIGN.md`, auto-invoke `/review` |
+| Small but non-trivial | Write design, ask whether to implement directly |
+| Trivial | Add one-liner to jar (Raw section) |
+
+## Handoff
+
+After `/review` returns SHIP on the design:
+
+```
+Design reviewed and validated (WRS 100/100). Proceeding to /wish.
+```
+
+## Rules
+
+- One question per message — never batch questions
+- YAGNI and simplicity first
+- Always propose alternatives before recommending
+- Never assume requirements without confirmation
+- No implementation during brainstorm
+- Persist early and often

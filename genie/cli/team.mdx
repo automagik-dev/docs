@@ -1,0 +1,117 @@
+---
+title: "Team"
+description: "Team lifecycle management — create, hire, fire, list, and disband teams."
+---
+
+# Team Commands
+
+CRUD for team lifecycle with worktree management.
+
+## `genie team create`
+
+Create a new team with a git worktree.
+
+```bash
+genie team create <name> --repo <path> [--branch dev] [--wish <slug>] [--session <name>]
+```
+
+```bash Terminal
+$ genie team create auth-rewrite --repo . --wish add-oauth --branch dev
+✅ Team "auth-rewrite" created
+  Worktree: ~/.genie/worktrees/myapp/auth-rewrite
+  Branch:   team/auth-rewrite (from dev)
+  Wish:     add-oauth
+  Leader spawned with wish context.
+```
+
+### Options
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--repo <path>` | Path to the git repository | **Required** |
+| `--branch <branch>` | Base branch to create from | `dev` |
+| `--wish <slug>` | Wish slug — auto-spawns a team leader with wish context | — |
+| `--session <name>` | Tmux session name (avoids session explosion) | — |
+
+## `genie team hire`
+
+Add an agent to a team. Use `council` to hire all 10 council members at once.
+
+```bash
+genie team hire <agent> [--team <name>]
+```
+
+```bash Terminal
+$ genie team hire engineer --team auth-rewrite
+Hired "engineer" to team "auth-rewrite".
+
+$ genie team hire council --team auth-rewrite
+Hired 10 council members to "auth-rewrite":
+  + council-questioner
+  + council-benchmarker
+  + council-simplifier
+  + council-sentinel
+  + council-ergonomist
+  + council-architect
+  + council-operator
+  + council-deployer
+  + council-measurer
+  + council-tracer
+```
+
+## `genie team fire`
+
+Remove an agent from a team.
+
+```bash
+genie team fire <agent> [--team <name>]
+```
+
+```bash Terminal
+$ genie team fire engineer --team auth-rewrite
+Removed "engineer" from team "auth-rewrite".
+```
+
+## `genie team ls`
+
+List teams or show details for a specific team.
+
+```bash
+genie team ls [<name>]
+```
+
+```bash Terminal
+$ genie team ls
+Teams:
+  auth-rewrite    3 members   active
+  dream-0324      5 members   active
+
+$ genie team ls auth-rewrite
+Team: auth-rewrite
+  Repo:     ~/projects/myapp
+  Worktree: ~/.genie/worktrees/myapp/auth-rewrite
+  Branch:   team/auth-rewrite
+  Members:
+    team-lead   (leader)
+    engineer    (worker)
+    reviewer    (worker)
+```
+
+## `genie team disband`
+
+Disband a team and clean up its worktree.
+
+```bash
+genie team disband <name>
+```
+
+```bash Terminal
+$ genie team disband auth-rewrite
+Disbanded team "auth-rewrite".
+  Worktree removed.
+  Agents terminated.
+```
+
+## Auto-Detection
+
+When `--team` is omitted, genie auto-detects the team from the leader context (environment variables or tmux session).
