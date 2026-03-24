@@ -1,16 +1,15 @@
 ---
 title: "Quickstart"
 sidebarTitle: "Quickstart"
-description: "From zero to your first shipped PR in five minutes — with the agent you already use."
+description: "Five minutes from nothing to your first PR. Bring whatever agent you like — we're not picky."
 ---
 
 # Quickstart
 
-Get Genie running and ship your first feature — with whatever AI agent you prefer.
+Five minutes. One PR. Whatever agent you already use.
 
 <Note>
-  **Research Preview** — Genie is experimental. Things will break, APIs will change, and we want your feedback.
-  Join [Discord](https://discord.gg/automagik) to tell us what's working and what isn't.
+  **Research Preview** — Genie is experimental. Things will break, APIs will change, and we want your feedback. Honest feedback, not polite feedback. [Tell us on Discord](https://discord.gg/automagik).
 </Note>
 
 <Steps>
@@ -37,22 +36,21 @@ Get Genie running and ship your first feature — with whatever AI agent you pre
     ```
   </Step>
 
-  <Step title="Choose Your Agent">
-    Genie is an orchestration layer, not an agent. It works **with** your agent — whichever one you prefer. We don't care which one you marry; we care that the wedding runs on time.
+  <Step title="Choose Your Agent (or don't — we don't care)">
+    Genie orchestrates agents. It is not an agent. Use whatever you like — we have opinions about orchestration, not about your vendor choices.
 
     | Agent | Setup | Notes |
     |-------|-------|-------|
-    | **Claude Code** | Installed by default | Recommended — deepest integration, native plugin support |
+    | **Claude Code** | Installed by default | Deepest integration — native plugin, hooks, teams |
     | **Codex** | `genie setup --codex` | OpenAI's agent. Full transcript + team support |
-    | **Open Claw** | `genie setup --open-claw` | Open-source option. Community-maintained adapter |
-    | **Custom (BYOA)** | `genie setup --custom` | Bring Your Own Agent — any CLI agent with stdout/stderr |
+    | **Open Claw** | `genie setup --open-claw` | Open-source. Community-maintained adapter |
+    | **Custom (BYOA)** | `genie setup --custom` | Any CLI agent with stdout/stderr. Seriously, anything. |
 
-    Claude Code ships out of the box. For other agents, run the setup command above and Genie configures the adapter automatically.
+    Claude Code works out of the box. For others, run the setup command and Genie configures the adapter.
 
     <Tip>
-      **Bring Your Own Agent** — Genie's adapter system means you're never locked in.
-      Switch agents mid-project, mix agents on the same team, or write your own adapter.
-      See the [adapter docs](/genie/architecture/overview) for details.
+      **You're never locked in.** Switch agents mid-project, mix them on the same team, or write your own adapter.
+      See the [adapter docs](/genie/architecture/overview) if you're the kind of person who builds their own tools.
     </Tip>
   </Step>
 
@@ -95,53 +93,53 @@ Next: run /wizard for guided onboarding.
   </Step>
 
   <Step title="Brainstorm Your First Idea">
-    Use the `/brainstorm` skill to explore an idea:
+    Got something you want to build? Tell the brainstorm skill about it:
 
     ```
     /brainstorm Add a dark mode toggle to the settings page
     ```
 
-    The brainstorm skill guides you through:
-    - Scope definition — what's in, what's out
-    - Technical constraints — dependencies, breaking changes
-    - Design decisions — approach, tradeoffs
-    - Wish readiness — when the idea is crisp enough to plan
+    It'll walk you through the thinking you'd do anyway — but faster:
+    - Scope — what's in, what's out
+    - Constraints — dependencies, breaking changes
+    - Design — approach, tradeoffs
+    - Readiness — is this crisp enough to actually build?
   </Step>
 
   <Step title="Create a Wish">
-    When the brainstorm is ready, convert it to a structured plan:
+    When the brainstorm crystallizes, turn it into something agents can execute:
 
     ```
     /wish
     ```
 
-    This produces a `WISH.md` with:
-    - Summary and scope
-    - Acceptance criteria (checkboxes)
+    This produces a `WISH.md` — the contract between you and your agents:
+    - Summary and scope (so nobody wanders off)
+    - Acceptance criteria (checkboxes — unambiguous "done")
     - Execution groups (parallelizable work units)
-    - Success validation commands
+    - Validation commands (proof it works)
   </Step>
 
   <Step title="Execute and Ship">
-    Run the wish — Genie dispatches agents per execution group:
+    Let the agents do the work:
 
     ```
     /work
     ```
 
-    When all groups complete, review the result:
+    When they're done, validate:
 
     ```
     /review
     ```
 
-    If the review returns **SHIP**, a PR is created. If **FIX-FIRST**, the fix loop runs automatically.
+    **SHIP** → PR created. **FIX-FIRST** → fix loop runs automatically. You don't babysit either way.
   </Step>
 </Steps>
 
 ## What just happened?
 
-You went from an idea to a pull request using four slash commands — and your agent did the actual work. Here's the full pipeline:
+You typed four slash commands and got a pull request. Your agent did the actual work. Here's what it looked like:
 
 <Frame>
   <CodeGroup>
@@ -222,7 +220,7 @@ Creating pull request...
 | Plan | `/wish` | WISH.md with criteria |
 | Build | `/work` | Code changes across execution groups |
 | Validate | `/review` | SHIP or FIX-FIRST verdict |
-| Ship | PR created | Ready for human merge |
+| Ship | PR created | Ready for you to merge (agents don't push to production — that's your job) |
 
 ## Next steps
 
@@ -236,7 +234,7 @@ Creating pull request...
   <Card title="Hacks & Tips" icon="lightbulb" href="/genie/hacks">
     Community patterns, cost tips, and power-user techniques.
   </Card>
-  <Card title="Architecture" icon="sitemap" href="/genie/architecture">
-    How Genie orchestrates agents under the hood.
+  <Card title="Stuck? Ask on Discord" icon="discord" href="https://discord.gg/automagik">
+    Real humans. Real answers. Usually within minutes, not days.
   </Card>
 </CardGroup>

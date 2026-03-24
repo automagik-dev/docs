@@ -1,13 +1,13 @@
 ---
 title: "What is Genie?"
 sidebarTitle: "What is Genie?"
-description: "The orchestration layer for multi-agent development. Your agents are powerful — Genie makes them work together."
+description: "You shouldn't be the orchestration layer. Genie is."
 ---
 
-# Genie is the orchestration layer for multi-agent development
+# You're the bottleneck, not your agents
 
 <Note>
-  **Research Preview** — We're testing a hypothesis: that orchestration is the missing piece between "AI can code" and "AI can ship." This is experimental software. APIs will change, things will break, and we're building in public because that's the only way to build something real. Join [Discord](https://discord.gg/automagik) to shape what this becomes.
+  **Research Preview** — We think orchestration is the missing piece between "AI can code" and "AI can ship." This is experimental software. APIs will change, things will break, and we're building in public because that's the only way to build something real. [Join us on Discord](https://discord.gg/automagik) to argue about it.
 </Note>
 
 ## The problem isn't AI — it's context collapse
@@ -24,16 +24,16 @@ This is what exhaustion feels like in 2026. Not "AI doesn't work" — AI works f
 
 ## Genie is the conductor
 
-Here's the idea: what if you described the work once and something else handled the coordination?
+Here's the deal: you describe the work once and Genie handles the rest.
 
-Genie doesn't replace your agents — it orchestrates them. You capture your intent once. Genie broadcasts it to every agent that needs it, in a structured format they can all read. Then it executes the work in parallel — isolated worktrees, shared state, cross-agent messaging — so agents actually know what each other are doing.
+It doesn't replace your agents — it makes them actually work together. You capture your intent once. Genie broadcasts it to every agent that needs it, in a structured format they can all read. Then it runs the work in parallel — isolated worktrees, shared state, cross-agent messaging — so agents know what each other are doing without you playing telephone.
 
 - **Capture once** — write a wish, define the scope, set acceptance criteria. Done. You never re-explain.
 - **Broadcast to all** — every agent reads from the same plan, the same context, the same ground truth
 - **Coordinated execution** — parallel work across isolated branches, no merge conflicts during development
-- **Agents talk to agents** — cross-agent messaging means Tab 4 knows what Tab 1 did, without you copying anything
+- **Agents talk to agents** — Tab 4 knows what Tab 1 did, without you copying anything
 
-You describe what you want. Genie breaks it into parallelizable work units, assigns agents, manages their state, and assembles the result into a pull request. You review and merge. That's it.
+You describe what you want. Genie breaks it into parallelizable work, assigns agents, manages state, and assembles a pull request. You review and merge. That's it.
 
 ```
 /brainstorm → /wish → /work → /review → ship
@@ -41,18 +41,18 @@ You describe what you want. Genie breaks it into parallelizable work units, assi
 
 ## What this gives you
 
-The practical version, for the exhausted:
+The practical version, for the exhausted developer at 11 PM:
 
-- **No more re-explaining** — context is structural, not conversational. Write it once, every agent inherits it.
-- **Parallel execution** — five agents working simultaneously across isolated worktrees. No stepping on each other.
-- **Reproducible workflows** — wishes are versioned artifacts. Run the same plan twice, get consistent results.
-- **Overnight mode** — dispatch a team before bed. Wake up to a pull request. Seriously.
-- **Bring your own agent** — Claude, Codex, Open Claw, or that custom thing you built last weekend. Genie doesn't care.
-- **Portable context** — your wishes, skills, and team configs live in your repo. Switch machines, switch agents, keep everything.
+- **Stop re-explaining** — context is structural, not conversational. Write it once, every agent inherits it. We're serious — *once*.
+- **Parallel execution** — five agents working simultaneously across isolated worktrees. No stepping on each other's code.
+- **Reproducible workflows** — wishes are versioned artifacts. Run the same plan twice, get consistent results. No more "works on my agent."
+- **Overnight mode** — dispatch a team before bed. Wake up to a pull request. This is not a metaphor.
+- **Bring your own agent** — Claude, Codex, Open Claw, or that custom thing you built last weekend. We don't care which AI you use.
+- **Portable context** — wishes, skills, and team configs live in your repo. Switch machines, switch agents, keep everything.
 
 ## Bring your own agent
 
-Genie is agent-agnostic. It's an orchestration protocol, not a wrapper around one vendor. Use whatever agent fits the job — or mix them on the same team.
+Genie has opinions about orchestration. It has zero opinions about which AI you use. It's a protocol, not a vendor lock-in. Use whatever agent fits the job — or mix them on the same team.
 
 | Agent | Setup | Best For |
 |-------|-------|----------|
@@ -68,28 +68,28 @@ genie spawn engineer --provider codex --model codex-mini
 genie spawn reviewer --provider claude --model opus
 ```
 
-Your agents are interchangeable. Switch mid-project, mix on a team, or write your own adapter. Genie doesn't care which agent you use — it cares that the work ships.
+Your agents are interchangeable. Switch mid-project, mix on a team, or write your own adapter. Genie cares that the work ships — not who does it.
 
 <Tip>
   See the [Hacks page](/genie/hacks) for community patterns on provider switching, cost optimization, and BYOA configurations.
 </Tip>
 
-## 8 core capabilities
+## 8 things Genie actually does
 
-| Capability | What It Does | Key Feature |
-|------------|-------------|-------------|
-| **Wishes** | Structured plans with scope, criteria, and execution groups | Parallelizable work units with dependency ordering |
-| **Skills** | 14 built-in slash commands — composable prompt programs | `/brainstorm` through `/dream` — each encodes a best practice |
-| **Teams** | Multi-agent squads with shared state | Isolated worktrees per team, zero conflicts during dev |
-| **Agents** | tmux-based workers with identity, roles, and heartbeats | Auto-spawn, crash recovery, idle suspension |
-| **BYOA** | Provider-agnostic agent orchestration | Claude, Codex, Open Claw, or any custom CLI agent |
-| **Worktrees** | Git worktree isolation per team | Parallel branches, automatic cleanup, shared `.genie/` state |
-| **Messaging** | Cross-agent communication system | Mailbox delivery, team chat, broadcast, structured routing |
-| **Hooks** | Event-driven automation on every tool call | Auto-spawn, identity injection, NATS integration |
+| Capability | The Point | Why It Matters |
+|------------|-----------|----------------|
+| **Wishes** | Structured plans — scope, criteria, execution groups | You describe it once. Agents figure out the rest. |
+| **Skills** | 14 slash commands — composable prompt programs | `/brainstorm` through `/dream`. Each one encodes a workflow we got tired of repeating. |
+| **Teams** | Multi-agent squads with shared state | Isolated worktrees per team. Zero conflicts during dev. |
+| **Agents** | tmux-based workers with identity and heartbeats | They crash, they restart, they suspend when idle. Like good employees. |
+| **BYOA** | Provider-agnostic orchestration | Claude, Codex, Open Claw, your custom thing. We don't care. |
+| **Worktrees** | Git worktree isolation per team | Parallel branches, automatic cleanup, shared state. |
+| **Messaging** | Cross-agent communication | Agents talk to agents. You stop being the clipboard. |
+| **Hooks** | Event-driven automation on every tool call | Auto-spawn, identity injection, NATS. Things happen when things happen. |
 
 ## How it works
 
-Every feature follows the same lifecycle — from vague idea to merged pull request:
+Every feature follows the same lifecycle — vague idea to merged pull request, no detours:
 
 <Steps>
   <Step title="Brainstorm">
@@ -111,9 +111,11 @@ Every feature follows the same lifecycle — from vague idea to merged pull requ
 
 ## Desktop is coming
 
-Genie is CLI-first today — built for agents and developers who live in the terminal. But we're building a desktop application for Q2 2026 that brings the same orchestration to a visual interface: wish boards, agent dashboards, real-time team monitoring.
+{/* If you're reading the source of our docs, you're exactly our target audience. */}
 
-The CLI isn't going anywhere. The desktop is another surface for the same system.
+Genie is CLI-first today — built for developers who live in the terminal. But we're building a desktop app for Q2 2026: wish boards, agent dashboards, real-time monitoring. Same system, visual surface.
+
+The CLI isn't going anywhere. If you want to orchestrate agents at 2 AM in a tmux session while your cat judges you, we respect that.
 
 ## Get started
 
