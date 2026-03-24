@@ -1,0 +1,156 @@
+---
+title: "Wishes"
+sidebarTitle: "Wishes"
+description: "The structured plan that drives everything — from brainstorm to pull request."
+---
+
+# Wishes
+
+A **wish** is Genie's unit of work. It's a structured document (`WISH.md`) that defines what to build, how to validate it, and how to break it into parallelizable execution groups.
+
+## The Pipeline
+
+Every wish flows through a five-stage pipeline:
+
+```
+brainstorm → wish → work → review → ship
+```
+
+| Stage | Skill | Input | Output |
+|-------|-------|-------|--------|
+| Explore | `/brainstorm` | Rough idea | Design document with decisions |
+| Plan | `/wish` | Design document | `WISH.md` with criteria and groups |
+| Execute | `/work` | Approved `WISH.md` | Code changes, tests, docs |
+| Validate | `/review` | Completed work | SHIP, FIX-FIRST, or BLOCKED |
+| Ship | automatic | SHIP verdict | Pull request |
+
+## Anatomy of a WISH.md
+
+Every wish contains these sections:
+
+### Header
+
+```markdown
+# Wish: Add Dark Mode Toggle
+
+| Field | Value |
+|-------|-------|
+| **Status** | APPROVED |
+| **Slug** | `dark-mode-toggle` |
+| **Date** | 2026-03-24 |
+```
+
+The **status** tracks the wish lifecycle:
+
+| Status | Meaning |
+|--------|---------|
+| `DRAFT` | Being written, not yet approved |
+| `APPROVED` | Ready for execution |
+| `IN_PROGRESS` | Currently being worked on |
+| `REVIEW` | Work complete, under review |
+| `DONE` | Shipped and merged |
+| `BLOCKED` | Cannot proceed — needs input |
+
+### Scope
+
+Defines clear boundaries — what's **in** and what's **out**:
+
+```markdown
+## Scope
+
+### IN
+- Dark mode CSS variables
+- Toggle component in settings
+- Persistent preference in localStorage
+
+### OUT
+- System theme detection (future wish)
+- Dark mode for marketing pages
+```
+
+### Success Criteria
+
+Checkboxes that define "done". These are what `/review` validates against:
+
+```markdown
+## Success Criteria
+
+- [ ] Toggle renders in settings page
+- [ ] CSS variables switch between light/dark
+- [ ] Preference persists across sessions
+- [ ] No FOUC on page load
+- [ ] All existing tests pass
+```
+
+### Execution Groups
+
+Parallelizable work units. Each group is assigned to an agent:
+
+```markdown
+## Execution Groups
+
+### Group 1: CSS Variables
+**Agent:** engineer
+**Deliverables:**
+1. Define CSS custom properties for both themes
+2. Update existing component styles to use variables
+
+### Group 2: Toggle Component
+**Agent:** engineer
+**Deliverables:**
+1. Build toggle component
+2. Wire to localStorage
+**depends-on:** Group 1
+```
+
+Groups with `depends-on` run sequentially. Independent groups run in parallel — this is how Genie achieves speed.
+
+## Wish State
+
+Genie tracks execution state separately from the wish document:
+
+```
+.genie/state/<slug>.json
+```
+
+This JSON file records:
+- Which groups are complete
+- Which agents are assigned
+- Current pipeline stage
+- Timestamps and error states
+
+The state file is shared across worktrees (via `git rev-parse --git-common-dir`), so multiple agents working in different worktrees see the same progress.
+
+## File Locations
+
+| File | Path | Purpose |
+|------|------|---------|
+| Wish document | `.genie/wishes/<slug>/WISH.md` | The plan |
+| Design document | `.genie/brainstorms/<slug>/DESIGN.md` | Pre-wish exploration |
+| Execution state | `.genie/state/<slug>.json` | Progress tracking |
+
+## CLI Commands
+
+```bash
+genie status <slug>          # Show wish progress
+genie wish approve <slug>    # Approve a draft wish
+genie wish reset <slug>      # Reset wish state
+genie done <slug> <group>    # Mark a group complete
+```
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Keep wishes small">
+    A wish should be completable in one session. If it has more than 6 execution groups, consider splitting into multiple wishes.
+  </Accordion>
+  <Accordion title="Write testable criteria">
+    Each success criterion should be verifiable by a command or assertion. Avoid subjective criteria like "code is clean."
+  </Accordion>
+  <Accordion title="Declare dependencies explicitly">
+    If Group 3 needs Group 1's output, say `depends-on: Group 1`. Genie uses this to schedule execution order.
+  </Accordion>
+  <Accordion title="Scope aggressively">
+    The OUT section is as important as IN. Explicitly listing what you won't do prevents scope creep.
+  </Accordion>
+</AccordionGroup>

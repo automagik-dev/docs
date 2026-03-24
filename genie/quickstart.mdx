@@ -1,0 +1,115 @@
+---
+title: "Quickstart"
+sidebarTitle: "Quickstart"
+description: "From zero to your first shipped PR in five minutes."
+---
+
+# Quickstart
+
+Get Genie running and ship your first feature — all through your AI agent.
+
+<Steps>
+  <Step title="Install Genie">
+    Run the bootstrap script. It installs the CLI, sets up the Claude Code plugin, and configures git hooks.
+
+    ```bash
+    curl -fsSL https://raw.githubusercontent.com/automagik-dev/genie/main/install.sh | bash
+    ```
+
+    Verify the install:
+
+    ```bash
+    genie doctor
+    ```
+
+    Expected output:
+    ```
+    ✓ genie CLI found
+    ✓ Claude Code installed
+    ✓ tmux available
+    ✓ Plugin symlink active
+    ✓ Git hooks configured
+    ```
+  </Step>
+
+  <Step title="Paste Into Your Agent">
+    Open Claude Code in your project directory and paste:
+
+    ```
+    You are now a Genie-powered agent. Run `genie` to initialize,
+    then use /wizard for guided onboarding.
+    ```
+
+    Genie scaffolds your project with:
+    - `AGENTS.md` — agent directory and roles
+    - `SOUL.md` — your agent's identity and principles
+    - `.genie/` — state directory for wishes, mailbox, and chat
+  </Step>
+
+  <Step title="Brainstorm Your First Idea">
+    Use the `/brainstorm` skill to explore an idea:
+
+    ```
+    /brainstorm Add a dark mode toggle to the settings page
+    ```
+
+    The brainstorm skill guides you through:
+    - Scope definition — what's in, what's out
+    - Technical constraints — dependencies, breaking changes
+    - Design decisions — approach, tradeoffs
+    - Wish readiness — when the idea is crisp enough to plan
+  </Step>
+
+  <Step title="Create a Wish">
+    When the brainstorm is ready, convert it to a structured plan:
+
+    ```
+    /wish
+    ```
+
+    This produces a `WISH.md` with:
+    - Summary and scope
+    - Acceptance criteria (checkboxes)
+    - Execution groups (parallelizable work units)
+    - Success validation commands
+  </Step>
+
+  <Step title="Execute and Ship">
+    Run the wish — Genie dispatches agents per execution group:
+
+    ```
+    /work
+    ```
+
+    When all groups complete, review the result:
+
+    ```
+    /review
+    ```
+
+    If the review returns **SHIP**, a PR is created. If **FIX-FIRST**, the fix loop runs automatically.
+  </Step>
+</Steps>
+
+## What Just Happened?
+
+You went from an idea to a pull request using five slash commands:
+
+| Step | Skill | Output |
+|------|-------|--------|
+| Explore | `/brainstorm` | Design document |
+| Plan | `/wish` | WISH.md with criteria |
+| Build | `/work` | Code changes across execution groups |
+| Validate | `/review` | SHIP or FIX-FIRST verdict |
+| Ship | PR created | Ready for human merge |
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Core Concepts" icon="book" href="/genie/concepts/wishes">
+    Understand wishes, agents, teams, and skills in depth.
+  </Card>
+  <Card title="Skills Reference" icon="wand-magic-sparkles" href="/genie/skills/brainstorm">
+    Browse all 14 built-in skills.
+  </Card>
+</CardGroup>

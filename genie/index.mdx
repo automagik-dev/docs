@@ -1,0 +1,65 @@
+---
+title: "Introduction"
+sidebarTitle: "What is Genie?"
+description: "Agent orchestration for your codebase. Wishes in, PRs out."
+---
+
+# What is Genie?
+
+Genie is a CLI that turns AI coding agents into autonomous software teams. You describe what you want — a **wish** — and Genie orchestrates agents to brainstorm, plan, implement, review, and ship it as a pull request.
+
+<CardGroup cols={2}>
+  <Card title="Agent-First" icon="robot">
+    Designed for AI agents, not humans. Paste one command into your agent and Genie takes over.
+  </Card>
+  <Card title="Full Pipeline" icon="arrows-spin">
+    From brainstorm to merged PR — brainstorm, wish, work, review, ship.
+  </Card>
+  <Card title="Team Orchestration" icon="users">
+    Spawn engineers, reviewers, and QA agents that coordinate through tmux and messaging.
+  </Card>
+  <Card title="Skill System" icon="wand-magic-sparkles">
+    14 built-in skills — from `/brainstorm` to `/dream` — each a composable prompt program.
+  </Card>
+</CardGroup>
+
+## How It Works
+
+Genie wraps Claude Code (and Codex) with an orchestration layer that manages:
+
+- **Wishes** — structured plans with scope, acceptance criteria, and execution groups
+- **Agents** — tmux-based workers with identities, roles, and heartbeats
+- **Teams** — multi-agent squads that share state via worktrees and messaging
+- **Skills** — slash-command prompt programs that encode best practices
+
+## The Pipeline
+
+Every feature follows the same lifecycle:
+
+```
+/brainstorm → /wish → /work → /review → ship
+```
+
+1. **Brainstorm** — explore the idea, identify constraints, crystallize scope
+2. **Wish** — produce a structured plan with acceptance criteria and execution groups
+3. **Work** — dispatch engineers per execution group with fix loops
+4. **Review** — validate against criteria, return SHIP or FIX-FIRST
+5. **Ship** — PR created, ready for human merge
+
+## Quick Start
+
+The fastest way to get started:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/automagik-dev/genie/main/install.sh | bash
+```
+
+Then paste this into your AI agent:
+
+```
+You are now a Genie-powered agent. Run `genie` to start, then use /wizard for guided onboarding.
+```
+
+<Card title="Quickstart Guide" icon="rocket" href="/genie/quickstart">
+  Step-by-step guide from install to your first shipped PR.
+</Card>

@@ -1,88 +1,110 @@
 {
   "$schema": "https://mintlify.com/docs.json",
   "theme": "mint",
-  "name": "Mint Starter Kit",
+  "name": "Automagik",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "primary": "#06B6D4",
+    "light": "#22D3EE",
+    "dark": "#0891B2"
   },
   "favicon": "/favicon.svg",
-  "navigation": {
-    "tabs": [
-      {
-        "tab": "Guides",
-        "groups": [
-          {
-            "group": "Getting started",
-            "pages": [
-              "index",
-              "quickstart",
-              "development"
-            ]
-          },
-          {
-            "group": "Customization",
-            "pages": [
-              "essentials/settings",
-              "essentials/navigation"
-            ]
-          },
-          {
-            "group": "Writing content",
-            "pages": [
-              "essentials/markdown",
-              "essentials/code",
-              "essentials/images",
-              "essentials/reusable-snippets"
-            ]
-          },
-          {
-            "group": "AI tools",
-            "pages": [
-              "ai-tools/cursor",
-              "ai-tools/claude-code",
-              "ai-tools/windsurf"
-            ]
-          }
-        ]
-      },
-      {
-        "tab": "API reference",
-        "groups": [
-          {
-            "group": "API documentation",
-            "pages": [
-              "api-reference/introduction"
-            ]
-          },
-          {
-            "group": "Endpoint examples",
-            "pages": [
-              "api-reference/endpoint/get",
-              "api-reference/endpoint/create",
-              "api-reference/endpoint/delete",
-              "api-reference/endpoint/webhook"
-            ]
-          }
-        ]
-      }
-    ],
-    "global": {
-      "anchors": [
+  "products": [
+    {
+      "name": "Genie",
+      "icon": "wand-magic-sparkles",
+      "description": "Agent orchestration CLI",
+      "groups": [
         {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
+          "group": "Getting Started",
+          "pages": [
+            "genie/index",
+            "genie/quickstart",
+            "genie/installation"
+          ]
         },
         {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
+          "group": "Core Concepts",
+          "pages": [
+            "genie/concepts/wishes",
+            "genie/concepts/agents",
+            "genie/concepts/teams",
+            "genie/concepts/skills"
+          ]
+        },
+        {
+          "group": "Skills Reference",
+          "pages": [
+            "genie/skills/brainstorm",
+            "genie/skills/wish",
+            "genie/skills/work",
+            "genie/skills/review",
+            "genie/skills/wizard",
+            "genie/skills/council",
+            "genie/skills/trace",
+            "genie/skills/fix",
+            "genie/skills/report",
+            "genie/skills/refine",
+            "genie/skills/dream",
+            "genie/skills/learn",
+            "genie/skills/docs",
+            "genie/skills/genie"
+          ]
+        },
+        {
+          "group": "CLI Reference",
+          "pages": [
+            "genie/cli/session",
+            "genie/cli/team",
+            "genie/cli/dispatch",
+            "genie/cli/agents",
+            "genie/cli/messaging",
+            "genie/cli/directory",
+            "genie/cli/infrastructure"
+          ]
+        },
+        {
+          "group": "Configuration",
+          "pages": [
+            "genie/config/setup",
+            "genie/config/files",
+            "genie/config/worktrees",
+            "genie/config/hooks",
+            "genie/config/tmux"
+          ]
+        },
+        {
+          "group": "Architecture",
+          "pages": [
+            "genie/architecture/overview",
+            "genie/architecture/state",
+            "genie/architecture/postgres",
+            "genie/architecture/messaging",
+            "genie/architecture/scheduler",
+            "genie/architecture/transcripts"
+          ]
+        },
+        {
+          "group": "Contributing",
+          "pages": [
+            "genie/contributing"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Omni",
+      "icon": "comments",
+      "description": "Unified messaging platform",
+      "groups": [
+        {
+          "group": "Getting Started",
+          "pages": [
+            "omni/index"
+          ]
         }
       ]
     }
-  },
+  ],
   "logo": {
     "light": "/logo/light.svg",
     "dark": "/logo/dark.svg"
@@ -90,33 +112,20 @@
   "navbar": {
     "links": [
       {
-        "label": "Support",
-        "href": "mailto:hi@mintlify.com"
+        "label": "Discord",
+        "href": "https://discord.gg/automagik"
       }
     ],
     "primary": {
-      "type": "button",
-      "label": "Dashboard",
-      "href": "https://dashboard.mintlify.com"
+      "type": "github",
+      "href": "https://github.com/automagik-dev/genie"
     }
-  },
-  "contextual": {
-    "options": [
-     "copy",
-     "view",
-     "chatgpt",
-     "claude",
-     "perplexity",
-     "mcp",
-     "cursor",
-     "vscode"
-   ]
   },
   "footer": {
     "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
+      "x": "https://x.com/automagik_dev",
+      "github": "https://github.com/automagik-dev",
+      "discord": "https://discord.gg/automagik"
     }
   }
 }
