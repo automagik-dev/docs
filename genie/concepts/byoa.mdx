@@ -1,0 +1,295 @@
+---
+title: "Bring Your Own Agent"
+sidebarTitle: "BYOA"
+description: "Use any AI coding agent with Genie — Claude Code, Codex, Gemini CLI, Open Claw, or your own custom agent."
+---
+
+{/* Easter egg: We genuinely do not care which AI you use. This is not marketing copy. */}
+
+# Bring Your Own Agent (BYOA)
+
+Genie is an **orchestration layer**, not an AI provider. It manages teams, worktrees, messaging, state, and task dispatch — the agent that does the actual coding is pluggable. We have strong opinions about orchestration. We have zero opinions about your model vendor.
+
+Today, Genie ships with built-in adapters for **Claude Code** and **Codex**. But the architecture is designed so that any CLI-based agent can be plugged in as a provider. The agent is the muscle. Genie is the brain.
+
+## Why BYOA Matters
+
+- **No vendor lock-in** — switch providers without changing your workflow
+- **Best tool for the job** — use Claude for reasoning-heavy tasks, Codex for fast iteration
+- **Cost control** — mix expensive and cheap models in the same team
+- **Future-proof** — new agents appear constantly; Genie adapts without rewriting your setup
+- **Team flexibility** — different team members can prefer different agents
+
+## Supported Providers
+
+| Provider | Status | Binary | Notes |
+|----------|--------|--------|-------|
+| **Claude Code** | Built-in | `claude` | Full native team integration, session resume, model selection |
+| **Codex** | Built-in | `codex` | Autonomous mode (`--yolo`), inline terminal output |
+| **Gemini CLI** | Planned | `gemini` | Google's CLI agent — adapter in development |
+| **Open Claw** | Planned | `openclaw` | Open-source agent — community adapter |
+| **Aider** | Planned | `aider` | Git-native coding assistant |
+| **Custom** | Extensible | Any binary | Build your own adapter (see architecture below) |
+
+<Note>
+  Built-in providers work today with `genie spawn --provider`. Planned providers follow the same adapter pattern and can be contributed as community adapters.
+</Note>
+
+## The `--provider` Flag
+
+Every `genie spawn` command accepts a `--provider` flag that selects which AI agent backs the worker:
+
+```bash
+genie spawn <role> --provider <provider>
+```
+
+The default provider is `claude`. When you specify a different provider, Genie translates your spawn options into the provider-specific CLI invocation.
+
+### Examples
+
+```bash
+# Spawn an engineer backed by Claude Code (default)
+genie spawn engineer
+
+# Spawn an engineer backed by Codex
+genie spawn engineer --provider codex
+
+# Spawn a reviewer with Claude Code using Opus model
+genie spawn reviewer --provider claude --model opus
+
+# Spawn an engineer with Codex in a specific team
+genie spawn engineer --provider codex --team auth-fix
+
+# Spawn with a pre-loaded skill
+genie spawn engineer --provider claude --skill work --team my-team
+
+# Spawn with a specific layout
+genie spawn engineer --provider codex --team pipeline --layout vertical
+```
+
+### What Changes Between Providers
+
+Genie normalizes the interface, but each provider has its own capabilities:
+
+| Capability | Claude Code | Codex |
+|-----------|-------------|-------|
+| Native team integration | Yes (`--agent-id`, `--team-name`) | No |
+| Session resume | Yes (`--resume`) | No |
+| Model selection | Yes (`--model`) | No |
+| System prompt injection | `--append-system-prompt-file` | `--instructions` |
+| Permission mode | `--dangerously-skip-permissions` | `--yolo` |
+| Inline terminal | Default | `--no-alt-screen` |
+
+### What Stays the Same
+
+Regardless of provider, Genie handles:
+
+- **Worker registry** — all agents tracked in `~/.genie/workers.json`
+- **Messaging** — `genie send` works the same for any provider
+- **Team chat** — broadcast messages reach all agents regardless of provider
+- **Task dispatch** — wish execution groups are provider-agnostic
+- **Lifecycle** — `genie ls`, `genie stop`, `genie kill` work uniformly
+- **Worktree isolation** — git worktrees are shared infrastructure, not provider-specific
+
+## Auto-Respawn Templates
+
+When Genie spawns an agent, it saves a **template** — a snapshot of the spawn configuration. If an agent goes offline (tmux pane dies, process crashes), Genie can automatically respawn it from the saved template.
+
+### How It Works
+
+1. **Spawn** — You run `genie spawn engineer --provider codex --team auth-fix`
+2. **Template saved** — Genie stores the spawn config in the worker registry:
+
+```json
+{
+  "id": "engineer",
+  "provider": "codex",
+  "team": "auth-fix",
+  "role": "engineer",
+  "skill": "work",
+  "cwd": "/home/user/project",
+  "lastSpawnedAt": "2026-03-24T14:30:00Z"
+}
+```
+
+3. **Agent goes offline** — The tmux pane dies or the process exits
+4. **Message triggers respawn** — When another agent (like the team-lead) sends a message to the offline agent, Genie's auto-spawn hook detects the dead pane and respawns from the template
+5. **Same config, fresh process** — The respawned agent gets the same provider, team, role, and working directory
+
+### Template Resolution
+
+When a message targets an offline agent, the auto-spawn handler:
+
+1. Checks the worker registry for a live tmux pane — skips if the agent is alive
+2. Looks up the agent in the directory for identity resolution
+3. Searches saved templates by name, ID, or role within the team
+4. Spawns using the matched template's provider and configuration
+
+<Note>
+  Auto-respawn is triggered by message delivery, not by a heartbeat or timer. If no one sends a message to a dead agent, it stays dead. This is intentional — it prevents unnecessary respawns of agents that are no longer needed.
+</Note>
+
+### Template Fields
+
+| Field | Description |
+|-------|-------------|
+| `id` | Agent identifier (matches spawn name) |
+| `provider` | Which agent binary to use (`claude` or `codex`) |
+| `team` | Team the agent belongs to |
+| `role` | Agent role (engineer, reviewer, etc.) |
+| `skill` | Pre-loaded skill (optional) |
+| `cwd` | Working directory for the respawned agent |
+| `extraArgs` | Additional CLI flags forwarded to the provider |
+| `lastSpawnedAt` | Timestamp of the most recent spawn |
+
+## Multi-Provider Team Patterns
+
+### Pattern 1: Specialization
+
+**Problem:** Different tasks need different strengths. Reasoning-heavy architecture work benefits from a stronger model, while straightforward implementation can use a faster, cheaper agent.
+
+**Solution:** Assign providers based on task type within the same team.
+
+```bash
+# Team lead uses Claude Opus for orchestration and reasoning
+genie spawn team-lead --provider claude --model opus --team api-redesign
+
+# Engineers use Codex for fast implementation
+genie spawn engineer --provider codex --team api-redesign
+genie spawn engineer --provider codex --team api-redesign
+
+# Reviewer uses Claude for thorough code review
+genie spawn reviewer --provider claude --model sonnet --team api-redesign
+```
+
+```
+AGENT       STATUS    PANE   PROVIDER   MODEL     TEAM
+team-lead   running   %40    claude     opus      api-redesign
+engineer    running   %41    codex      default   api-redesign
+engineer    running   %42    codex      default   api-redesign
+reviewer    idle      %43    claude     sonnet    api-redesign
+```
+
+**Benefit:** Each agent uses the tool best suited to its role. The team-lead reasons about architecture with Opus, engineers iterate quickly with Codex, and the reviewer catches issues with Sonnet.
+
+**Trade-off:** Mixed providers mean mixed capabilities — Codex workers won't have Claude's native team integration features like session resume.
+
+**When to use:** Teams with diverse task types — architecture + implementation + review in the same wish.
+
+### Pattern 2: Cost Optimization
+
+**Problem:** Running every agent on Claude Opus is expensive. For a 5-agent team running 2 hours, model costs add up fast.
+
+**Solution:** Use the most capable (and expensive) model only where it matters. Use cheaper providers for high-volume, lower-complexity work.
+
+```bash
+# Only the team-lead needs Opus (orchestration, decision-making)
+genie spawn team-lead --provider claude --model opus --team migration
+
+# Engineers on Sonnet — good enough for implementation
+genie spawn engineer --provider claude --model sonnet --team migration
+genie spawn engineer --provider claude --model sonnet --team migration
+
+# QA on Codex — test execution doesn't need expensive models
+genie spawn qa --provider codex --team migration
+```
+
+**Benefit:** 60-70% cost reduction compared to running all agents on Opus, with minimal quality loss on implementation and testing tasks.
+
+**Trade-off:** Cheaper models may miss subtle issues that Opus would catch. Mitigated by using Opus for the reviewer role.
+
+**When to use:** Large teams, long-running wishes, or budget-conscious workflows where not every agent needs the strongest model.
+
+### Pattern 3: Manual Failover
+
+**Problem:** A provider goes down or hits rate limits during an active wish. Your team is blocked.
+
+**Solution:** Manually respawn affected agents with a different provider. Genie's orchestration layer is provider-agnostic — switching providers doesn't lose team state, messages, or wish progress.
+
+```bash
+# Claude is rate-limited — switch engineers to Codex
+genie stop engineer
+genie spawn engineer --provider codex --team auth-fix
+
+# Or respawn with a different Claude model if Opus is overloaded
+genie stop engineer
+genie spawn engineer --provider claude --model sonnet --team auth-fix
+```
+
+**Benefit:** No single provider failure blocks your entire team. Wish state, messages, and task progress are preserved across provider switches.
+
+**Trade-off:** Manual intervention required — Genie does not automatically detect provider outages or switch providers. You need to notice the failure and respawn.
+
+**When to use:** Production incidents, rate limit situations, or when a provider's API is degraded. Also useful for testing how your wish performs across different agents.
+
+<Note>
+  Failover is manual by design. Automatic provider switching introduces complexity around session state, model capability differences, and cost surprises. Manual failover keeps you in control.
+</Note>
+
+## How Provider Adapters Work
+
+Under the hood, each provider is a function that translates `SpawnParams` into a shell command:
+
+```
+SpawnParams → buildLaunchCommand() → provider-specific CLI invocation
+```
+
+The adapter handles:
+- **Binary selection** — which CLI to invoke (`claude`, `codex`)
+- **Flag translation** — mapping Genie options to provider-specific flags
+- **Environment setup** — setting `GENIE_AGENT_NAME`, `GENIE_TEAM`, etc.
+- **Preflight checks** — verifying the provider binary exists on PATH
+
+Genie owns everything else: worker registry, messaging, team state, task dispatch, worktree management, and lifecycle commands. The provider is just the process that runs inside the tmux pane.
+
+## Adding a New Provider
+
+Provider adapters live in `src/lib/provider-adapters.ts`. Each adapter implements a `build*Command()` function that takes `SpawnParams` and returns a `LaunchCommand`:
+
+```typescript
+interface LaunchCommand {
+  command: string;                    // Full shell command
+  provider: ProviderName;            // Provider identifier
+  env?: Record<string, string>;      // Environment variables
+  meta: { role?: string; skill?: string };
+}
+```
+
+To add a new provider:
+
+1. Add the provider name to the `ProviderName` type
+2. Implement a `build*Command()` function
+3. Add a case to the `buildLaunchCommand()` switch
+4. Ensure the binary passes the `preflightCheck()`
+
+The adapter pattern means new providers don't touch orchestration logic — they only need to know how to launch their CLI binary with the right flags.
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Start with the default provider">
+    Claude Code is the default for a reason — it has the deepest integration with Genie (native teams, session resume, model selection). Use it unless you have a specific reason to switch.
+  </Accordion>
+  <Accordion title="Match provider to task complexity">
+    Use stronger providers for tasks that require reasoning (architecture, review, debugging). Use faster/cheaper providers for straightforward implementation and testing.
+  </Accordion>
+  <Accordion title="Keep the team-lead on Claude">
+    The team-lead orchestrates the entire wish lifecycle. It benefits most from Claude's native team integration and session resume capabilities.
+  </Accordion>
+  <Accordion title="Test your wish with one provider first">
+    Don't start with a multi-provider team. Get the wish working with a single provider, then optimize by switching specific roles to cheaper alternatives.
+  </Accordion>
+  <Accordion title="Document your provider choices">
+    When using mixed providers in a team, note why in the wish or team config. Future you (or your teammates) will want to know why the QA agent is on Codex.
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Questions?
+
+Something not working with your provider setup? Adapter behaving weird? Want to argue about whether Codex or Claude is better for review tasks? (Spoiler: we have opinions, but we'll let you form your own.)
+
+<Card title="Ask on Discord" icon="discord" href="https://discord.gg/automagik">
+  Provider questions, adapter help, and healthy debates about which AI is best at what.
+</Card>
