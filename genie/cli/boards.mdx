@@ -1,0 +1,181 @@
+---
+title: "Boards"
+description: "Board and pipeline management — create, configure, and manage kanban-style boards"
+---
+
+# Board Commands
+
+The `genie board` command group manages kanban-style boards with configurable column pipelines. Boards are project-scoped and replace task types as the primary pipeline mechanism. Each column can have its own gate type and associated action skill.
+
+## `genie board create`
+
+Create a new board.
+
+```bash
+genie board create <name> [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--project <project>` | Project name |
+| `--from <template>` | Create from template name |
+| `--columns <columns>` | Comma-separated column names |
+| `--description <text>` | Board description |
+
+```bash
+genie board create "Sprint 12" --project my-app --from software
+genie board create "Custom Pipeline" --columns "todo,in-progress,review,done"
+```
+
+## `genie board list`
+
+List all boards.
+
+```bash
+genie board list [--project <project>] [--json]
+```
+
+## `genie board show`
+
+Show board detail with column pipeline and task counts.
+
+```bash
+genie board show <name> [--project <project>] [--json]
+```
+
+## `genie board edit`
+
+Edit board or column properties.
+
+```bash
+genie board edit <name> [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--project <project>` | Disambiguate by project |
+| `--column <col>` | Column name to edit |
+| `--gate <gate>` | New gate value (`human`, `agent`, `human+agent`) |
+| `--action <action>` | New action skill |
+| `--color <color>` | New color hex |
+| `--rename <new>` | Rename the column |
+| `--name <new>` | Rename the board itself |
+| `--description <text>` | Update description |
+
+```bash
+genie board edit "Sprint 12" --column review --gate human
+genie board edit "Sprint 12" --column build --action "/work"
+genie board edit "Sprint 12" --name "Sprint 13"
+```
+
+## `genie board delete`
+
+Delete a board.
+
+```bash
+genie board delete <name> [--project <project>] [--force]
+```
+
+## `genie board columns`
+
+Show board column pipeline — displays the ordered list of columns with their gate types and action skills.
+
+```bash
+genie board columns <name> [--project <project>] [--json]
+```
+
+## `genie board use`
+
+Set the active board for the current repo. The active board determines which pipeline is used for `genie task move` operations.
+
+```bash
+genie board use <name> [--project <project>]
+```
+
+## `genie board export`
+
+Export a board as JSON.
+
+```bash
+genie board export <name> [--project <project>] [--output <file>]
+```
+
+## `genie board import`
+
+Import a board from a JSON file.
+
+```bash
+genie board import --json <file> [--project <project>]
+```
+
+## `genie board reconcile`
+
+Fix orphaned `column_id` values by matching each task's stage name to the board's column names. Useful after renaming columns or switching boards.
+
+```bash
+genie board reconcile <name> [--project <project>] [--json]
+```
+
+## Board Templates
+
+Templates are reusable board blueprints. The built-in `software` template defines the default 7-stage pipeline.
+
+### `genie board template list`
+
+List all available templates.
+
+```bash
+genie board template list [--json]
+```
+
+### `genie board template show`
+
+Show template detail with pipeline view.
+
+```bash
+genie board template show <name> [--json]
+```
+
+### `genie board template create`
+
+Create a custom board template.
+
+```bash
+genie board template create <name> [options]
+```
+
+### `genie board template edit`
+
+Edit a template column.
+
+```bash
+genie board template edit <name> [options]
+```
+
+### `genie board template rename`
+
+Rename a template.
+
+```bash
+genie board template rename <old> <new>
+```
+
+### `genie board template delete`
+
+Delete a template.
+
+```bash
+genie board template delete <name>
+```
+
+## Column Gates
+
+Each board column can have a gate that controls whether tasks can auto-advance through it:
+
+| Gate | Behavior |
+|------|----------|
+| `human` | Requires human approval to advance |
+| `agent` | Agents can auto-advance |
+| `human+agent` | Either can advance |
+
+Gates work with the [task lifecycle](/genie/cli/tasks) — when a task is moved to a gated column, the gate determines who can move it out.

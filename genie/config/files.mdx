@@ -1,11 +1,11 @@
 ---
 title: "Configuration Files"
-description: "config.json schema, settings.json, environment variables, and auto-approve configuration"
+description: "config.json schema, PostgreSQL state, environment variables, and auto-approve configuration"
 ---
 
 # Configuration Files
 
-Genie uses several configuration files across different scopes. The main config file is `~/.genie/config.json`, but auto-approve rules, Claude Code settings, and environment variables also affect behavior.
+Genie uses several configuration files and a PostgreSQL database for state. The main config file is `~/.genie/config.json`, but the primary state store is an embedded PostgreSQL instance managed by pgserve.
 
 ## config.json
 
@@ -131,6 +131,53 @@ The primary configuration file, managed by `genie setup` or edited directly. Val
     ```
   </Accordion>
 </AccordionGroup>
+
+## State Storage — PostgreSQL
+
+As of v4, Genie's primary state store is an embedded PostgreSQL instance managed by [pgserve](/genie/architecture/postgres). State that was previously stored in JSON files now lives in PG tables.
+
+### State Locations
+
+| State | Location | Notes |
+|-------|----------|-------|
+| Tasks, stages, dependencies | PostgreSQL `tasks`, `task_dependencies`, `task_stage_log` | Full lifecycle with audit trail |
+| Boards and pipelines | PostgreSQL `boards`, `board_templates` | Project-scoped column pipelines |
+| Projects | PostgreSQL `projects` | Named task boards |
+| Agents (workers) | PostgreSQL `agents`, `agent_templates` | Replaces `~/.genie/workers.json` |
+| Teams | PostgreSQL `teams` | Replaces `~/.genie/teams/*.json` |
+| Mailbox | PostgreSQL `mailbox` | Replaces `.genie/mailbox/*.json` |
+| Team chat | PostgreSQL `team_chat` | Replaces `.genie/chat/*.jsonl` |
+| Sessions | PostgreSQL `sessions`, `session_content` | Claude Code session metadata and content |
+| Schedules and triggers | PostgreSQL `schedules`, `triggers`, `runs` | Cron-based automation |
+| Audit events | PostgreSQL `audit_events` | OTel-structured immutable log |
+| Heartbeats | PostgreSQL `heartbeats` | Agent liveness tracking |
+| App registry | PostgreSQL `app_store`, `installed_apps` | Unified item registry |
+| Conversations | PostgreSQL `conversations`, `messages` | Task-linked conversations |
+| pgserve data | `~/.genie/data/pgserve/` | PostgreSQL data directory |
+
+### Legacy File Locations (deprecated)
+
+These locations are no longer the primary state store but may still exist on disk:
+
+| File | Replaced By | Status |
+|------|-------------|--------|
+| `~/.genie/workers.json` | `agents` table | Deprecated — PG is authoritative |
+| `~/.genie/teams/*.json` | `teams` table | Deprecated — PG is authoritative |
+| `.genie/mailbox/*.json` | `mailbox` table | Deprecated — PG is authoritative |
+| `.genie/chat/*.jsonl` | `team_chat` table | Deprecated — PG is authoritative |
+
+### Connection Details
+
+| Setting | Value |
+|---------|-------|
+| Default port | `19642` |
+| Host | `127.0.0.1` |
+| Database name | `genie` |
+| Data directory | `~/.genie/data/pgserve/` |
+| Port lockfile | `~/.genie/pgserve.port` |
+| Migration marker | `~/.genie/pgserve.migrated` |
+
+See the [PostgreSQL architecture page](/genie/architecture/postgres) for full schema details and migration history.
 
 ## Auto-Approve Configuration
 

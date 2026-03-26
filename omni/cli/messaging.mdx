@@ -1,0 +1,174 @@
+---
+title: "Messaging"
+description: "Send messages, manage chats, search messages, handle media — the core Omni commands."
+---
+
+# Messaging Commands
+
+The core messaging commands: `send`, `chats`, `messages`, `tts`, and `media`.
+
+## `omni send`
+
+Send a message to any recipient. Supports text, media, voice notes, reactions, stickers, contacts, locations, polls, embeds, presence indicators, and message forwarding.
+
+```bash
+omni send [options]
+```
+
+### Common Options
+
+| Option | Description |
+|--------|-------------|
+| `--instance <id>` | Instance ID (defaults to configured instance) |
+| `--to <recipient>` | Recipient: WhatsApp JID, phone number, or Omni chat/person UUID |
+
+### Text Messages
+
+```bash
+omni send --to +5511999 --text "Hello!"
+omni send --to +5511999 --text "Reply" --reply-to <msg-id>
+```
+
+### Media Messages
+
+```bash
+omni send --to +5511999 --media ./photo.jpg --caption "Check this"
+omni send --to +5511999 --media ./audio.mp3 --voice  # Send as voice note
+```
+
+### TTS Voice Notes
+
+Convert text to speech and send as a voice note:
+
+```bash
+omni send --to +5511999 --tts "Hello from AI!"
+omni send --to +5511999 --tts "Custom voice" --voice-id <eleven-labs-id>
+```
+
+### Reactions
+
+```bash
+omni send --to +5511999 --reaction "👍" --message <msg-id>
+```
+
+### Stickers
+
+```bash
+omni send --to +5511999 --sticker <url-or-base64>
+```
+
+### Contacts
+
+```bash
+omni send --to +5511999 --contact --name "John" --phone +5511888 --email john@example.com
+```
+
+### Location
+
+```bash
+omni send --to +5511999 --location --lat -23.5505 --lng -46.6333 --address "São Paulo"
+```
+
+### Polls (Discord)
+
+```bash
+omni send --to +5511999 --poll "Lunch?" --options "Pizza,Sushi,Tacos" --multi-select --duration 24
+```
+
+### Embeds (Discord)
+
+```bash
+omni send --to +5511999 --embed --title "Alert" --description "Server is up" --color "#00ff00"
+```
+
+### Presence Indicators
+
+```bash
+omni send --to +5511999 --presence composing   # Show "typing..."
+omni send --to +5511999 --presence recording   # Show "recording audio..."
+omni send --to +5511999 --presence paused      # Clear presence
+```
+
+### Message Forwarding
+
+```bash
+omni send --to +5511999 --forward --message <msg-id> --from-chat <chat-id>
+```
+
+---
+
+## `omni chats`
+
+Manage conversations across all connected channels.
+
+### List and Browse
+
+```bash
+omni chats list                        # List all chats
+omni chats get <chat-id>               # Get chat details
+omni chats messages <chat-id>          # List messages in a chat
+omni chats participants <chat-id>      # List chat participants
+```
+
+### Chat Actions
+
+```bash
+omni chats create --instance <id> --to <jid>    # Create a chat record
+omni chats archive <chat-id>                      # Archive
+omni chats unarchive <chat-id>                    # Unarchive
+omni chats hide <chat-id>                          # Hide from list
+omni chats unhide <chat-id>                        # Unhide
+omni chats pin <chat-id>                           # Pin on channel
+omni chats unpin <chat-id>                         # Unpin
+omni chats mute <chat-id>                          # Mute
+omni chats unmute <chat-id>                        # Unmute
+omni chats read <chat-id>                          # Mark as read
+omni chats disappearing <chat-id> --duration 7d   # Toggle disappearing messages
+```
+
+### Labels
+
+```bash
+omni chats label <chat-id> "vip"       # Add label
+omni chats unlabel <chat-id> "vip"     # Remove label
+```
+
+---
+
+## `omni messages`
+
+Manage individual messages.
+
+```bash
+omni messages get <msg-id>                     # Get full message details (includes transcriptions)
+omni messages search <query>                   # Full-text search across chats
+omni messages read <msg-id>                    # Mark as read
+omni messages edit <msg-id> --text "Updated"   # Edit a sent message
+omni messages delete <msg-id>                  # Delete for everyone (WhatsApp)
+omni messages star <msg-id>                    # Star a message
+omni messages unstar <msg-id>                  # Unstar
+omni messages remove-reaction <msg-id>         # Remove a reaction
+```
+
+---
+
+## `omni tts`
+
+Text-to-speech operations.
+
+```bash
+omni tts voices    # List available TTS voices
+```
+
+TTS is also available via `omni send --tts`.
+
+---
+
+## `omni media`
+
+Browse and download media items.
+
+```bash
+omni media list                    # List media with transcriptions/descriptions
+omni media download --id <id>     # Download a media item
+```

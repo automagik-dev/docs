@@ -37,7 +37,7 @@ On startup, `killOrphanedPostgres()` reads `postmaster.pid` from the data direct
 
 ## Schema Overview
 
-The database schema is organized across three migration files:
+The database schema is organized across 10 migration files covering core scheduling, task lifecycle, projects, state management, observability, boards, and an app registry.
 
 ### Migration 001: Core Schema
 
@@ -73,7 +73,63 @@ Eleven tables for the full task management system:
 
 ### Migration 003: Projects
 
-Project-level scoping for multi-repo task management.
+Project-level scoping for multi-repo task management. Adds the `projects` table with `tasks.project_id` foreign key.
+
+### Migration 004: Cleanup
+
+Removes test pollution from production tables — deletes tasks with `/tmp/*` repo paths and messages with `test*` sender IDs. Cleans up orphaned test schemas.
+
+### Migration 005: PG State (replaces JSON files)
+
+Five tables that replace the legacy JSON file-based state:
+
+| Table | Replaces | Purpose |
+|-------|----------|---------|
+| `agents` | `~/.genie/workers.json` | Agent registry with lifecycle state, tmux pane info, provider metadata |
+| `agent_templates` | — | Reusable agent definitions with role, launcher, prompt |
+| `teams` | `~/.genie/teams/*.json` | Team configs with repo, branch, members, status |
+| `mailbox` | `.genie/mailbox/*.json` | Durable message queue with delivery tracking |
+| `team_chat` | `.genie/chat/*.jsonl` | Team group chat messages |
+
+### Migration 006: Schema Reconciliation
+
+Fixes schema drift between seed-created tables and migration-created tables for the `agents` and `agent_templates` tables.
+
+### Migration 007: Observability
+
+Two tables for full session observability:
+
+| Table | Purpose |
+|-------|---------|
+| `sessions` | Session metadata — ID, agent, start/end time, project |
+| `session_content` | Complementary content — assistant text, tool I/O |
+
+OTel structured events (cost, tokens, tool success/fail) flow into the existing `audit_events` table.
+
+### Migration 007b: Mailbox/Team Chat Reconciliation
+
+Fixes production schema drift where `005_pg_state` was recorded as applied but partially failed. Ensures `mailbox` and `team_chat` tables exist with correct schemas.
+
+### Migration 008: Boards
+
+Two tables replacing `task_types` as the primary pipeline mechanism:
+
+| Table | Purpose |
+|-------|---------|
+| `boards` | Project-scoped boards with flexible columns, gates, and actions |
+| `board_templates` | Reusable board blueprints (builtin + custom) |
+
+Boards are more flexible than task types — each column can have its own gate type (`human`, `agent`, `human+agent`) and an associated action skill.
+
+### Migration 009: App Store
+
+Unified item registry for the Genie ecosystem:
+
+| Table | Purpose |
+|-------|---------|
+| `app_store` | Central registry — agents, skills, apps, boards, workflows, stacks, templates, hooks |
+| `installed_apps` | Per-machine installation records |
+| `app_versions` | Version history for each registry item |
 
 ## Built-in Task Pipeline
 

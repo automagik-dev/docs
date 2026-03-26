@@ -1,31 +1,106 @@
 ---
-title: "Omni"
+title: "What is Omni?"
 sidebarTitle: "What is Omni?"
-description: "Unified messaging platform for WhatsApp, Telegram, Discord, and Slack."
+description: "Unified messaging platform for WhatsApp, Telegram, Discord, and Slack — with AI agent routing and event-driven automations."
 ---
 
-# Omni
+# Omni — One API, Every Channel
 
-**Omni** is Automagik's unified messaging platform. It connects WhatsApp, Telegram, Discord, Slack, and other channels into a single API with event-driven automations.
+Omni is Automagik's unified messaging platform. It connects WhatsApp, Telegram, Discord, Slack, and other channels into a single API with AI agent routing, event-driven automations, and media processing.
 
-<Note>
-  Omni documentation is coming soon. Check back for guides on instance management, message routing, automations, and agent integration.
-</Note>
+## The Problem
+
+Your business communicates on WhatsApp. Your team uses Slack. Your community lives on Discord. Your support runs on Telegram. Each channel has its own API, its own message format, its own quirks. You end up writing the same send-message logic four times, maintaining four webhook handlers, and debugging four different failure modes.
+
+Omni collapses all of this into one interface. One CLI. One API. One event stream. Connect an instance, send a message, route to an agent — regardless of channel.
 
 ## What Omni Does
 
-- **Multi-channel messaging** — send and receive across WhatsApp, Telegram, Discord, and Slack from one API
-- **Event-driven automations** — trigger workflows on message events, reactions, and presence changes
-- **Agent routing** — connect AI agents to any channel with configurable reply filters
-- **Media processing** — transcription, image description, and document extraction built in
+<CardGroup cols={2}>
+  <Card title="Multi-Channel Messaging" icon="messages" href="/omni/cli/messaging">
+    Send text, media, voice notes, reactions, polls, locations, contacts, and embeds across WhatsApp, Telegram, Discord, and Slack from a single CLI.
+  </Card>
+  <Card title="AI Agent Routing" icon="robot" href="/omni/concepts/agents">
+    Bind AI agents to channels with configurable reply filters. Route messages to the right agent based on chat, user, or instance.
+  </Card>
+  <Card title="Event-Driven Automations" icon="bolt" href="/omni/cli/management">
+    Trigger workflows on message events, reactions, presence changes, and custom webhook events. Test with dry-runs before going live.
+  </Card>
+  <Card title="Media Processing" icon="photo-film" href="/omni/architecture/media">
+    Automatic transcription, image description, and document extraction. Circuit breaker pattern for resilience. Batch processing for bulk operations.
+  </Card>
+  <Card title="Instance Management" icon="server" href="/omni/concepts/instances">
+    Connect and manage channel instances — WhatsApp via QR/pairing code, Discord via bot token, Telegram via bot API. Monitor health and sync state.
+  </Card>
+  <Card title="Contact Directory" icon="address-book" href="/omni/cli/management">
+    Unified person directory across all channels. Search contacts, check presence, manage access control with allow/deny lists.
+  </Card>
+</CardGroup>
 
-## Quick Links
+## Quick Start
+
+```bash
+# Install
+curl -fsSL https://raw.githubusercontent.com/automagik-dev/omni/main/install.sh | bash
+
+# Connect your first WhatsApp instance
+omni instances create --channel whatsapp-baileys --name "My WhatsApp"
+omni instances qr <instance-id>  # Scan with your phone
+
+# Send your first message
+omni send --to +5511999999999 --text "Hello from Omni!"
+
+# Check events
+omni events list --limit 10
+```
+
+See the [Quickstart guide](/omni/quickstart) for a full walkthrough.
+
+## Architecture
+
+Omni is built as a monorepo with modular packages:
+
+| Component | What It Does |
+|-----------|-------------|
+| **API Server** | REST API for all operations — instances, messages, agents, automations |
+| **CLI** | Full-featured command-line interface (35+ commands) |
+| **Channel Adapters** | WhatsApp (Baileys), Telegram, Discord, Slack connectors |
+| **Media Pipeline** | Transcription, image description, document extraction with circuit breaker |
+| **Event System** | NATS-based event streaming with replay and analytics |
+| **Agent Router** | Route incoming messages to AI agents with per-chat/per-user overrides |
+
+## CLI Command Groups
+
+| Group | Commands | Purpose |
+|-------|----------|---------|
+| [Core](/omni/cli/messaging) | `send`, `chats`, `messages`, `tts`, `media` | Send and receive messages |
+| [Agents](/omni/cli/agents) | `agents`, `providers`, `routes`, `keys` | AI agent management and routing |
+| [Management](/omni/cli/management) | `instances`, `automations`, `access`, `webhooks`, `persons` | Channel and workflow management |
+| [System](/omni/cli/system) | `config`, `events`, `batch`, `prompts`, `journey` | Configuration, monitoring, diagnostics |
+
+## Integration with Genie
+
+Omni is Genie's communication layer. Agents use Omni to send messages to humans on WhatsApp, receive commands, and route conversations to the right handler.
+
+```bash
+# Genie agent sends a message via Omni
+omni send --to <jid> --text "Deploy complete. PR #42 merged." --instance <id>
+
+# Genie config points to Omni
+# ~/.genie/config.json → omni.apiUrl, omni.apiKey, omni.defaultInstanceId
+```
 
 <CardGroup cols={2}>
-  <Card title="GitHub" icon="github" href="https://github.com/automagik-dev/omni">
-    Source code and issues
+  <Card title="Quickstart" icon="rocket" href="/omni/quickstart">
+    From zero to your first message in 5 minutes.
   </Card>
-  <Card title="Genie Docs" icon="wand-magic-sparkles" href="/genie/index">
-    Genie agent orchestration documentation
+  <Card title="CLI Reference" icon="terminal" href="/omni/cli/messaging">
+    Full command reference for all 35+ commands.
+  </Card>
+  <Card title="GitHub" icon="github" href="https://github.com/automagik-dev/omni">
+    Source code and issues.
+  </Card>
+  <Card title="Discord" icon="discord" href="https://discord.gg/automagik">
+    Community and support.
   </Card>
 </CardGroup>

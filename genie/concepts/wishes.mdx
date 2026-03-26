@@ -107,27 +107,23 @@ Groups with `depends-on` run sequentially. Independent groups run in parallel â€
 
 ## Wish State
 
-Genie tracks execution state separately from the wish document:
+Genie tracks execution state in PostgreSQL via the task system. A wish becomes a parent task, and each execution group becomes a child task with dependency edges.
 
-```
-.genie/state/<slug>.json
-```
-
-This JSON file records:
+The task system records:
 - Which groups are complete
 - Which agents are assigned
 - Current pipeline stage
 - Timestamps and error states
 
-The state file is shared across worktrees (via `git rev-parse --git-common-dir`), so multiple agents working in different worktrees see the same progress.
+State is stored in the `tasks` and `task_dependencies` tables â€” no file locks needed, and concurrency is handled natively by PostgreSQL.
 
 ## File Locations
 
-| File | Path | Purpose |
-|------|------|---------|
+| Location | Path | Purpose |
+|----------|------|---------|
 | Wish document | `.genie/wishes/<slug>/WISH.md` | The plan |
 | Design document | `.genie/brainstorms/<slug>/DESIGN.md` | Pre-wish exploration |
-| Execution state | `.genie/state/<slug>.json` | Progress tracking |
+| Execution state | PostgreSQL `tasks` table | Progress tracking |
 
 ## CLI Commands
 

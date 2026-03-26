@@ -1,0 +1,107 @@
+---
+title: "Management"
+description: "Instance management, automations, access control, webhooks, and contact directory."
+---
+
+# Management Commands
+
+Commands for managing instances, automations, access control, webhooks, and the contact directory.
+
+## `omni instances`
+
+Manage channel connections. See [Instances concept page](/omni/concepts/instances) for detailed documentation.
+
+```bash
+omni instances list                       # List all instances
+omni instances get <id>                   # Get details
+omni instances create [options]           # Create a new instance
+omni instances delete <id>               # Delete an instance
+omni instances status <id>               # Connection status
+omni instances whoami <id>               # Show phone/identity
+omni instances connect <id>              # Connect
+omni instances disconnect <id>           # Disconnect
+omni instances restart <id>              # Restart
+omni instances logout <id>               # Logout and clear session
+omni instances update <id> [options]     # Update settings
+```
+
+### WhatsApp Pairing
+
+```bash
+omni instances qr <id>                              # Display QR code
+omni instances pair <id> --phone +5511999999999     # Pairing code
+```
+
+### Sync and Contacts
+
+```bash
+omni instances sync <id>              # Start sync
+omni instances syncs <id>             # List sync jobs
+omni instances contacts <id>          # List contacts
+omni instances groups <id>            # List groups
+omni instances profile <id> <userId>  # Get user profile
+omni instances check <id> <phone>     # Check WhatsApp registration
+```
+
+---
+
+## `omni automations`
+
+Manage event-driven workflows that trigger on message events.
+
+```bash
+omni automations list                   # List all automations
+omni automations get <id>               # Get details
+omni automations create [options]       # Create an automation
+omni automations update <id> [options]  # Update an automation
+omni automations delete <id>           # Delete
+omni automations enable <id>           # Enable
+omni automations disable <id>          # Disable
+omni automations test <id> [options]   # Test with mock event (dry run)
+omni automations execute <id> [opts]   # Execute with real event
+omni automations logs <id> [options]   # View execution logs
+```
+
+---
+
+## `omni access`
+
+Manage access control rules — allow/deny lists for instances.
+
+```bash
+omni access list --instance <id>               # List rules
+omni access create [options]                   # Create a rule
+omni access delete <id>                        # Delete a rule
+omni access mode <instance-id> [mode]          # Get/set access mode
+omni access check [options]                    # Check if user has access
+omni access pending <instance-id>              # List pending requests
+omni access approve <instance-id> <req-id>     # Approve pairing request
+omni access deny <instance-id> <req-id>        # Deny pairing request
+```
+
+---
+
+## `omni webhooks`
+
+Manage webhook event sources for custom integrations.
+
+```bash
+omni webhooks list                       # List webhook sources
+omni webhooks get <id>                   # Get details
+omni webhooks create [options]           # Create a webhook source
+omni webhooks update <id> [options]      # Update
+omni webhooks delete <id>               # Delete
+omni webhooks trigger [options]          # Trigger a custom event
+```
+
+---
+
+## `omni persons`
+
+Search and inspect contacts in the unified person directory.
+
+```bash
+omni persons search <query>     # Search by name or phone
+omni persons get <id>           # Get full person profile
+omni persons presence <id>      # Check online presence and activity
+```

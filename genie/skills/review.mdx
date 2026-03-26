@@ -71,6 +71,18 @@ Validate any artifact against its wish criteria. Always dispatched as a separate
 2. After fix, re-run `/review` (max 2 fix loops).
 3. If still FIX-FIRST after 2 loops, escalate as BLOCKED.
 
+## Task Lifecycle Integration
+
+When a PG task exists for the reviewed work, the review verdict is logged as a task comment:
+
+| Event | Command |
+|-------|---------|
+| Review start | `genie task comment #<seq> "Review: evaluating criteria..."` |
+| SHIP verdict | `genie task comment #<seq> "Review: SHIP — all criteria met"` |
+| FIX-FIRST verdict | `genie task comment #<seq> "Review: FIX-FIRST — N gaps found"` |
+
+Council participation results are also logged when the council is consulted during review.
+
 ## Rules
 
 - Never mark PASS without evidence

@@ -74,7 +74,7 @@ genie spawn reviewer --model opus       # Specify model
 genie spawn engineer --skill work       # Pre-load a skill
 ```
 
-Each spawn creates a tmux pane and registers the agent in the global worker registry (`~/.genie/workers.json`).
+Each spawn creates a tmux pane and registers the agent in the PostgreSQL `agents` table.
 
 ## Agent Lifecycle
 
@@ -126,13 +126,7 @@ genie chat                  # Read team chat history
 
 ## Worker Registry
 
-All spawned agents are tracked globally:
-
-```
-~/.genie/workers.json
-```
-
-This registry maps agent names to their tmux sessions, PIDs, teams, and status. The `genie ls` command reads this file.
+All spawned agents are tracked globally in the PostgreSQL `agents` table. This registry maps agent names to their tmux sessions, PIDs, teams, and status. The `genie ls` command reads from this table.
 
 ## Council: Multi-Agent Deliberation
 

@@ -1,0 +1,95 @@
+---
+title: "Routes"
+description: "Agent routing with per-user and per-chat overrides — how messages reach the right AI agent."
+---
+
+# Routes
+
+Routes are rules that determine which AI agent handles incoming messages. Omni supports hierarchical routing with per-instance defaults and per-chat/per-user overrides.
+
+## How Routing Works
+
+When a message arrives on a channel instance, Omni evaluates routes in this order:
+
+```
+Message arrives → Check per-user route → Check per-chat route → Check per-instance route → No agent (unrouted)
+```
+
+The first matching route wins. This lets you set a default agent for an instance while overriding specific conversations or users.
+
+## Creating Routes
+
+### Instance-Level Default
+
+Route all messages from an instance to a single agent:
+
+```bash
+omni routes create --instance <instance-id> --agent <agent-id>
+```
+
+### Per-Chat Override
+
+Route a specific conversation to a different agent:
+
+```bash
+omni routes create --instance <instance-id> --chat <chat-id> --agent <agent-id>
+```
+
+### Per-User Override
+
+Route all messages from a specific person to a dedicated agent:
+
+```bash
+omni routes create --instance <instance-id> --person <person-id> --agent <agent-id>
+```
+
+## Testing Routes
+
+Before going live, test how Omni would resolve a route:
+
+```bash
+omni routes test --instance <instance-id> --chat <chat-id> --person <person-id>
+```
+
+This shows which agent would handle the message and why.
+
+## Managing Routes
+
+```bash
+# List routes for an instance
+omni routes list --instance <instance-id>
+
+# Get route details
+omni routes get <route-id>
+
+# Update a route's target agent
+omni routes update <route-id> --agent <new-agent-id>
+
+# Delete a route
+omni routes delete <route-id>
+
+# View route cache metrics
+omni routes metrics
+```
+
+## Common Patterns
+
+### Default Agent + VIP Override
+
+```bash
+# Default: all messages go to support bot
+omni routes create --instance $INST --agent $SUPPORT_BOT
+
+# Override: VIP customer gets a dedicated agent
+omni routes create --instance $INST --person $VIP_ID --agent $VIP_AGENT
+```
+
+### Channel-Specific Agents
+
+```bash
+# WhatsApp instance → Portuguese-speaking agent
+omni routes create --instance $WA_INST --agent $PT_AGENT
+
+# Discord instance → English-speaking agent
+omni routes create --instance $DC_INST --agent $EN_AGENT
+```

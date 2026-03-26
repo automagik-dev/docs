@@ -68,6 +68,7 @@ Genie ships with 14 skills organized by function:
 
 | Skill | Command | Purpose |
 |-------|---------|---------|
+| [PM](/genie/skills/pm) | `/pm` | Full PM playbook — triage, assign, track, report, escalate |
 | [Council](/genie/skills/council) | `/council` | 10-perspective architectural review |
 | [Dream](/genie/skills/dream) | `/dream` | Batch-execute SHIP-ready wishes overnight |
 | [Genie](/genie/skills/genie) | `/genie` | Transform any session into a Genie orchestrator |
@@ -78,8 +79,11 @@ Genie ships with 14 skills organized by function:
 |-------|---------|---------|
 | [Wizard](/genie/skills/wizard) | `/wizard` | Guided onboarding — scaffold to first wish |
 | [Refine](/genie/skills/refine) | `/refine` | Optimize prompts via prompt-optimizer |
-| [Learn](/genie/skills/learn) | `/learn` | Apply behavioral corrections from feedback |
 | [Docs](/genie/skills/docs) | `/docs` | Audit and generate documentation |
+
+<Note>
+The `/learn` skill was removed as a standalone skill — behavioral corrections are now handled through Claude Code's native memory system. The `qa-runner` agent has been merged into the `/qa` QA system accessible via `genie qa`.
+</Note>
 
 ## Invoking Skills
 

@@ -53,6 +53,19 @@ When a subagent fails or fix loop limit (2) is exceeded:
 - Continue with next unblocked task
 - Include blocked items in final handoff
 
+## Task Lifecycle Integration
+
+When PostgreSQL tasks exist, `/work` integrates with the task system at each step:
+
+| Event | Command |
+|-------|---------|
+| Claim task before starting | `genie task checkout #<seq>` |
+| Log progress during execution | `genie task comment #<seq> "Building group N..."` |
+| Move task on group completion | `genie task move #<seq> --to review --comment "Group N complete"` |
+| Mark parent task done | `genie task done #<parent-seq> --comment "All groups shipped"` |
+
+Task integration is graceful — if no PG task exists, the work flow proceeds without task commands.
+
 ## Rules
 
 - Never execute directly — always dispatch subagents

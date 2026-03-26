@@ -1,0 +1,122 @@
+---
+title: "Media Processing"
+description: "Media pipeline architecture — transcription, image description, document extraction, circuit breaker, and batch processing."
+---
+
+# Media Processing Pipeline
+
+Omni processes incoming media automatically — transcribing audio, describing images, extracting text from documents. The pipeline is designed for resilience with circuit breakers, retry logic, and health metrics.
+
+## Processing Flow
+
+```
+Message with media arrives
+        │
+        ▼
+  Download media file
+        │
+        ▼
+  Detect media type (image, audio, video, document)
+        │
+        ▼
+  Route to processor
+        │
+  ┌─────┼─────────┬──────────────┐
+  │     │         │              │
+  ▼     ▼         ▼              ▼
+Image  Audio    Video        Document
+desc   transcr  desc+transcr  extraction
+  │     │         │              │
+  └─────┴─────────┴──────────────┘
+        │
+        ▼
+  Store result on message record
+  (transcription / description fields)
+```
+
+## Processors
+
+| Type | What It Does | Output Field |
+|------|-------------|--------------|
+| Image | AI-powered image description | `description` |
+| Audio | Speech-to-text transcription | `transcription` |
+| Video | Frame extraction + audio transcription | `description` + `transcription` |
+| Document | PDF/DOCX text extraction + AI summarization | `description` |
+
+## Prompt Overrides
+
+Each processor uses a configurable LLM prompt. You can override the defaults:
+
+```bash
+# View current prompts
+omni prompts list
+
+# Customize the image description prompt
+omni prompts set image "Describe this image in detail, focusing on text content and UI elements."
+
+# Reset to default
+omni prompts reset image
+```
+
+Available prompt names: `image`, `video`, `document`, `gate`.
+
+## Circuit Breaker
+
+The media pipeline uses a circuit breaker pattern to prevent cascading failures when the AI backend is down or slow:
+
+| State | Behavior |
+|-------|----------|
+| **Closed** | Normal operation — all requests go through |
+| **Open** | Backend is failing — requests are short-circuited, no API calls made |
+| **Half-Open** | Testing recovery — a few requests are sent to check if the backend is back |
+
+When the circuit is open, messages are stored without media processing. They can be reprocessed later via batch operations.
+
+## Retry Logic
+
+Failed processing attempts are retried with exponential backoff. After max retries, the message is stored without processed media and flagged for batch reprocessing.
+
+## Health Metrics
+
+Monitor media processing health:
+
+```bash
+# Check overall event metrics
+omni events metrics
+
+# View journey timing for a specific message
+omni journey show <correlation-id>
+```
+
+## Batch Processing
+
+For bulk media operations — reprocess failed items, process historical messages, or run ad-hoc transcription:
+
+```bash
+# Estimate the job scope and cost
+omni batch estimate --instance <id> --since 30d --type audio
+
+# Create a batch job
+omni batch create --instance <id> --since 30d --type audio
+
+# Check progress
+omni batch status <job-id>
+
+# Cancel if needed
+omni batch cancel <job-id>
+```
+
+## Media Storage
+
+Downloaded media files are stored locally at:
+
+```
+~/.omni/data/media/<instance-id>/YYYY-MM/<message-id>.<ext>
+```
+
+Browse and download media:
+
+```bash
+omni media list --instance <id>
+omni media download --id <media-id>
+```

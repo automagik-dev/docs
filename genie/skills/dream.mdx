@@ -76,10 +76,21 @@ Write `DREAM-REPORT.md`:
 
 Then disband the team: `genie team disband dream-<date>`.
 
+## Task Lifecycle Integration
+
+When using the task system, `/dream` creates a parent task for the dream run with child tasks per wish:
+
+| Event | Command |
+|-------|---------|
+| Create dream parent task | `genie task create "Dream run <date>" --type software --tags chore` |
+| Create child per wish | `genie task create "<wish title>" --parent #<dream-seq> --type software` |
+| Track wish completion | `genie task done #<wish-seq> --comment "PR #N merged"` |
+| Complete dream run | `genie task done #<dream-seq> --comment "Dream complete — see DREAM-REPORT.md"` |
+
 ## Rules
 
 - Never early-stop — if a wish is BLOCKED, record reason and continue
-- Never skip Phase 2 — every PR must be reviewed
+- Never skip Phase 2 ��� every PR must be reviewed
 - Never skip Phase 3 — every merge must be QA-tested
 - Orchestrator never executes work directly — dispatch via `genie work`
 - Always write DREAM-REPORT.md, even if all wishes BLOCKED

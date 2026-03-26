@@ -1,0 +1,94 @@
+---
+title: "Agents & Providers"
+description: "AI agent management, provider configuration, routing rules, and API keys."
+---
+
+# Agent & Provider Commands
+
+Commands for managing AI agents, providers, routing rules, and API keys.
+
+## `omni agents`
+
+Manage AI agent entities.
+
+```bash
+omni agents list               # List all agents
+omni agents get <id>           # Get agent details
+omni agents create [options]   # Create a new agent
+omni agents delete <id>        # Delete (soft-delete, sets inactive)
+```
+
+### Creating an Agent
+
+```bash
+omni agents create --name "Support Bot" --provider <provider-id>
+```
+
+---
+
+## `omni providers`
+
+Manage AI/agent providers — the backends that power agents.
+
+```bash
+omni providers list              # List available providers
+omni providers get <id>          # Get provider details
+omni providers create [options]  # Create a new provider
+omni providers update <id>       # Update provider config
+omni providers delete <id>       # Delete a provider
+omni providers test <id>         # Test provider health
+omni providers setup             # Interactive setup wizard
+```
+
+### Supported Provider Types
+
+| Type | Description |
+|------|-------------|
+| `genie` | Automagik Genie orchestration framework |
+| `claude-code` | Anthropic Claude Code CLI agent |
+| `a2a` | Agent-to-Agent protocol |
+| `ag-ui` | Agent UI protocol |
+| `agno` | Agno agent framework |
+| `openclaw` | Open Claw open-source agent |
+| `webhook` | Custom webhook-based agent |
+
+### Agno-Specific Commands
+
+For Agno providers, list resources from the Agno backend:
+
+```bash
+omni providers agents <id>      # List agents from Agno provider
+omni providers teams <id>       # List teams
+omni providers workflows <id>   # List workflows
+```
+
+---
+
+## `omni routes`
+
+Manage agent routing rules. See [Routes concept page](/omni/concepts/routes) for detailed routing documentation.
+
+```bash
+omni routes list --instance <id>        # List routes for an instance
+omni routes get <route-id>              # Get route details
+omni routes create [options]            # Create a new route
+omni routes update <route-id> [opts]    # Update a route
+omni routes delete <route-id>           # Delete a route
+omni routes test [options]              # Test route resolution
+omni routes metrics                     # View route cache metrics
+```
+
+---
+
+## `omni keys`
+
+Manage API keys for authenticating with the Omni API.
+
+```bash
+omni keys create --name "Production"    # Create a new API key
+omni keys list                          # List all keys
+omni keys get <id>                      # Get key details
+omni keys update <id> --name "Staging"  # Update a key
+omni keys revoke <id>                   # Revoke (disable) a key
+omni keys delete <id>                   # Permanently delete a key
+```

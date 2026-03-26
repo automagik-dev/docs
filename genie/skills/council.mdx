@@ -89,6 +89,13 @@ Not every decision needs all 10 perspectives. Topics are routed to the relevant 
 The council advises [recommendation]. Proceed?
 ```
 
+## Auto-Invocation Triggers
+
+The council can be triggered automatically by other skills:
+
+- **During `/review`**: when an architecture decision has significant tradeoffs, `/review` may invoke `/council` for specialist input before rendering a verdict.
+- **During `/brainstorm`**: when the Decisions dimension stays unfilled after 2+ exchanges, `/brainstorm` suggests running `/council` to break the deadlock.
+
 ## Rules
 
 - Advisory only — never block progress based on council vote

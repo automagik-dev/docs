@@ -1,0 +1,137 @@
+---
+title: "System"
+description: "Configuration, events, batch processing, prompts, diagnostics, and service management."
+---
+
+# System Commands
+
+Commands for configuration, event querying, batch processing, prompt management, and diagnostics.
+
+## `omni config`
+
+Manage CLI configuration — default instance, output format, API settings.
+
+```bash
+omni config list            # List all config values
+omni config get <key>       # Get a value
+omni config set <key> <val> # Set a value
+omni config unset <key>     # Remove a value
+```
+
+Common settings:
+
+```bash
+omni config set instance <id>     # Set default instance
+omni config set format json       # Default to JSON output
+```
+
+---
+
+## `omni events`
+
+Query the event log — message history, analytics, and replay.
+
+### List and Search
+
+```bash
+omni events list                              # List recent events
+omni events list --instance <id> --limit 50   # Filter by instance
+omni events search <query>                    # Search events by content
+```
+
+### Analytics
+
+```bash
+omni events metrics              # Processing metrics
+omni events analytics            # Event analytics summary
+omni events timeline <person-id> # Event timeline for a person
+```
+
+### Replay
+
+```bash
+omni events replay               # Start, list, or manage replay sessions
+```
+
+---
+
+## `omni batch`
+
+Batch processing for media transcription and text extraction at scale.
+
+```bash
+omni batch list                         # List batch jobs
+omni batch create [options]             # Create a processing job
+omni batch status <job-id>              # Check job status
+omni batch cancel <job-id>              # Cancel a running job
+omni batch estimate [options]           # Estimate scope and cost
+```
+
+---
+
+## `omni prompts`
+
+Manage LLM prompt overrides for media processing. Omni uses prompts for image description, video description, document extraction, and gating decisions.
+
+```bash
+omni prompts list                       # List all prompts with override status
+omni prompts get <name>                 # Show current prompt (image|video|document|gate)
+omni prompts set <name> [value]         # Set override (reads stdin for multiline)
+omni prompts reset <name>               # Clear override, revert to default
+```
+
+---
+
+## `omni journey`
+
+Message journey tracing — track a message through the full Omni pipeline for latency debugging.
+
+```bash
+omni journey show <correlation-id>      # Display journey timeline with timing bars
+omni journey summary                    # Aggregated journey metrics
+```
+
+---
+
+## `omni auth`
+
+Authentication management.
+
+```bash
+omni auth                               # Check auth status
+```
+
+---
+
+## `omni settings`
+
+Server-level settings.
+
+```bash
+omni settings                           # View server settings
+```
+
+---
+
+## Service Management
+
+Start, stop, and restart the Omni server and NATS:
+
+```bash
+omni start      # Start Omni services (API + NATS)
+omni stop       # Stop services
+omni restart    # Restart services
+omni status     # API health and connection info
+omni update     # Update CLI to latest version
+```
+
+---
+
+## Global Flags
+
+These flags work with any command:
+
+| Flag | Description |
+|------|-------------|
+| `--json` | Output in JSON format |
+| `--no-color` | Disable colored output |
