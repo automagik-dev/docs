@@ -1,0 +1,403 @@
+---
+title: "Observability"
+description: "Events, metrics, sessions, and logs — audit trail, cost tracking, and real-time monitoring."
+---
+
+# Observability Commands
+
+Four command families for monitoring agent activity: events for audit trails, metrics for machine state, sessions for transcript replay, and log for unified feeds.
+
+## Events
+
+The events system captures all state transitions, errors, costs, and tool usage from agent activity. Events are stored in the `audit_events` table.
+
+### `genie events list`
+
+List recent audit events.
+
+```bash
+genie events list [options]
+```
+
+```bash Terminal
+$ genie events list --limit 5
+TIME         TYPE              ENTITY          DETAIL
+14:30:02     task_stage        task-a1b2c3d4   build → review
+14:29:45     agent_state       engineer-1      working → idle
+14:28:12     otel_api_request  trace-xyz       200 OK (1.2s, $0.003)
+14:27:00     spawn             engineer-1      claude/sonnet
+14:26:30     task_checkout     task-a1b2c3d4   claimed by engineer-1
+```
+
+### Options
+
+| Flag | Description |
+|------|-------------|
+| `--limit <n>` | Number of events to show |
+| `--type <type>` | Filter by event type |
+| `--entity <id>` | Filter by entity ID |
+| `--since <timestamp>` | Only events after ISO timestamp |
+| `--json` | Output as JSON |
+
+### `genie events errors`
+
+Show aggregated error patterns.
+
+```bash
+genie events errors [options]
+```
+
+```bash Terminal
+$ genie events errors
+PATTERN                     COUNT  LAST SEEN     AGENTS
+rate_limit_exceeded         12     14:30:02      engineer-1, reviewer-1
+tool_timeout                3      14:15:00      engineer-2
+connection_refused          1      13:00:00      qa-1
+```
+
+### Options
+
+| Flag | Description |
+|------|-------------|
+| `--since <timestamp>` | Only errors after ISO timestamp |
+| `--limit <n>` | Number of patterns to show |
+| `--json` | Output as JSON |
+
+### `genie events costs`
+
+Cost breakdown from OpenTelemetry API request events.
+
+```bash
+genie events costs [options]
+```
+
+```bash Terminal
+$ genie events costs
+PERIOD       REQUESTS  INPUT TOKENS  OUTPUT TOKENS  COST
+Today        142       1.2M          340K           $4.82
+Yesterday    89        800K          220K           $3.10
+This week    623       5.1M          1.4M           $18.45
+
+By Agent:
+  engineer-1    $2.10  (48 requests)
+  team-lead     $1.40  (32 requests)
+  reviewer-1    $0.82  (22 requests)
+```
+
+### Options
+
+| Flag | Description |
+|------|-------------|
+| `--since <timestamp>` | Start of cost window |
+| `--agent <name>` | Filter by agent |
+| `--json` | Output as JSON |
+
+### `genie events tools`
+
+Tool usage analytics from OpenTelemetry tool events.
+
+```bash
+genie events tools [options]
+```
+
+```bash Terminal
+$ genie events tools
+TOOL              CALLS  SUCCESS  FAIL  AVG TIME
+Read              234    232      2     45ms
+Edit              156    148      8     120ms
+Bash              89     85       4     2.3s
+Grep              67     67       0     30ms
+Write             34     34       0     80ms
+```
+
+### Options
+
+| Flag | Description |
+|------|-------------|
+| `--since <timestamp>` | Only events after ISO timestamp |
+| `--agent <name>` | Filter by agent |
+| `--json` | Output as JSON |
+
+### `genie events timeline`
+
+Full event timeline for a specific entity (task, agent, wish, or trace ID).
+
+```bash
+genie events timeline [options] <entity-id>
+```
+
+```bash Terminal
+$ genie events timeline task-a1b2c3d4
+Timeline for task-a1b2c3d4:
+
+  14:00  created         priority:high stage:draft
+  14:05  stage_change    draft → brainstorm
+  14:30  stage_change    brainstorm → wish
+  15:00  stage_change    wish → build
+  15:00  checkout        claimed by engineer-1
+  15:45  stage_change    build → review
+  15:45  release         released by engineer-1
+  16:00  done            comment: "PR #42 merged"
+```
+
+### Options
+
+| Flag | Description |
+|------|-------------|
+| `--since <timestamp>` | Only events after ISO timestamp |
+| `--json` | Output as JSON |
+
+### `genie events summary`
+
+High-level stats: agents spawned, tasks moved, costs, and errors.
+
+```bash
+genie events summary [options]
+```
+
+```bash Terminal
+$ genie events summary
+Period: Last 24 hours
+
+  Agents spawned:    8
+  Tasks created:     12
+  Tasks completed:   9
+  Stage transitions: 34
+  API requests:      142
+  Total cost:        $4.82
+  Errors:            3
+```
+
+### Options
+
+| Flag | Description |
+|------|-------------|
+| `--since <timestamp>` | Start of summary window |
+| `--json` | Output as JSON |
+
+## Metrics
+
+Machine-level observability: resource utilization, agent heartbeats, and historical snapshots.
+
+### `genie metrics now`
+
+Current machine state.
+
+```bash
+genie metrics now [options]
+```
+
+```bash Terminal
+$ genie metrics now
+Machine State:
+  CPU:      23% (8 cores)
+  Memory:   4.2GB / 16GB (26%)
+  Agents:   5 running, 2 idle
+  Tmux:     3 sessions, 12 panes
+  DB:       connected (19642)
+```
+
+### Options
+
+| Flag | Description |
+|------|-------------|
+| `--json` | Output as JSON |
+
+### `genie metrics history`
+
+Machine snapshot history.
+
+```bash
+genie metrics history [options]
+```
+
+```bash Terminal
+$ genie metrics history --last 5
+TIME         CPU   MEM    AGENTS  SESSIONS
+14:30        23%   4.2GB  7       3
+14:00        45%   5.1GB  9       4
+13:30        12%   3.8GB  4       2
+13:00        67%   6.2GB  12      5
+12:30        8%    3.2GB  2       1
+```
+
+### Options
+
+| Flag | Description |
+|------|-------------|
+| `--last <n>` | Show last N snapshots |
+| `--since <timestamp>` | Only snapshots after ISO timestamp |
+| `--json` | Output as JSON |
+
+### `genie metrics agents`
+
+Per-agent heartbeat summary.
+
+```bash
+genie metrics agents [options]
+```
+
+```bash Terminal
+$ genie metrics agents
+AGENT         STATE     LAST HEARTBEAT  UPTIME
+engineer-1    working   2s ago          45m
+team-lead     idle      5s ago          1h 12m
+reviewer-1    working   1s ago          22m
+qa-1          done      10m ago         35m
+```
+
+### Options
+
+| Flag | Description |
+|------|-------------|
+| `--team <name>` | Filter by team |
+| `--json` | Output as JSON |
+
+## Sessions
+
+Session management for Claude Code transcripts. Sessions are ingested from JSONL log files and stored in PostgreSQL for replay and search.
+
+### `genie sessions list`
+
+List Claude Code sessions.
+
+```bash
+genie sessions list [options]
+```
+
+```bash Terminal
+$ genie sessions list
+SESSION                              AGENT        STATUS     TURNS  STARTED
+a1b2c3d4-e5f6-7890-abcd-ef1234567890  engineer-1   completed  45     14:00
+f0e1d2c3-b4a5-6789-0fed-cba987654321  team-lead    active     120    12:30
+```
+
+### Options
+
+| Flag | Description |
+|------|-------------|
+| `--status <status>` | Filter: active, completed, crashed, orphaned |
+| `--agent <name>` | Filter by agent |
+| `--team <name>` | Filter by team |
+| `--limit <n>` | Limit results |
+| `--json` | Output as JSON |
+
+### `genie sessions replay`
+
+Replay a session transcript.
+
+```bash
+genie sessions replay [options] <session-id>
+```
+
+```bash Terminal
+$ genie sessions replay a1b2c3d4-e5f6-7890-abcd-ef1234567890
+Session: a1b2c3d4 (engineer-1)
+Duration: 45m | Turns: 45
+
+  [14:00] assistant: Reading WISH.md for execution group context...
+  [14:01] tool:      Read(.genie/wishes/auth-fix/WISH.md)
+  [14:02] assistant: Implementing token validation middleware...
+  [14:05] tool:      Write(src/auth/middleware.ts)
+  ...
+```
+
+### Options
+
+| Flag | Description |
+|------|-------------|
+| `--from <turn>` | Start from turn number |
+| `--to <turn>` | End at turn number |
+| `--role <role>` | Filter by role (assistant, tool) |
+| `--json` | Output as JSON |
+
+### `genie sessions search`
+
+Full-text search across session content.
+
+```bash
+genie sessions search [options] <query>
+```
+
+```bash Terminal
+$ genie sessions search "OAuth middleware"
+3 matches across 2 sessions:
+
+  Session a1b2c3d4 (engineer-1):
+    Turn 5: "Implementing OAuth middleware in src/auth/"
+    Turn 12: "OAuth middleware tests passing"
+
+  Session f0e1d2c3 (team-lead):
+    Turn 30: "OAuth middleware group complete"
+```
+
+### Options
+
+| Flag | Description |
+|------|-------------|
+| `--agent <name>` | Filter by agent |
+| `--team <name>` | Filter by team |
+| `--limit <n>` | Limit results |
+| `--json` | Output as JSON |
+
+### `genie sessions ingest`
+
+Manual batch import of JSONL files into the session store.
+
+```bash
+genie sessions ingest [options]
+```
+
+```bash Terminal
+$ genie sessions ingest --path ~/.claude/projects/*/
+Ingested 12 sessions (4,230 content entries).
+```
+
+### Options
+
+| Flag | Description |
+|------|-------------|
+| `--path <glob>` | Path pattern for JSONL files |
+| `--force` | Re-ingest already imported sessions |
+
+## Unified Log
+
+### `genie log`
+
+Unified observability feed that interleaves transcripts, messages, tool calls, and state changes.
+
+```bash
+genie log [options] [agent]
+```
+
+```bash Terminal
+$ genie log engineer-1 --last 10
+[14:30:02] transcript  Reading test results...
+[14:29:55] tool_call   Bash: bun test src/auth/
+[14:29:45] state       working → idle
+[14:29:30] message     from:team-lead "Switch to review phase"
+[14:29:00] transcript  All tests passing. Marking group done.
+
+$ genie log --team auth-fix --type state
+[14:30] engineer-1   working → idle
+[14:29] reviewer-1   idle → working
+[14:15] engineer-2   working → done
+[14:00] team-lead    idle → working
+
+$ genie log --follow --team auth-fix
+Following auth-fix team log... (Ctrl+C to stop)
+[14:31:02] engineer-1  transcript  Starting review feedback...
+[14:31:05] reviewer-1  tool_call   Read(src/auth/middleware.ts)
+```
+
+### Options
+
+| Flag | Description |
+|------|-------------|
+| `--team <name>` | Show interleaved feed for all agents in a team |
+| `--type <kind>` | Filter by event kind: `transcript`, `message`, `tool_call`, `state`, `system` |
+| `--since <timestamp>` | Only events after ISO timestamp |
+| `--last <n>` | Show last N events |
+| `--ndjson` | Output as newline-delimited JSON |
+| `--json` | Output as pretty JSON |
+| `-f, --follow` | Follow mode -- real-time streaming |

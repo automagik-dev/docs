@@ -1,0 +1,543 @@
+---
+title: "Tasks"
+description: "Task lifecycle commands — create, list, move, assign, block, checkout, dependencies, types, tags, and releases."
+---
+
+# Task Commands
+
+Full task lifecycle management — from creation through stage transitions to completion. Tasks flow through a stage pipeline defined by their board (or legacy task type).
+
+### Task Lifecycle at a Glance
+
+<Frame>
+  <CodeGroup>
+```bash Create & List
+$ genie task create "Implement OAuth middleware" --priority high
+Created task-a1b2c3d4 "Implement OAuth middleware"
+  Stage: draft
+  Priority: high
+  Project: myapp
+
+$ genie task list
+ID              STAGE     PRIORITY  TITLE
+task-a1b2c3d4   draft     high      Implement OAuth middleware
+task-e5f6g7h8   build     medium    Add rate limiting
+task-i9j0k1l2   review    low       Update README
+```
+
+```bash Move & Assign
+$ genie task move task-a1b2c3d4 --to brainstorm
+Moved task-a1b2c3d4 from draft → brainstorm
+
+$ genie task assign task-a1b2c3d4 --actor engineer-1
+Assigned engineer-1 to task-a1b2c3d4
+```
+
+```bash Checkout & Done
+$ genie task checkout task-a1b2c3d4
+Checked out task-a1b2c3d4 — locked for execution.
+  Lock expires in 10m.
+
+$ genie task done task-a1b2c3d4 --comment "PR #42 merged"
+Marked task-a1b2c3d4 as done.
+```
+  </CodeGroup>
+</Frame>
+
+## ID Formats
+
+Tasks support three ID formats:
+
+| Format | Example | Scope |
+|--------|---------|-------|
+| UUID | `task-6c3a2cf2` | Global — works everywhere |
+| `#seq` | `#3` | Repo-scoped — resolves in current repo only |
+| `project#seq` | `myapp#3` | Display format — shown in list output |
+
+Always use UUIDs for cross-repo operations or scripting.
+
+## Stage Pipeline
+
+Tasks move through a board's column pipeline. The default `software` board defines:
+
+```
+draft → brainstorm → wish → build → review → qa → ship
+```
+
+Each stage has a gate type that controls advancement:
+
+| Stage | Gate | Auto-advance | Skill |
+|-------|------|-------------|-------|
+| Draft | human | No | -- |
+| Brainstorm | human+agent | No | `/brainstorm` |
+| Wish | human | No | `/wish` |
+| Build | agent | Yes | `/work` |
+| Review | human | No | `/review` |
+| QA | agent | Yes | `/qa` |
+| Ship | human | No | -- |
+
+## `genie task create`
+
+Create a new task.
+
+```bash
+genie task create [options] <title>
+```
+
+```bash Terminal
+$ genie task create "Add dark mode toggle" --priority high --stage brainstorm
+Created task-d4e5f6g7 "Add dark mode toggle"
+  Stage: brainstorm
+  Priority: high
+
+$ genie task create "Fix login redirect" --tag bug --tag urgent
+Created task-h8i9j0k1 "Fix login redirect"
+  Tags: bug, urgent
+```
+
+### Options
+
+| Flag | Description |
+|------|-------------|
+| `--priority <level>` | Priority level (low, medium, high, critical) |
+| `--stage <stage>` | Initial stage (default: draft) |
+| `--tag <tag>` | Add tags (repeatable) |
+| `--project <name>` | Project scope |
+| `--board <name>` | Board to place the task on |
+| `--description <text>` | Task description |
+| `--json` | Output as JSON |
+
+## `genie task list`
+
+List tasks with filters.
+
+```bash
+genie task list [options]
+```
+
+```bash Terminal
+$ genie task list
+ID              STAGE     PRIORITY  TITLE
+task-a1b2c3d4   build     high      Implement OAuth middleware
+task-e5f6g7h8   review    medium    Add rate limiting
+
+$ genie task list --all --stage build
+ID              STAGE     PRIORITY  TITLE                         PROJECT
+task-a1b2c3d4   build     high      Implement OAuth middleware    myapp
+task-x1y2z3w4   build     medium    Add caching layer            api-server
+
+$ genie task list --json > /tmp/tasks.json
+```
+
+### Options
+
+| Flag | Description |
+|------|-------------|
+| `--all` | Show tasks across all repos (not just current) |
+| `--stage <stage>` | Filter by stage |
+| `--priority <level>` | Filter by priority |
+| `--status <status>` | Filter by status (active, done, blocked) |
+| `--tag <tag>` | Filter by tag |
+| `--project <name>` | Filter by project |
+| `--board <name>` | Filter by board |
+| `--actor <id>` | Filter by assigned actor |
+| `--json` | Output as JSON |
+| `--limit <n>` | Limit results |
+
+## `genie task show`
+
+Show detailed task information.
+
+```bash
+genie task show [options] <id>
+```
+
+```bash Terminal
+$ genie task show task-a1b2c3d4
+Task: task-a1b2c3d4
+Title: Implement OAuth middleware
+Stage: build
+Priority: high
+Status: active
+Board: software
+Project: myapp
+
+Actors:
+  engineer-1 (assignee)
+
+Dependencies:
+  depends_on: task-e5f6g7h8 (done)
+
+Tags: backend, auth
+
+Comments:
+  [Mar 24 14:30] Started implementation
+  [Mar 24 15:20] Tests passing
+
+Stage Log:
+  draft → brainstorm   Mar 24 10:00
+  brainstorm → wish     Mar 24 11:30
+  wish → build          Mar 24 14:00
+```
+
+### Options
+
+| Flag | Description |
+|------|-------------|
+| `--json` | Output as JSON |
+
+## `genie task move`
+
+Move a task to a new stage in its pipeline.
+
+```bash
+genie task move [options] <id>
+```
+
+```bash Terminal
+$ genie task move task-a1b2c3d4 --to review
+Moved task-a1b2c3d4 from build → review
+```
+
+### Options
+
+| Flag | Description |
+|------|-------------|
+| `--to <stage>` | Target stage (required) |
+| `--comment <text>` | Transition comment |
+
+<Warning>
+  `done` is a **status**, not a stage. Use `genie task done` to mark a task complete.
+</Warning>
+
+## `genie task assign`
+
+Assign an actor to a task.
+
+```bash
+genie task assign [options] <id>
+```
+
+```bash Terminal
+$ genie task assign task-a1b2c3d4 --actor engineer-1
+Assigned engineer-1 to task-a1b2c3d4
+
+$ genie task assign task-a1b2c3d4 --actor reviewer-1 --role reviewer
+Assigned reviewer-1 as reviewer to task-a1b2c3d4
+```
+
+### Options
+
+| Flag | Description |
+|------|-------------|
+| `--actor <id>` | Actor ID to assign (required) |
+| `--role <role>` | Assignment role (assignee, reviewer, observer) |
+
+## `genie task tag`
+
+Add tags to a task.
+
+```bash
+genie task tag <id> <tags...>
+```
+
+```bash Terminal
+$ genie task tag task-a1b2c3d4 backend auth urgent
+Tagged task-a1b2c3d4 with: backend, auth, urgent
+```
+
+## `genie task comment`
+
+Add a comment to a task.
+
+```bash
+genie task comment [options] <id> <message>
+```
+
+```bash Terminal
+$ genie task comment task-a1b2c3d4 "Blocked on API design decision"
+Comment added to task-a1b2c3d4
+```
+
+## `genie task block`
+
+Mark a task as blocked.
+
+```bash
+genie task block [options] <id>
+```
+
+```bash Terminal
+$ genie task block task-a1b2c3d4 --reason "Waiting for API spec"
+Blocked task-a1b2c3d4: Waiting for API spec
+```
+
+### Options
+
+| Flag | Description |
+|------|-------------|
+| `--reason <text>` | Reason for blocking (required) |
+
+## `genie task unblock`
+
+Unblock a task.
+
+```bash
+genie task unblock [options] <id>
+```
+
+```bash Terminal
+$ genie task unblock task-a1b2c3d4
+Unblocked task-a1b2c3d4
+```
+
+## `genie task done`
+
+Mark a task as done.
+
+```bash
+genie task done [options] <id>
+```
+
+```bash Terminal
+$ genie task done task-a1b2c3d4 --comment "PR #42 merged"
+Marked task-a1b2c3d4 as done.
+```
+
+### Options
+
+| Flag | Description |
+|------|-------------|
+| `--comment <text>` | Completion comment |
+
+## `genie task checkout`
+
+Atomically claim a task for execution. Prevents two agents from working on the same task simultaneously.
+
+```bash
+genie task checkout <id>
+```
+
+```bash Terminal
+$ genie task checkout task-a1b2c3d4
+Checked out task-a1b2c3d4 — locked for execution.
+  Lock expires in 10m.
+```
+
+The lock uses `checkout_run_id` and `execution_locked_at` fields with atomic SQL (`UPDATE ... WHERE checkout_run_id IS NULL`). Lock expires after 10 minutes by default.
+
+## `genie task release`
+
+Release a task checkout claim.
+
+```bash
+genie task release <id>
+```
+
+```bash Terminal
+$ genie task release task-a1b2c3d4
+Released checkout for task-a1b2c3d4.
+```
+
+## `genie task unlock`
+
+Force-release a stale checkout. Admin override for when an agent crashes without releasing its lock.
+
+```bash
+genie task unlock <id>
+```
+
+```bash Terminal
+$ genie task unlock task-a1b2c3d4
+Force-unlocked task-a1b2c3d4 (stale checkout removed).
+```
+
+## `genie task dep`
+
+Manage task dependencies.
+
+```bash
+genie task dep [options] <id>
+```
+
+```bash Terminal
+$ genie task dep task-a1b2c3d4 --add task-e5f6g7h8 --type depends_on
+Added dependency: task-a1b2c3d4 depends_on task-e5f6g7h8
+
+$ genie task dep task-a1b2c3d4 --remove task-e5f6g7h8
+Removed dependency between task-a1b2c3d4 and task-e5f6g7h8
+```
+
+### Options
+
+| Flag | Description |
+|------|-------------|
+| `--add <task-id>` | Add a dependency |
+| `--remove <task-id>` | Remove a dependency |
+| `--type <type>` | Dependency type: `depends_on`, `blocks`, `relates_to` |
+
+## Task Types
+
+Task types define stage pipelines. The built-in `software` type provides the standard 7-stage pipeline.
+
+### `genie type list`
+
+List all task types.
+
+```bash
+genie type list [options]
+```
+
+```bash Terminal
+$ genie type list
+NAME        STAGES  DESCRIPTION
+software    7       Full software delivery pipeline
+bug         6       Bug triage and fix
+ops         4       Operations workflow
+```
+
+### Options
+
+| Flag | Description |
+|------|-------------|
+| `--json` | Output as JSON |
+
+### `genie type show`
+
+Show task type detail with its stage pipeline.
+
+```bash
+genie type show [options] <id>
+```
+
+```bash Terminal
+$ genie type show software
+Type: software
+Stages: draft → brainstorm → wish → build → review → qa → ship
+
+  1. draft        gate:human         auto:no
+  2. brainstorm   gate:human+agent   auto:no   skill:/brainstorm
+  3. wish         gate:human         auto:no   skill:/wish
+  4. build        gate:agent         auto:yes  skill:/work
+  5. review       gate:human         auto:no   skill:/review
+  6. qa           gate:agent         auto:yes  skill:/qa
+  7. ship         gate:human         auto:no
+```
+
+### Options
+
+| Flag | Description |
+|------|-------------|
+| `--json` | Output as JSON |
+
+### `genie type create`
+
+Create a custom task type with a stage pipeline.
+
+```bash
+genie type create [options] <name>
+```
+
+```bash Terminal
+$ genie type create content --stages "draft,write,edit,publish"
+Created task type "content" with 4 stages.
+```
+
+### Options
+
+| Flag | Description |
+|------|-------------|
+| `--stages <stages>` | Comma-separated stage names |
+| `--description <text>` | Type description |
+
+## Tags
+
+Tags are classification labels with optional colors for organizing tasks.
+
+### `genie tag list`
+
+List all tags.
+
+```bash
+genie tag list [options]
+```
+
+```bash Terminal
+$ genie tag list
+NAME      COLOR
+bug       #ef4444
+feature   #3b82f6
+urgent    #f97316
+backend   #8b5cf6
+```
+
+### Options
+
+| Flag | Description |
+|------|-------------|
+| `--json` | Output as JSON |
+
+### `genie tag create`
+
+Create a custom tag.
+
+```bash
+genie tag create [options] <name>
+```
+
+```bash Terminal
+$ genie tag create frontend --color "#06b6d4"
+Created tag "frontend" (#06b6d4)
+```
+
+### Options
+
+| Flag | Description |
+|------|-------------|
+| `--color <hex>` | Tag color (hex code) |
+
+## Releases
+
+Releases group tasks into named milestones.
+
+### `genie release create`
+
+Create a release and assign tasks to it.
+
+```bash
+genie release create [options] <name>
+```
+
+```bash Terminal
+$ genie release create v1.2.0 --tasks task-a1b2c3d4,task-e5f6g7h8
+Created release "v1.2.0" with 2 tasks.
+```
+
+### Options
+
+| Flag | Description |
+|------|-------------|
+| `--tasks <ids>` | Comma-separated task IDs to include |
+| `--description <text>` | Release description |
+| `--target-date <date>` | Target release date |
+
+### `genie release list`
+
+List all releases.
+
+```bash
+genie release list [options]
+```
+
+```bash Terminal
+$ genie release list
+NAME     TASKS  STATUS    TARGET
+v1.2.0   5      active    2026-04-01
+v1.1.0   8      shipped   2026-03-15
+```
+
+### Options
+
+| Flag | Description |
+|------|-------------|
+| `--json` | Output as JSON |

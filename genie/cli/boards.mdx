@@ -1,0 +1,293 @@
+---
+title: "Boards"
+description: "Board and pipeline management — create, edit, columns, templates, import, and export."
+---
+
+# Board Commands
+
+Kanban-style pipeline boards for organizing tasks into columns. Each column can have gates, WIP limits, and linked skills. Boards replace the legacy `task_types` system with richer configuration.
+
+### Board Management at a Glance
+
+<Frame>
+  <CodeGroup>
+```bash Create & List
+$ genie board create "Sprint 12" --template software
+Created board "Sprint 12" (8 columns from software template)
+  triage → draft → brainstorm → wish → build → review → qa → ship
+
+$ genie board list
+NAME          COLUMNS  PROJECT   ACTIVE
+Sprint 12     8        myapp     yes
+Backlog       4        myapp     no
+Bug Triage    6        --        no
+```
+
+```bash Inspect & Edit
+$ genie board columns "Sprint 12"
+#  COLUMN       GATE          AUTO   SKILL
+0  triage       agent         no     /trace
+1  draft        human         no     --
+2  brainstorm   human+agent   no     /brainstorm
+3  wish         human         no     /wish
+4  build        agent         yes    /work
+5  review       human         no     /review
+6  qa           agent         yes    /qa
+7  ship         human         no     --
+
+$ genie board edit "Sprint 12" --description "March sprint"
+Updated board "Sprint 12".
+```
+
+```bash Templates
+$ genie board template list
+NAME        COLUMNS  BUILTIN  DESCRIPTION
+software    8        yes      Full software delivery pipeline with triage
+sales       6        yes      Sales pipeline from lead to close
+hiring      5        yes      Hiring pipeline from sourcing to hire
+ops         4        yes      Operations workflow
+bug         6        yes      Bug triage and fix pipeline
+```
+  </CodeGroup>
+</Frame>
+
+## `genie board create`
+
+Create a new board. Optionally use a template as a starting point.
+
+```bash
+genie board create [options] <name>
+```
+
+```bash Terminal
+$ genie board create "Feature Board" --template software --project myapp
+Created board "Feature Board" (8 columns from software template)
+  Project: myapp
+```
+
+### Options
+
+| Flag | Description |
+|------|-------------|
+| `--template <name>` | Use a board template (software, sales, hiring, ops, bug) |
+| `--project <name>` | Scope board to a project |
+| `--description <text>` | Board description |
+| `--json` | Output as JSON |
+
+## `genie board list`
+
+List all boards.
+
+```bash
+genie board list [options]
+```
+
+```bash Terminal
+$ genie board list
+NAME          COLUMNS  PROJECT   ACTIVE
+Sprint 12     8        myapp     yes
+Backlog       4        myapp     no
+Bug Triage    6        --        no
+```
+
+### Options
+
+| Flag | Description |
+|------|-------------|
+| `--project <name>` | Filter by project |
+| `--json` | Output as JSON |
+
+## `genie board show`
+
+Show board detail including columns and task counts.
+
+```bash
+genie board show [options] <name...>
+```
+
+```bash Terminal
+$ genie board show "Sprint 12"
+Board: Sprint 12
+Description: March sprint
+Project: myapp
+Active: yes
+Columns: 8
+
+  triage       0 tasks   gate:agent
+  draft        2 tasks   gate:human
+  brainstorm   1 task    gate:human+agent
+  wish         0 tasks   gate:human
+  build        3 tasks   gate:agent
+  review       1 task    gate:human
+  qa           1 task    gate:agent
+  ship         0 tasks   gate:human
+```
+
+### Options
+
+| Flag | Description |
+|------|-------------|
+| `--json` | Output as JSON |
+
+## `genie board edit`
+
+Edit board or column properties.
+
+```bash
+genie board edit [options] <name...>
+```
+
+```bash Terminal
+$ genie board edit "Sprint 12" --description "Updated for Q2"
+Updated board "Sprint 12".
+```
+
+### Options
+
+| Flag | Description |
+|------|-------------|
+| `--description <text>` | Update description |
+| `--name <name>` | Rename the board |
+
+## `genie board delete`
+
+Delete a board.
+
+```bash
+genie board delete [options] <name...>
+```
+
+```bash Terminal
+$ genie board delete "Old Sprint"
+Deleted board "Old Sprint".
+```
+
+### Options
+
+| Flag | Description |
+|------|-------------|
+| `--force` | Skip confirmation prompt |
+
+## `genie board columns`
+
+Show the board's column pipeline with gate types and skills.
+
+```bash
+genie board columns [options] <name...>
+```
+
+```bash Terminal
+$ genie board columns software
+#  COLUMN       GATE          AUTO   SKILL       COLOR
+0  triage       agent         no     /trace      #94a3b8
+1  draft        human         no     --          #64748b
+2  brainstorm   human+agent   no     /brainstorm #3b82f6
+3  wish         human         no     /wish       #8b5cf6
+4  build        agent         yes    /work       #f97316
+5  review       human         no     /review     #eab308
+6  qa           agent         yes    /qa         #06b6d4
+7  ship         human         no     --          #10b981
+```
+
+### Options
+
+| Flag | Description |
+|------|-------------|
+| `--json` | Output as JSON |
+
+## `genie board use`
+
+Set the active board for the current repo. The active board is used as the default for task operations.
+
+```bash
+genie board use [options] <name...>
+```
+
+```bash Terminal
+$ genie board use "Sprint 12"
+Active board set to "Sprint 12" for myapp.
+```
+
+## `genie board export`
+
+Export a board as JSON for backup or sharing.
+
+```bash
+genie board export [options] <name...>
+```
+
+```bash Terminal
+$ genie board export "Sprint 12" > sprint-12.json
+```
+
+### Options
+
+| Flag | Description |
+|------|-------------|
+| `-o, --output <file>` | Output file path (default: stdout) |
+
+## `genie board import`
+
+Import a board from a JSON file.
+
+```bash
+genie board import [options]
+```
+
+```bash Terminal
+$ genie board import --file sprint-12.json
+Imported board "Sprint 12" (8 columns, 12 tasks).
+```
+
+### Options
+
+| Flag | Description |
+|------|-------------|
+| `--file <path>` | JSON file to import (required) |
+| `--project <name>` | Target project |
+
+## `genie board template`
+
+Board template management. Templates are reusable board blueprints.
+
+```bash
+genie board template list
+genie board template show <name>
+```
+
+```bash Terminal
+$ genie board template list
+NAME        COLUMNS  BUILTIN  DESCRIPTION
+software    8        yes      Full software delivery pipeline with triage
+sales       6        yes      Sales pipeline from lead to close
+hiring      5        yes      Hiring pipeline from sourcing to hire
+ops         4        yes      Operations workflow
+bug         6        yes      Bug triage and fix pipeline
+
+$ genie board template show software
+Template: software
+Description: Full software delivery pipeline with triage
+Builtin: yes
+
+Columns:
+  0. triage       gate:agent        skill:/trace
+  1. draft        gate:human
+  2. brainstorm   gate:human+agent  skill:/brainstorm
+  3. wish         gate:human        skill:/wish
+  4. build        gate:agent        skill:/work       auto-advance
+  5. review       gate:human        skill:/review
+  6. qa           gate:agent        skill:/qa          auto-advance
+  7. ship         gate:human
+```
+
+### Built-in Templates
+
+Five templates ship with Genie:
+
+| Template | Columns | Use case |
+|----------|---------|----------|
+| `software` | 8 | Full delivery pipeline: triage through ship |
+| `sales` | 6 | Lead to close: lead, qualified, proposal, negotiation, won, lost |
+| `hiring` | 5 | Sourcing to hire: sourcing, screening, interview, offer, hired |
+| `ops` | 4 | Operations: identified, planning, in-progress, done |
+| `bug` | 6 | Bug lifecycle: triage, draft, build, review, qa, ship |

@@ -1,0 +1,107 @@
+---
+title: "Projects"
+description: "Project management — list, create, show, and set default project."
+---
+
+# Project Commands
+
+Projects are named containers that scope tasks to a specific initiative or repository. Every task belongs to a project, and boards can be scoped to projects for organized pipeline management.
+
+## `genie project list`
+
+List all projects.
+
+```bash
+genie project list [options]
+```
+
+```bash Terminal
+$ genie project list
+NAME          TASKS  BOARDS  REPO PATH
+myapp         24     2       ~/projects/myapp
+api-server    12     1       ~/projects/api-server
+docs          5      1       ~/projects/docs
+```
+
+### Options
+
+| Flag | Description |
+|------|-------------|
+| `--json` | Output as JSON |
+
+## `genie project create`
+
+Create a new project.
+
+```bash
+genie project create [options] <name>
+```
+
+```bash Terminal
+$ genie project create mobile-app --description "iOS and Android app"
+Created project "mobile-app"
+  Repo: ~/projects/mobile-app
+```
+
+### Options
+
+| Flag | Description |
+|------|-------------|
+| `--description <text>` | Project description |
+| `--repo <path>` | Repository path (default: current directory) |
+| `--json` | Output as JSON |
+
+## `genie project show`
+
+Show project detail with task stats.
+
+```bash
+genie project show [options] <name>
+```
+
+```bash Terminal
+$ genie project show myapp
+Project: myapp
+Description: Main web application
+Repo: ~/projects/myapp
+
+Task Stats:
+  Total:    24
+  Active:   8
+  Done:     14
+  Blocked:  2
+
+Boards:
+  Sprint 12    (active)
+  Backlog
+
+By Stage:
+  draft        2
+  brainstorm   1
+  build        3
+  review       1
+  qa           1
+  done         14
+  blocked      2
+```
+
+### Options
+
+| Flag | Description |
+|------|-------------|
+| `--json` | Output as JSON |
+
+## `genie project set-default`
+
+Set the default project for when you are outside any repo directory.
+
+```bash
+genie project set-default <name>
+```
+
+```bash Terminal
+$ genie project set-default myapp
+Default project set to "myapp".
+```
+
+When running task commands outside a git repo, the default project is used automatically. Inside a repo, the project is auto-detected from the working directory.

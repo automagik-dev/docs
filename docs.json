@@ -30,6 +30,8 @@
               "genie/concepts/wishes",
               "genie/concepts/agents",
               "genie/concepts/teams",
+              "genie/concepts/boards",
+              "genie/concepts/projects",
               "genie/concepts/skills",
               "genie/concepts/byoa"
             ]
@@ -62,6 +64,10 @@
               "genie/cli/dispatch",
               "genie/cli/agents",
               "genie/cli/messaging",
+              "genie/cli/tasks",
+              "genie/cli/boards",
+              "genie/cli/projects",
+              "genie/cli/observability",
               "genie/cli/directory",
               "genie/cli/infrastructure"
             ]

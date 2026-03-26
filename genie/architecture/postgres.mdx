@@ -37,7 +37,7 @@ On startup, `killOrphanedPostgres()` reads `postmaster.pid` from the data direct
 
 ## Schema Overview
 
-The database schema is organized across three migration files:
+The database schema is organized across ten migration files:
 
 ### Migration 001: Core Schema
 
@@ -75,6 +75,88 @@ Eleven tables for the full task management system:
 
 Project-level scoping for multi-repo task management.
 
+### Migration 004: Clean Test Artifacts
+
+Data cleanup migration that removes test pollution from production tables:
+
+- Deletes tasks with `/tmp/*` repo paths (and cascades to actors, dependencies, stage log, tags)
+- Removes orphaned projects pointing to `/tmp/*` paths
+- Cleans messages with `test*` sender IDs and empty conversations
+- Drops leftover `test_*` schemas from crashed test runs (guarded to only run in `public` schema)
+
+### Migration 005: Agent State (pg_state)
+
+Replaces JSON file-based state with five PostgreSQL tables:
+
+| Table | Replaces | Purpose |
+|-------|----------|---------|
+| `agents` | `~/.genie/workers.json` | Full agent lifecycle state with 8 possible states (spawning, working, idle, permission, question, done, error, suspended) |
+| `agent_templates` | `~/.genie/workers.json` templates | Saved spawn configs for auto-respawn |
+| `teams` | `~/.genie/teams/<name>.json` | Team lifecycle configuration |
+| `mailbox` | `<repo>/.genie/mailbox/<worker>.json` | Durable message store with unread/read semantics |
+| `team_chat` | `<repo>/.genie/chat/<team>.jsonl` | Group channel messages per team |
+
+Adds LISTEN/NOTIFY triggers:
+
+| Channel | Fires When |
+|---------|-----------|
+| `genie_agent_state` | Agent state changes |
+| `genie_mailbox_delivery` | New mailbox message inserted |
+
+### Migration 006: Fix Agents Schema
+
+Reconciliation migration that fixes schema drift between the seed-created tables and the 005 migration:
+
+- Adds missing columns (`tmux_window`, `pane_color`, `updated_at`, `created_at`) to `agents`
+- Converts `sub_panes` from `text[]` to `jsonb` on `agents`
+- Converts `extra_args` from `text[]` to `jsonb` on `agent_templates`
+- Re-creates update timestamp triggers
+
+### Migration 007: Observability
+
+Two tables for session replay and full-text search:
+
+| Table | Purpose |
+|-------|---------|
+| `sessions` | Claude Code session metadata (agent, team, wish, status, JSONL path) |
+| `session_content` | Turn-by-turn content with full-text search via `gin(to_tsvector('english', content))` |
+
+Session statuses: `active`, `completed`, `crashed`, `orphaned`. Incremental ingestion is supported via `last_ingested_offset`.
+
+### Migration 007: Reconcile Mailbox/Team Chat
+
+Fixes production schema drift from a partial 005 migration failure:
+
+- Renames `mailbox.is_read` to `mailbox.read` (matching code expectations)
+- Recreates indexes with 005-consistent naming
+- Creates `team_chat` table (was never created due to partial failure)
+- Ensures LISTEN/NOTIFY triggers exist
+
+### Migration 008: Boards
+
+Boards and board templates replace `task_types` as the primary pipeline system:
+
+| Table | Purpose |
+|-------|---------|
+| `boards` | Project-scoped pipeline boards with JSONB column definitions |
+| `board_templates` | Reusable board blueprints (5 built-in: software, sales, hiring, ops, bug) |
+
+Adds `board_id` and `column_id` columns to `tasks`. Includes a data migration that converts existing `task_types` into boards and links tasks to their new board/column.
+
+The `validate_task_stage()` trigger is updated to validate against board columns (with fallback to legacy `task_types`).
+
+### Migration 009: App Store
+
+Unified item registry for the Genie ecosystem:
+
+| Table | Purpose |
+|-------|---------|
+| `app_store` | Central registry for agents, skills, apps, boards, workflows, stacks, templates, hooks |
+| `installed_apps` | Runtime install state tracking (active/inactive, config) |
+| `app_versions` | Version history with git tags, SHAs, and changelogs |
+
+Item types: `agent`, `skill`, `app`, `board`, `workflow`, `stack`, `template`, `hook`. Approval statuses: `local`, `pending`, `approved`, `rejected`.
+
 ## Built-in Task Pipeline
 
 The `software` task type defines a 7-stage pipeline that maps to Genie skills:
@@ -107,6 +189,8 @@ PostgreSQL's `LISTEN/NOTIFY` mechanism provides real-time event streaming withou
 | `genie_task_stage` | Task stage changes | `task_id:old_stage:new_stage` |
 | `genie_message` | New message posted | `conversation_id:message_id:sender_id` |
 | `genie_task_dep` | Dependency added/removed | `task_id:added/removed:dep_id:dep_type` |
+| `genie_agent_state` | Agent state changes | `agent_id:old_state:new_state` |
+| `genie_mailbox_delivery` | New mailbox message | `to_worker:message_id` |
 
 The scheduler daemon subscribes to `genie_trigger_due` for real-time trigger notification, with a 30-second poll fallback as a safety net.
 

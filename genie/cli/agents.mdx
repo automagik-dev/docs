@@ -78,7 +78,7 @@ Killed agent "reviewer" (pane %43).
 Spawn a new agent in a tmux pane.
 
 ```bash
-genie spawn <name> [--model <model>] [--provider <provider>]
+genie spawn <name> [options]
 ```
 
 ```bash Terminal
@@ -98,6 +98,14 @@ Built-in agent roles: `engineer`, `reviewer`, `fixer`, `tracer`, `qa`, `docs`.
 |------|-------------|
 | `--model <model>` | Model override (sonnet, opus, codex) |
 | `--provider <provider>` | Provider (claude, codex) |
+| `--layout <layout>` | Layout mode: `mosaic` (default) or `vertical` |
+| `--color <color>` | Teammate pane border color |
+| `--plan-mode` | Start teammate in plan mode |
+| `--permission-mode <mode>` | Permission mode (e.g., `acceptEdits`) |
+| `--extra-args <args...>` | Extra CLI args forwarded to the provider |
+| `--cwd <path>` | Working directory for the agent |
+| `--session <session>` | Tmux session name to spawn into |
+| `--no-auto-resume` | Disable auto-resume on pane death |
 
 ## `genie resume`
 
@@ -147,7 +155,7 @@ Stopped agent "engineer". Use 'genie resume engineer' to continue.
 List all active agents.
 
 ```bash
-genie ls
+genie ls [--json]
 ```
 
 ```bash Terminal
@@ -187,6 +195,9 @@ Session Summary for engineer (compressed):
 | `--since <n>` | Last N user/assistant exchanges |
 | `--last <n>` | Last N transcript entries |
 | `--type <role>` | Filter by role (user, assistant, tool) |
+| `--after <timestamp>` | Only entries after ISO timestamp |
+| `--raw` | Raw transcript output (no formatting) |
+| `--log-file <path>` | Read from a specific log file |
 | `--json` | JSON output |
 | `--ndjson` | Newline-delimited JSON (pipeable to jq) |
 
@@ -195,8 +206,22 @@ Session Summary for engineer (compressed):
 Read an agent's current transcript or output.
 
 ```bash
-genie read <agent>
+genie read <agent> [options]
 ```
+
+### Options
+
+| Flag | Description |
+|------|-------------|
+| `--from <line>` | Start from line number |
+| `--to <line>` | End at line number |
+| `--range <range>` | Line range (e.g., `10-50`) |
+| `--search <text>` | Search for text in transcript |
+| `--grep <pattern>` | Grep with regex pattern |
+| `-f, --follow` | Follow mode -- stream new output |
+| `--all` | Show full transcript (not truncated) |
+| `-r, --reverse` | Show newest entries first |
+| `--json` | Output as JSON |
 
 ## `genie answer`
 
