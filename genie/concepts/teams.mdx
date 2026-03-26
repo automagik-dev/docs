@@ -175,12 +175,12 @@ Genie bridges both its own team system and Claude Code native teams, so agents c
 
 ## Team State
 
-| File | Location | Purpose |
-|------|----------|---------|
-| Team config | `~/.genie/teams/<name>.json` | Team metadata and member list |
-| Worker registry | `~/.genie/workers.json` | Agent status and tmux sessions |
-| Team chat | `.genie/chat/<team>.jsonl` | Message history |
-| Wish state | `.genie/state/<slug>.json` | Execution progress |
+| State | Location | Purpose |
+|-------|----------|---------|
+| Team config | PostgreSQL `teams` table | Team metadata and member list |
+| Worker registry | PostgreSQL `agents` table | Agent status and tmux sessions |
+| Team chat | PostgreSQL `team_chat` table | Message history |
+| Wish state | PostgreSQL `tasks` + `task_dependencies` | Execution progress |
 
 ## Best Practices
 
