@@ -1,0 +1,116 @@
+---
+title: "Instances"
+description: "Channel connections — WhatsApp, Discord, Telegram, Slack lifecycle, QR pairing, and sync."
+---
+
+# Instances
+
+An **instance** is a connection to a messaging channel — a WhatsApp number, a Discord bot, a Telegram bot, or a Slack workspace. Each instance has its own identity, session state, and message history.
+
+## Supported Channels
+
+| Channel | Adapter | Connection Method |
+|---------|---------|-------------------|
+| WhatsApp | `whatsapp-baileys` | QR code or pairing code |
+| Discord | `discord` | Bot token |
+| Telegram | `telegram` | Bot API token |
+| Slack | `slack` | OAuth / Bot token |
+
+## Instance Lifecycle
+
+```
+created → connecting → connected → disconnected
+                          ↓
+                       restarting
+```
+
+### Creating an Instance
+
+```bash
+omni instances create --channel whatsapp-baileys --name "Support Line"
+```
+
+### Connecting (WhatsApp)
+
+WhatsApp instances require pairing via QR code or pairing code:
+
+```bash
+# QR code — displays in terminal, scan with phone
+omni instances qr <instance-id>
+
+# Pairing code — alternative for headless setups
+omni instances pair <instance-id> --phone +5511999999999
+```
+
+### Managing Connections
+
+```bash
+omni instances connect <id>      # Reconnect a disconnected instance
+omni instances disconnect <id>   # Gracefully disconnect
+omni instances restart <id>      # Restart the connection
+omni instances logout <id>       # Logout and clear session data
+omni instances status <id>       # Check connection status
+omni instances whoami <id>       # Show phone number and identity
+```
+
+## Sync Operations
+
+Sync imports contacts, groups, and message history from the channel:
+
+```bash
+# Start a sync
+omni instances sync <id>
+
+# Check sync job status
+omni instances syncs <id>
+omni instances syncs <id> <job-id>
+```
+
+For history backfill:
+
+```bash
+omni resync --instance <id> --since 30d
+```
+
+## Instance Management
+
+```bash
+# List all instances
+omni instances list
+
+# Get instance details
+omni instances get <id>
+
+# Update instance settings
+omni instances update <id> --name "New Name"
+
+# Delete an instance
+omni instances delete <id>
+```
+
+## WhatsApp-Specific Features
+
+```bash
+# Contacts and groups
+omni instances contacts <id>
+omni instances groups <id>
+
+# Profile management
+omni instances update-bio <id> "New status message"
+omni instances update-picture <id> --file ./avatar.jpg
+omni instances remove-picture <id>
+
+# Group management
+omni instances group-create <id> --name "Team Chat" --participants +5511...
+omni instances group-invite <id> <group-jid>
+omni instances group-revoke-invite <id> <group-jid>
+
+# Privacy and blocking
+omni instances privacy <id>
+omni instances block <id> <contact-id>
+omni instances unblock <id> <contact-id>
+omni instances blocklist <id>
+
+# Check if a number is on WhatsApp
+omni instances check <id> +5511999999999
+```

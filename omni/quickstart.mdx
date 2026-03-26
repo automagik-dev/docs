@@ -1,0 +1,113 @@
+---
+title: "Quickstart"
+sidebarTitle: "Quickstart"
+description: "From zero to your first message in 5 minutes — install, connect, send."
+---
+
+# Quickstart
+
+Connect a channel and send your first message in under 5 minutes.
+
+<Steps>
+  <Step title="Install Omni">
+    Run the install script or use the interactive wizard:
+
+    ```bash
+    curl -fsSL https://raw.githubusercontent.com/automagik-dev/omni/main/install.sh | bash
+    ```
+
+    Or if you already have the repo:
+
+    ```bash
+    omni install
+    ```
+
+    Verify the installation:
+
+    ```bash
+    omni status
+    ```
+  </Step>
+
+  <Step title="Connect a Channel">
+    Create a WhatsApp instance and pair it:
+
+    ```bash
+    # Create the instance
+    omni instances create --channel whatsapp-baileys --name "My WhatsApp"
+
+    # Get the QR code — scan with WhatsApp on your phone
+    omni instances qr <instance-id>
+
+    # Or use a pairing code instead
+    omni instances pair <instance-id> --phone +5511999999999
+    ```
+
+    Check the connection:
+
+    ```bash
+    omni instances status <instance-id>
+    ```
+  </Step>
+
+  <Step title="Send Your First Message">
+    ```bash
+    # Send a text message
+    omni send --to +5511999999999 --text "Hello from Omni!"
+
+    # Send an image with caption
+    omni send --to +5511999999999 --media ./photo.jpg --caption "Check this out"
+
+    # Send a voice note via TTS
+    omni send --to +5511999999999 --tts "Hello, this is a voice message!"
+    ```
+  </Step>
+
+  <Step title="Explore Your Messages">
+    ```bash
+    # List recent chats
+    omni chats list
+
+    # Read messages in a chat
+    omni chats messages <chat-id>
+
+    # Search across all messages
+    omni messages search "hello"
+
+    # Check recent events
+    omni events list --limit 10
+    ```
+  </Step>
+
+  <Step title="Connect an AI Agent (Optional)">
+    Route incoming messages to an AI agent:
+
+    ```bash
+    # Create a provider (e.g., Genie)
+    omni providers create --name "Genie" --type genie
+
+    # Create an agent
+    omni agents create --name "My Agent" --provider <provider-id>
+
+    # Create a route — all messages from this instance go to the agent
+    omni routes create --instance <instance-id> --agent <agent-id>
+    ```
+  </Step>
+</Steps>
+
+## What's Next
+
+<CardGroup cols={2}>
+  <Card title="Instances" icon="server" href="/omni/concepts/instances">
+    Learn about channel connections, lifecycle, and sync.
+  </Card>
+  <Card title="Agent Routing" icon="robot" href="/omni/concepts/agents">
+    Configure AI agents and routing rules.
+  </Card>
+  <Card title="Automations" icon="bolt" href="/omni/cli/management">
+    Set up event-driven workflows.
+  </Card>
+  <Card title="CLI Reference" icon="terminal" href="/omni/cli/messaging">
+    Full command reference.
+  </Card>
+</CardGroup>

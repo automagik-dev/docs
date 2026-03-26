@@ -1,0 +1,103 @@
+---
+title: "AI Agent Integration"
+description: "Bind AI agents to channels with providers, routing rules, and reply filters."
+---
+
+# AI Agent Integration
+
+Omni routes incoming messages to AI agents. You define **providers** (the AI backend), create **agents** (the entity that receives messages), and configure **routes** (which agent handles which conversations).
+
+## Concepts
+
+| Concept | What It Is |
+|---------|-----------|
+| **Provider** | An AI backend — Genie, Claude Code, A2A, Agno, webhook, etc. |
+| **Agent** | An entity bound to a provider that processes messages |
+| **Route** | A rule that sends messages from a specific instance/chat/user to an agent |
+
+## Providers
+
+Providers are the AI backends that power agents.
+
+```bash
+# List providers
+omni providers list
+
+# Create a Genie provider
+omni providers create --name "Genie" --type genie
+
+# Create a Claude Code provider
+omni providers create --name "Claude" --type claude-code
+
+# Test provider health
+omni providers test <provider-id>
+
+# Interactive setup wizard
+omni providers setup
+```
+
+Supported provider types: `genie`, `claude-code`, `a2a`, `ag-ui`, `agno`, `openclaw`, `webhook`.
+
+## Agents
+
+Agents are the entities that receive and process messages.
+
+```bash
+# List all agents
+omni agents list
+
+# Create an agent
+omni agents create --name "Support Bot" --provider <provider-id>
+
+# Get agent details
+omni agents get <agent-id>
+
+# Delete an agent (soft-delete, sets inactive)
+omni agents delete <agent-id>
+```
+
+## Routes
+
+Routes determine which agent handles messages from which source. Routes can be scoped to an instance, a specific chat, or a specific user.
+
+```bash
+# List routes for an instance
+omni routes list --instance <instance-id>
+
+# Create a route — all messages from this instance go to this agent
+omni routes create --instance <instance-id> --agent <agent-id>
+
+# Create a per-chat route override
+omni routes create --instance <instance-id> --chat <chat-id> --agent <agent-id>
+
+# Create a per-user route override
+omni routes create --instance <instance-id> --person <person-id> --agent <agent-id>
+
+# Test route resolution
+omni routes test --instance <instance-id> --chat <chat-id> --person <person-id>
+
+# View route cache metrics
+omni routes metrics
+
+# Update or delete routes
+omni routes update <route-id> --agent <new-agent-id>
+omni routes delete <route-id>
+```
+
+### Route Resolution Order
+
+When a message arrives, Omni resolves the handler in this order:
+
+1. **Per-user route** — if a route exists for this specific person, use it
+2. **Per-chat route** — if a route exists for this specific chat, use it
+3. **Per-instance route** — fallback to the instance-level default agent
+
+## API Keys
+
+Manage API keys for authenticating with the Omni API:
+
+```bash
+omni keys create --name "Production"
+omni keys list
+omni keys revoke <key-id>
+```
