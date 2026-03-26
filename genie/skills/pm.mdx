@@ -1,0 +1,138 @@
+---
+title: "/pm"
+description: "Full PM playbook — triage backlog, prioritize, assign, track, report, escalate. Copilot, autopilot, or pair modes."
+---
+
+# /pm — Project Management Playbook
+
+Teach any agent to manage the full software development lifecycle: triage backlog, prioritize, assign, track, report, and escalate. Operates in three modes depending on who is making decisions.
+
+## When to Use
+
+- Agent needs to manage a backlog of tasks across stages
+- Work requires coordination across multiple agents or teams
+- User wants structured project management with clear stages
+- User asks about task tracking, status, or project health
+- `/genie` routes here for project management questions
+
+## Three Modes
+
+### Copilot Mode (PM + Human)
+
+The PM suggests, the human decides. Use when a human is actively participating.
+
+| PM Does | Human Does |
+|---------|------------|
+| Triage and prioritize backlog | Approve priorities |
+| Suggest assignments | Confirm assignments |
+| Monitor progress and surface blockers | Make scope decisions |
+| Prepare status reports | Review and distribute reports |
+| Recommend escalations | Authorize escalations |
+
+### Autopilot Mode (PM + Decision-Maker)
+
+The PM spawns a decision-maker agent that emulates human judgment. Use for fully autonomous operation.
+
+```bash
+genie spawn decision-maker
+```
+
+The decision-maker receives a persona prompt that defines its judgment style. The PM orchestrates, the persona approves.
+
+### Pair Mode (PM + Specialist)
+
+The PM pairs with a specialist agent for focused work.
+
+| Pair With | When |
+|-----------|------|
+| Brainstormer | Ideas need exploring before scoping |
+| Architect (council) | Major design decisions needed |
+| Reviewer | Quality gate needs PM context |
+| QA | Test strategy needs PM input |
+
+## Stage-to-Skill Mapping
+
+Tasks flow through stages defined by the board template. For the default `software` type:
+
+| Stage | Skill / Action | What Happens |
+|-------|---------------|--------------|
+| **draft** | Triage | PM reviews, sets priority, assigns owner |
+| **brainstorm** | `/brainstorm` | Explore idea, track readiness, crystallize design |
+| **wish** | `/wish` | Convert design into executable wish with groups |
+| **build** | `/work` | Dispatch engineers per execution group |
+| **review** | `/review` | Validate against acceptance criteria |
+| **qa** | QA agent | Write tests, run suite, verify criteria on dev |
+| **ship** | PR + merge | Create PR to dev, human merges to main |
+
+### Moving Tasks Through Stages
+
+```bash
+genie task move #42 --to brainstorm --comment "Ready for exploration"
+genie task move #42 --to wish --comment "Design crystallized"
+genie task move #42 --to build --comment "Wish approved, dispatching"
+genie task move #42 --to review --comment "Implementation complete"
+genie task move #42 --to qa --comment "Review passed"
+genie task move #42 --to ship --comment "QA passed, creating PR"
+```
+
+## Agent Routing
+
+The PM knows when to spawn which specialist:
+
+| Condition | Spawn | Notes |
+|-----------|-------|-------|
+| Wish includes docs deliverables | `docs` | In addition to engineer (parallel) |
+| Wish involves restructuring | `refactor` | Instead of engineer for that group |
+| Failure with unknown root cause | `trace` | Before fix (trace diagnoses, fix applies) |
+| Review returns FIX-FIRST | `fix` | Standard fix loop (max 2 iterations) |
+| Complex decision with tradeoffs | `council` | Advisory before proceeding |
+| Quality gate after merge | `qa` | Validates acceptance criteria |
+
+## Board Management
+
+```bash
+# Create a project with the software template
+genie project create "My Project" --type software
+
+# View tasks in kanban layout
+genie task list --by-column
+
+# Check project health
+genie project show "My Project"
+```
+
+## Status Reporting
+
+```bash
+# Quick status
+genie events summary --today
+genie sessions list
+genie metrics now
+
+# Detailed status
+genie events costs --today --by-agent
+genie events tools --today
+genie metrics history --days 7
+```
+
+## Authority Boundaries
+
+| Action | Authority |
+|--------|-----------|
+| Create/assign/move tasks | Autonomous |
+| Spawn engineer/reviewer/qa/fix | Autonomous |
+| Create PR targeting `dev` | Autonomous |
+| Merge PR to `dev` (CI green + SHIP) | Autonomous |
+| Merge PR to `main`/`master` | **Human only** |
+| Client communication | **Human only** |
+| Budget/spending decisions | **Human only** |
+| Scope changes | Human approval required |
+
+## Rules
+
+- Never write code — delegate all implementation to engineers
+- Never merge to main/master — only humans do that
+- Never skip QA — every wish gets validated before shipping
+- Never hide blockers — report early and transparently
+- Never create speculative tasks — only track real, concrete work
+- Escalate within 15 minutes if blocked

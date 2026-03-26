@@ -50,10 +50,12 @@ Genie v4 is an agent orchestration system that turns wishes (structured plans) i
 | Subsystem | Module | Purpose |
 |-----------|--------|---------|
 | **State** | `wish-state.ts`, `agent-registry.ts`, `mailbox.ts`, `team-manager.ts` | Track wish execution groups, worker lifecycle, message delivery, team configs |
-| **Postgres** | `db.ts`, `db-migrations.ts`, `task-service.ts` | Embedded pgserve database for tasks, schedules, conversations, audit events |
+| **Postgres** | `db.ts`, `db-migrations.ts`, `task-service.ts` | Embedded pgserve database — 10 migrations, tasks, boards, projects, agents, sessions, app registry |
 | **Messaging** | `nats-client.ts`, `protocol-router.ts`, `claude-native-teams.ts` | Real-time pub/sub, provider-agnostic routing, Claude Code native IPC bridge |
 | **Scheduler** | `scheduler-daemon.ts`, `cron.ts` | Cron-based trigger firing, lease-based claiming, heartbeat collection |
 | **Transcripts** | `transcript.ts`, `claude-logs.ts`, `codex-logs.ts` | Provider-agnostic log reading from Claude Code and Codex sessions |
+| **Observability** | `audit_events`, `sessions`, `session_content` | OTel-structured event logging — costs, tokens, tool usage, errors. Session replay and search. |
+| **Boards** | `boards`, `board_templates` | Kanban-style pipelines with configurable columns, gates, and action skills |
 
 ## Data Flow: Wish to PR
 

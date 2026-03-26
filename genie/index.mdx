@@ -74,17 +74,17 @@ Your agents are interchangeable. Switch mid-project, mix on a team, or write you
   See the [Hacks page](/genie/hacks) for community patterns on provider switching, cost optimization, and BYOA configurations.
 </Tip>
 
-## 8 things Genie actually does
+## What Genie actually does
 
 | Capability | The Point | Why It Matters |
 |------------|-----------|----------------|
 | **Wishes** | Structured plans — scope, criteria, execution groups | You describe it once. Agents figure out the rest. |
-| **Skills** | 14 slash commands — composable prompt programs | `/brainstorm` through `/dream`. Each one encodes a workflow we got tired of repeating. |
+| **Skills** | 14+ slash commands — composable prompt programs | `/brainstorm` through `/dream`, plus `/pm` for project management. |
 | **Teams** | Multi-agent squads with shared state | Isolated worktrees per team. Zero conflicts during dev. |
-| **Agents** | tmux-based workers with identity and heartbeats | They crash, they restart, they suspend when idle. Like good employees. |
+| **PostgreSQL Backend** | Embedded database for all state | Tasks, boards, agents, sessions, audit events — all in PG, not JSON files. |
+| **Boards & Pipelines** | Kanban-style task management | Configurable columns with gates and action skills. Project-scoped. |
+| **Observability** | OTel-structured event logging | Cost breakdown, tool analytics, session replay, error patterns — all from the CLI. |
 | **BYOA** | Provider-agnostic orchestration | Claude, Codex, Open Claw, your custom thing. We don't care. |
-| **Worktrees** | Git worktree isolation per team | Parallel branches, automatic cleanup, shared state. |
-| **Messaging** | Cross-agent communication | Agents talk to agents. You stop being the clipboard. |
 | **Hooks** | Event-driven automation on every tool call | Auto-spawn, identity injection, NATS. Things happen when things happen. |
 
 ## How it works

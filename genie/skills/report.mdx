@@ -71,6 +71,18 @@ Each phase is independent — failure in one never blocks the others:
 | No `gh` auth | Print report to stdout |
 | `/trace` fails | Continue with available evidence |
 
+## Task Lifecycle Integration
+
+When invoked during the QA loop, `/report` links findings to wish acceptance criteria and logs them to task comments:
+
+| Event | Command |
+|-------|---------|
+| Investigation start | `genie task comment #<seq> "Report: investigating [bug summary]"` |
+| QA criterion failure | `genie task comment #<seq> "QA FAIL: criterion '<text>' — [reason]"` |
+| Issue created | `genie task comment #<seq> "Filed: gh#<number> — [title]"` |
+
+The auto-invocation chain for QA failures: `QA failure → /report → /trace → /fix → retest`.
+
 ## Rules
 
 - Always run `/trace` first — it's the backbone of every report

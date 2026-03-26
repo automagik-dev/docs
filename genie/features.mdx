@@ -13,13 +13,19 @@ Genie isn't one big feature — it's eight small ones that compose into somethin
     Define what to build once — scope, acceptance criteria, execution groups — and never re-explain it to another agent.
   </Card>
   <Card title="Pipeline — Brainstorm to Ship" icon="arrows-spin" href="/genie/skills/work">
-    Five stages from vague idea to merged PR: brainstorm, wish, work, review, ship. Each stage has a skill. No detours.
+    Seven stages from vague idea to merged PR: draft, brainstorm, wish, build, review, qa, ship. Each stage has a skill and a gate.
   </Card>
   <Card title="Team Orchestration" icon="users-gear" href="/genie/concepts/teams">
     Multi-agent squads with isolated worktrees, shared state, and dependency-aware scheduling. Parallel execution without merge conflicts.
   </Card>
-  <Card title="Persistent State" icon="database" href="/genie/architecture/state">
-    Wish progress, worker registry, team configs, and mailboxes — tracked across sessions, worktrees, and agent restarts.
+  <Card title="PostgreSQL Backend" icon="database" href="/genie/architecture/postgres">
+    Embedded pgserve database with 10 migrations — tasks, boards, agents, sessions, audit events, and app registry. All state in PG, not JSON files.
+  </Card>
+  <Card title="Board & Pipeline System" icon="columns-3" href="/genie/cli/boards">
+    Kanban-style boards with configurable columns, gate types, and action skills. Project-scoped pipelines that drive the task lifecycle.
+  </Card>
+  <Card title="OTel Observability" icon="chart-mixed" href="/genie/cli/observability">
+    Full event audit log, cost breakdown by agent/model/wish, tool usage analytics, session replay, and machine metrics. All queryable from the CLI.
   </Card>
   <Card title="Real-time Coordination" icon="tower-broadcast" href="/genie/architecture/messaging">
     Cross-agent messaging so agents know what each other are doing. Durable mailboxes, team chat, and tmux pane injection.
@@ -27,11 +33,17 @@ Genie isn't one big feature — it's eight small ones that compose into somethin
   <Card title="Context Preservation" icon="brain" href="/genie/architecture/transcripts">
     Provider-agnostic transcript capture across Claude and Codex. Session history survives crashes, suspends, and provider switches.
   </Card>
-  <Card title="14 Skills" icon="wand-magic-sparkles" href="/genie/concepts/skills">
-    Composable slash commands — from `/brainstorm` through `/dream`. Each one encodes a workflow we got tired of repeating manually.
+  <Card title="14 Skills + /pm" icon="wand-magic-sparkles" href="/genie/concepts/skills">
+    Composable slash commands — from `/brainstorm` through `/dream`, plus a full `/pm` playbook. Each one encodes a workflow we got tired of repeating manually.
+  </Card>
+  <Card title="Item Registry" icon="store" href="/genie/architecture/postgres">
+    Unified app store for agents, skills, boards, workflows, stacks, templates, and hooks. Install, version, and manage ecosystem items.
   </Card>
   <Card title="Provider Agnosticism — BYOA" icon="plug" href="/genie/concepts/byoa">
     Claude, Codex, Open Claw, or your custom agent. Mix providers on the same team. Genie cares that the work ships — not who does it.
+  </Card>
+  <Card title="Notification System" icon="bell" href="/genie/architecture/postgres">
+    Per-actor notification preferences across WhatsApp, Slack, email, and more. PostgreSQL LISTEN/NOTIFY for real-time event streaming.
   </Card>
 </CardGroup>
 

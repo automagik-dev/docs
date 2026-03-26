@@ -45,6 +45,19 @@ genie spawn tracer
 
 The tracer uses only read-only tools: Read, Bash, Glob, Grep. No Write, no Edit.
 
+## Task Lifecycle Integration
+
+When a PG task exists for the work being investigated, findings are logged as task comments:
+
+| Event | Command |
+|-------|---------|
+| Investigation start | `genie task comment #<seq> "Trace: investigating — [symptom summary]"` |
+| Root cause found | `genie task comment #<seq> "Root cause: [summary] — [file:line]"` |
+| Multiple causes | `genie task comment #<seq> "Root causes: [count] identified — see trace report"` |
+| Investigation failed | `genie task comment #<seq> "Trace: could not determine root cause — [reason]"` |
+
+File paths and line numbers are included in every root cause comment so task history is actionable without reading the full report. Task integration is graceful — if no PG task exists, logging is skipped.
+
 ## Rules
 
 - Never fix during trace — investigation only, always separate from correction

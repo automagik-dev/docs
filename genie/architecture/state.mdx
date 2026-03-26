@@ -1,11 +1,11 @@
 ---
 title: "State Management"
-description: "Wish state machine, worker registry, teams, mailbox, and team chat"
+description: "Wish state machine, worker registry, teams, mailbox, team chat, boards, and projects"
 ---
 
 # State Management
 
-Genie tracks state across multiple systems — wishes in Postgres, workers in a global JSON file, messages in per-repo mailboxes, and team configs in global JSON files. Each system is designed for its specific concurrency and durability requirements.
+Genie tracks state primarily in PostgreSQL via the embedded pgserve database. Wishes, tasks, boards, projects, agents, teams, mailboxes, and team chat all live in PG tables. Legacy JSON file state has been replaced by database-backed equivalents.
 
 ## Wish State Machine
 
@@ -45,9 +45,30 @@ const GroupStateSchema = z.object({
 
 The wish state machine stores state in the PG `tasks` + `task_dependencies` tables. PG handles concurrency natively — no file locks are needed for wish state.
 
+## Board State
+
+Boards provide project-scoped kanban pipelines. Each board has ordered columns with gate types and action skills:
+
+| Table | Purpose |
+|-------|---------|
+| `boards` | Board definitions with project scope |
+| `board_templates` | Reusable pipeline blueprints |
+
+Tasks are assigned to board columns via `column_id`. Use `genie board reconcile` to fix orphaned column references after pipeline changes.
+
+## Project State
+
+Projects group boards and tasks into named scopes:
+
+| Table | Purpose |
+|-------|---------|
+| `projects` | Named task boards for multi-repo organization |
+
+Tasks scope to projects via `project_id`. When running `genie task list` inside a repo, it auto-scopes to that repo's project.
+
 ## Worker Registry
 
-Every spawned agent is tracked in a global registry at `~/.genie/workers.json`. The registry stores provider metadata, transport info, and lifecycle state.
+Every spawned agent is tracked in the PostgreSQL `agents` table. The registry stores provider metadata, transport info, and lifecycle state.
 
 ### Agent States
 
@@ -94,11 +115,11 @@ interface Agent {
 }
 ```
 
-The registry uses file locking (`acquireLock()`) to prevent concurrent write corruption from multiple CLI invocations.
+PostgreSQL handles concurrency natively — no file locks needed.
 
 ## Team Management
 
-Teams are stored as JSON files in `~/.genie/teams/<safe-name>.json`. Each team owns an isolated clone of the repository.
+Teams are stored in the PostgreSQL `teams` table. Each team owns an isolated clone of the repository.
 
 ### Team Lifecycle
 
@@ -127,7 +148,7 @@ interface TeamConfig {
 
 ## Mailbox
 
-Messages persist to `.genie/mailbox/<worker-id>.json` before any push delivery attempt. This ensures durability — even if tmux delivery fails, the message is stored on disk.
+Messages persist to the PostgreSQL `mailbox` table before any push delivery attempt. This ensures durability — even if tmux delivery fails, the message is stored in the database.
 
 ### Message Format
 
@@ -146,12 +167,12 @@ interface MailboxMessage {
 Delivery is state-aware: messages are queued and pushed to tmux panes only when the worker is idle (not mid-turn). A sent message log is also kept in an append-only JSONL outbox file.
 
 <Warning>
-Mailbox delivery is best-effort. Messages are persisted to disk (durable), but tmux pane injection is not retried. If a pane dies, the message stays with `deliveredAt: null` forever.
+Mailbox delivery is best-effort. Messages are persisted to PostgreSQL (durable), but tmux pane injection is not retried. If a pane dies, the message stays with `deliveredAt: null`.
 </Warning>
 
 ## Team Chat
 
-Each team has a JSONL-based group channel at `<repoPath>/.genie/chat/<team-name>.jsonl`. Messages are appended as newline-delimited JSON for efficient append-only writes.
+Each team has a group chat stored in the PostgreSQL `team_chat` table.
 
 ```typescript
 interface ChatMessage {
@@ -162,4 +183,4 @@ interface ChatMessage {
 }
 ```
 
-Team chat is per-worktree — different worktrees for the same team maintain separate chat histories.
+Team chat is scoped per team — each team maintains its own chat history in the database.
