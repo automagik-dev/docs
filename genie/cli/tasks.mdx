@@ -1,0 +1,226 @@
+---
+title: "Tasks"
+description: "Task lifecycle management — create, list, move, assign, block, and track work items"
+---
+
+# Task Commands
+
+The `genie task` command group manages the full task lifecycle — from creation through stage transitions to completion. Tasks are stored in PostgreSQL and support priorities, dependencies, blocking, tagging, and execution locking.
+
+## `genie task create`
+
+Create a new task.
+
+```bash
+genie task create <title> [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--type <type>` | Task type (default: `software`) |
+| `--priority <priority>` | Priority: `urgent`, `high`, `normal`, `low` (default: `normal`) |
+| `--due <date>` | Due date (`YYYY-MM-DD`) |
+| `--start <date>` | Start date (`YYYY-MM-DD`) |
+| `--tags <tags>` | Comma-separated tag IDs |
+| `--parent <id>` | Parent task ID or `#seq` |
+| `--assign <name>` | Assign to local actor |
+| `--description <text>` | Task description |
+| `--effort <effort>` | Estimated effort (e.g., `2h`, `3 points`) |
+| `--comment <msg>` | Initial comment on the task |
+| `--project <name>` | Create task in a specific project (overrides CWD) |
+| `--board <name>` | Board name to assign task to |
+
+```bash
+genie task create "Implement auth middleware" --type software --priority high
+genie task create "Write API docs" --parent #42 --assign docs-agent
+```
+
+## `genie task list`
+
+List tasks with filters.
+
+```bash
+genie task list [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--stage <stage>` | Filter by stage |
+| `--type <type>` | Filter by type |
+| `--status <status>` | Filter by status |
+| `--priority <priority>` | Filter by priority |
+| `--release <release>` | Filter by release |
+| `--due-before <date>` | Filter by due date |
+| `--mine` | Show only tasks assigned to me |
+| `--project <name>` | Show tasks for a specific project |
+| `--board <name>` | Filter by board name |
+| `--by-column` | Group tasks by board column (kanban view) |
+| `--include-done` | Include done tasks in kanban view (hidden by default) |
+| `--all` | Show tasks from ALL projects |
+| `--json` | Output as JSON |
+
+```bash
+genie task list --stage build --priority high
+genie task list --mine --by-column
+genie task list --all --json
+```
+
+## `genie task show`
+
+Show task detail. Accepts task UUID or `#seq` shorthand.
+
+```bash
+genie task show <id> [--json]
+```
+
+## `genie task move`
+
+Move a task to a new stage in its pipeline.
+
+```bash
+genie task move <id> --to <stage> [--comment <msg>]
+```
+
+Stages follow the task type's pipeline. For the default `software` type:
+
+```
+draft → brainstorm → wish → build → review → qa → ship
+```
+
+```bash
+genie task move #42 --to build --comment "Wish approved, dispatching engineers"
+genie task move #42 --to review --comment "Implementation complete"
+```
+
+## `genie task assign`
+
+Assign an actor to a task.
+
+```bash
+genie task assign <id> --to <name> [--role <role>] [--comment <msg>]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--to <name>` | Actor name |
+| `--role <role>` | Actor role (default: `assignee`) |
+| `--comment <msg>` | Comment on the assignment |
+
+## `genie task tag`
+
+Add tags to a task.
+
+```bash
+genie task tag <id> <tags...>
+```
+
+## `genie task comment`
+
+Add a comment to a task. Comments are used by skills to log progress, trace findings, and fix attempts.
+
+```bash
+genie task comment <id> <message> [--reply-to <msgId>]
+```
+
+```bash
+genie task comment #42 "Building group 1..."
+genie task comment #42 "Root cause: missing null check in auth.ts:142"
+```
+
+## `genie task block`
+
+Mark a task as blocked with a reason.
+
+```bash
+genie task block <id> --reason <reason> [--comment <msg>]
+```
+
+```bash
+genie task block #42 --reason "Waiting for API spec from design team"
+genie task block #42 --reason "Fix loop exceeded (2/2)"
+```
+
+## `genie task unblock`
+
+Unblock a task.
+
+```bash
+genie task unblock <id> [--comment <msg>]
+```
+
+## `genie task done`
+
+Mark a task as done. This sets the task status to `done` — it does not move the task to a stage.
+
+```bash
+genie task done <id> [--comment <msg>]
+```
+
+<Warning>
+`genie task done` is a **status change**, not a stage move. It is separate from `genie task move --to ship`. Use `done` when the task is fully complete. Use `move` to advance through pipeline stages.
+</Warning>
+
+```bash
+genie task done #42 --comment "PR #123 merged to dev"
+```
+
+## `genie task checkout`
+
+Atomically claim a task for execution. Prevents two agents from working on the same task simultaneously.
+
+```bash
+genie task checkout <id>
+```
+
+The lock is stored as `checkout_run_id` on the task with an `execution_locked_at` timestamp. Locks expire after 10 minutes by default.
+
+## `genie task release`
+
+Release a task checkout claim after work is complete.
+
+```bash
+genie task release <id>
+```
+
+## `genie task unlock`
+
+Force-release a stale checkout. Admin override for when a lock wasn't properly released (e.g., crashed agent).
+
+```bash
+genie task unlock <id>
+```
+
+## `genie task dep`
+
+Manage task dependencies. Supports three relationship types.
+
+```bash
+genie task dep <id> [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--depends-on <id2>` | This task depends on `id2` |
+| `--blocks <id2>` | This task blocks `id2` |
+| `--relates-to <id2>` | This task relates to `id2` |
+| `--remove <id2>` | Remove dependency on `id2` |
+
+```bash
+genie task dep #42 --depends-on #41
+genie task dep #42 --blocks #43
+genie task dep #42 --remove #41
+```
+
+## Task ID Formats
+
+Tasks can be referenced by UUID or sequence number:
+
+| Format | Scope | Example |
+|--------|-------|---------|
+| UUID | Global | `task-6c3a2cf2` |
+| `#seq` | Current repo | `#42` |
+| `project#seq` | Display only | `my-project#42` |
+
+<Note>
+The `#seq` shorthand resolves based on the current working directory's repo. For cross-worktree operations, always use the full UUID.
+</Note>

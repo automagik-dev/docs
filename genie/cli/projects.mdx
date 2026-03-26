@@ -1,0 +1,66 @@
+---
+title: "Projects"
+description: "Project management — named task boards for multi-repo organization"
+---
+
+# Project Commands
+
+The `genie project` command group manages named projects for organizing tasks across repos. Projects scope boards and tasks, and provide aggregate stats.
+
+## `genie project list`
+
+List all projects.
+
+```bash
+genie project list [--json]
+```
+
+## `genie project create`
+
+Create a new project.
+
+```bash
+genie project create <name> [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--virtual` | Create a virtual project (not tied to a repo) |
+| `--repo <path>` | Repo path for the project |
+| `--description <text>` | Project description |
+
+```bash
+genie project create "Auth Refactor" --repo ~/projects/api
+genie project create "Cross-team Initiative" --virtual
+```
+
+## `genie project show`
+
+Show project detail with task stats — counts by stage, priority, and status.
+
+```bash
+genie project show <name> [--json]
+```
+
+## `genie project set-default`
+
+Set the default project for when you're outside any repo directory.
+
+```bash
+genie project set-default <name>
+```
+
+## Project Scoping
+
+Projects scope tasks and boards. When you run `genie task list` inside a repo, it automatically scopes to that repo's project. Use `--all` to see tasks across all projects:
+
+```bash
+# Tasks for current repo's project
+genie task list
+
+# Tasks across all projects
+genie task list --all
+
+# Tasks for a specific project
+genie task list --project "Auth Refactor"
+```

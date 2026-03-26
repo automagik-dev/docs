@@ -1,0 +1,250 @@
+---
+title: "Observability"
+description: "Events, sessions, metrics, schedules, and QA — monitor everything happening in your Genie system"
+---
+
+# Observability Commands
+
+Genie provides five command groups for observability: `events` for the audit log, `sessions` for Claude Code session history, `metrics` for machine state, `schedule` for cron triggers, and `qa` for self-testing.
+
+## Events
+
+The `genie events` command group queries the PostgreSQL audit event log. Events are structured as OTel-compatible records covering API costs, tool usage, task transitions, and errors.
+
+### `genie events list`
+
+List recent audit events.
+
+```bash
+genie events list [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--type <type>` | Filter by event type |
+| `--entity <entity>` | Filter by entity type or entity ID |
+| `--since <duration>` | Time window, e.g., `1h`, `30m`, `2d` (default: `1h`) |
+| `--errors-only` | Show only error events |
+| `--limit <n>` | Max rows (default: `50`) |
+| `--json` | Output as JSON |
+
+### `genie events errors`
+
+Show aggregated error patterns.
+
+```bash
+genie events errors [--since <duration>] [--json]
+```
+
+### `genie events costs`
+
+Cost breakdown from OTel API request events.
+
+```bash
+genie events costs [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--today` | Show costs from the last 24h |
+| `--since <duration>` | Time window (default: `24h`) |
+| `--by-agent` | Group by agent |
+| `--by-wish` | Group by wish |
+| `--by-model` | Group by model |
+| `--json` | Output as JSON |
+
+```bash
+genie events costs --today --by-agent
+genie events costs --since 7d --by-model
+```
+
+### `genie events tools`
+
+Tool usage analytics from OTel tool events.
+
+```bash
+genie events tools [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--since <duration>` | Time window (default: `24h`) |
+| `--by-tool` | Group by tool name (default) |
+| `--by-agent` | Group by agent |
+| `--json` | Output as JSON |
+
+### `genie events timeline`
+
+Full event timeline for a task, agent, wish, or trace ID. Shows all events associated with a specific entity in chronological order.
+
+```bash
+genie events timeline <entity-id> [--json]
+```
+
+```bash
+genie events timeline task-6c3a2cf2
+genie events timeline engineer-1
+```
+
+### `genie events summary`
+
+High-level stats: agents spawned, tasks moved, costs, errors.
+
+```bash
+genie events summary [--today] [--since <duration>] [--json]
+```
+
+---
+
+## Sessions
+
+The `genie sessions` command group provides history and search across Claude Code sessions. Session metadata and content are stored in PostgreSQL.
+
+### `genie sessions list`
+
+List Claude Code sessions.
+
+```bash
+genie sessions list [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--active` | Show only active sessions |
+| `--orphaned` | Show only orphaned sessions |
+| `--agent <name>` | Filter by agent |
+| `--json` | Output as JSON |
+
+### `genie sessions replay`
+
+Replay a session — interleaves content and events in chronological order.
+
+```bash
+genie sessions replay <session-id> [--json]
+```
+
+### `genie sessions search`
+
+Full-text search across session content.
+
+```bash
+genie sessions search <query> [--limit <n>] [--json]
+```
+
+### `genie sessions ingest`
+
+Manual batch import of JSONL session files.
+
+```bash
+genie sessions ingest [--backfill]
+```
+
+The `--backfill` flag imports all existing JSONL files that haven't been ingested yet.
+
+---
+
+## Metrics
+
+The `genie metrics` command group provides machine-level state snapshots and agent heartbeat data.
+
+### `genie metrics now`
+
+Current machine state — CPU, memory, active workers, teams.
+
+```bash
+genie metrics now [--json]
+```
+
+### `genie metrics history`
+
+Machine snapshot history over time.
+
+```bash
+genie metrics history [--since <duration>] [--json]
+```
+
+Default time window is `1h`. Supports durations like `6h`, `1d`.
+
+### `genie metrics agents`
+
+Per-agent heartbeat summary — shows each agent's last heartbeat, state, and uptime.
+
+```bash
+genie metrics agents [--json]
+```
+
+---
+
+## Schedule
+
+The `genie schedule` command group manages cron-based scheduled triggers.
+
+### `genie schedule create`
+
+Create a new schedule.
+
+```bash
+genie schedule create <name> [options]
+```
+
+### `genie schedule list`
+
+List schedules with next due trigger.
+
+```bash
+genie schedule list [options]
+```
+
+### `genie schedule cancel`
+
+Cancel a schedule and skip pending triggers.
+
+```bash
+genie schedule cancel <name> [options]
+```
+
+### `genie schedule retry`
+
+Reset a failed trigger to pending.
+
+```bash
+genie schedule retry <name>
+```
+
+### `genie schedule history`
+
+Show past executions for a schedule.
+
+```bash
+genie schedule history <name> [options]
+```
+
+---
+
+## QA
+
+The `genie qa` command group runs self-testing specs against the Genie CLI itself.
+
+### `genie qa run`
+
+Run QA specs — all, a domain, or a single spec.
+
+```bash
+genie qa run [target] [options]
+```
+
+### `genie qa status`
+
+Show QA dashboard with last results per spec.
+
+```bash
+genie qa status [options]
+```
+
+### `genie qa history`
+
+Show recent QA runs.
+
+```bash
+genie qa history
+```
