@@ -135,6 +135,7 @@
               "omni/cli/management",
               "omni/cli/automations",
               "omni/cli/providers",
+              "omni/cli/webhooks",
               "omni/cli/system"
             ]
           },

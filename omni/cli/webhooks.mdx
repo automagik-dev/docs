@@ -1,0 +1,122 @@
+---
+title: "Webhooks"
+description: "Manage webhook event sources — create endpoints, validate headers, and trigger custom events."
+---
+
+# Webhook Commands
+
+The `omni webhooks` command group manages webhook event sources. Webhooks allow external systems to push events into Omni, which can then trigger automations.
+
+## `omni webhooks list`
+
+List all webhook sources.
+
+```bash
+omni webhooks list [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--enabled` | Show only enabled sources |
+| `--disabled` | Show only disabled sources |
+
+```bash
+omni webhooks list
+omni webhooks list --enabled
+```
+
+## `omni webhooks get`
+
+Get full details of a webhook source.
+
+```bash
+omni webhooks get <id>
+```
+
+## `omni webhooks create`
+
+Create a new webhook source.
+
+```bash
+omni webhooks create [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--name <name>` | Webhook source name |
+| `--description <desc>` | Description |
+| `--disabled` | Create in disabled state |
+| `--headers <json>` | Expected headers as JSON (e.g., `'{"X-Secret": true}'`) |
+
+```bash
+# Basic webhook
+omni webhooks create --name "github-events" --description "GitHub push events"
+
+# With header validation
+omni webhooks create \
+  --name "secure-hook" \
+  --headers '{"X-Webhook-Secret": true}'
+
+# Create disabled for setup
+omni webhooks create --name "draft-hook" --disabled
+```
+
+## `omni webhooks update`
+
+Update a webhook source.
+
+```bash
+omni webhooks update <id> [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--name <name>` | New name |
+| `--description <desc>` | New description |
+| `--enable` | Enable the webhook |
+| `--disable` | Disable the webhook |
+
+```bash
+omni webhooks update <id> --name "renamed-hook"
+omni webhooks update <id> --disable
+omni webhooks update <id> --enable
+```
+
+## `omni webhooks delete`
+
+Delete a webhook source.
+
+```bash
+omni webhooks delete <id>
+```
+
+## `omni webhooks trigger`
+
+Trigger a custom event manually. Useful for testing automations or injecting events from scripts.
+
+```bash
+omni webhooks trigger [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--type <type>` | Event type |
+| `--payload <json>` | Event payload as JSON |
+| `--instance <id>` | Instance ID |
+| `--correlation-id <id>` | Correlation ID for tracing |
+
+```bash
+# Trigger a simple event
+omni webhooks trigger --type "order.created" --payload '{"orderId": "123"}'
+
+# Trigger with instance and correlation
+omni webhooks trigger \
+  --type "deploy.completed" \
+  --payload '{"env": "production", "version": "1.2.0"}' \
+  --instance <id> \
+  --correlation-id "deploy-abc"
+```
+
+<Note>
+Triggered events flow through the same pipeline as webhook-received events — they can fire automations that match the event type.
+</Note>
