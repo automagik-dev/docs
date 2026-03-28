@@ -1,0 +1,161 @@
+---
+title: "Releases, Tags & Types"
+description: "Manage releases, custom tags, and task type pipelines"
+---
+
+# Releases, Tags & Types
+
+Three supporting command groups for organizing tasks: `genie release` groups tasks into releases, `genie tag` adds custom labels, and `genie type` defines task pipelines with stage gates.
+
+## Release Commands
+
+### `genie release create`
+
+Create a release and assign tasks to it.
+
+```bash
+genie release create <name> [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--tasks <ids...>` | Task IDs or `#seq` numbers to include |
+
+```bash
+genie release create "v1.0" --tasks #10 #11 #12
+genie release create "sprint-3" --tasks task-6c3a2cf2
+```
+
+### `genie release list`
+
+List all releases.
+
+```bash
+genie release list [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--json` | Output as JSON |
+
+```bash
+genie release list
+genie release list --json
+```
+
+---
+
+## Tag Commands
+
+### `genie tag create`
+
+Create a custom tag for categorizing tasks.
+
+```bash
+genie tag create <name> [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--color <hex>` | Tag color in hex (default: `#9ca3af`) |
+| `--type <typeId>` | Associate with a task type |
+
+```bash
+genie tag create "urgent" --color "#ef4444"
+genie tag create "frontend" --type software --color "#3b82f6"
+```
+
+### `genie tag list`
+
+List all tags.
+
+```bash
+genie tag list [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--type <typeId>` | Filter by task type |
+| `--json` | Output as JSON |
+
+```bash
+genie tag list
+genie tag list --type software --json
+```
+
+---
+
+## Task Type Commands
+
+Task types define the stage pipeline that tasks follow. Each stage has a gate (`human`, `agent`, or `human+agent`) that controls who can advance tasks through it.
+
+### `genie type list`
+
+List all task types.
+
+```bash
+genie type list [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--json` | Output as JSON |
+
+### `genie type show`
+
+Show a task type's detail including its full stage pipeline.
+
+```bash
+genie type show <id> [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--json` | Output as JSON |
+
+```bash
+genie type show software
+genie type show software --json
+```
+
+### `genie type create`
+
+Create a custom task type with a stage pipeline.
+
+```bash
+genie type create <name> [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--stages <json>` | Stages as JSON array |
+| `--description <text>` | Type description |
+| `--icon <icon>` | Type icon |
+
+```bash
+# Create a simple pipeline
+genie type create "bugfix" \
+  --description "Bug fix pipeline" \
+  --stages '[
+    {"name": "triage", "gate": "human"},
+    {"name": "fix", "gate": "agent"},
+    {"name": "verify", "gate": "human+agent"},
+    {"name": "ship", "gate": "human"}
+  ]'
+```
+
+### Stage Gates
+
+| Gate | Who can advance |
+|------|-----------------|
+| `human` | Only humans can move tasks past this stage |
+| `agent` | Agents can advance autonomously |
+| `human+agent` | Either humans or agents can advance |
+
+### Default Pipeline
+
+The built-in `software` type uses this pipeline:
+
+```
+draft → brainstorm → wish → build → review → qa → ship
+```
