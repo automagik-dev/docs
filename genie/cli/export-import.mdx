@@ -1,0 +1,148 @@
+---
+title: "Export & Import"
+description: "Back up and restore Genie data — boards, tasks, agents, schedules, and more"
+---
+
+# Export & Import
+
+The `genie export` and `genie import` commands handle data backup and restore. Export produces JSON snapshots of any data group; import restores them with conflict-resolution strategies.
+
+## `genie export`
+
+Export Genie data as JSON. Each subcommand targets a specific data group.
+
+```bash
+genie export <group> [options]
+```
+
+### Data Groups
+
+| Subcommand | What it exports |
+|------------|-----------------|
+| `all` | Full backup (all present tables) |
+| `boards` | Boards, templates, and task types |
+| `tasks` | Tasks with deps, actors, and stage log |
+| `tags` | Tags |
+| `projects` | Projects |
+| `schedules` | Schedules with run_spec |
+| `agents` | Agents, templates, and checkpoints |
+| `apps` | App store (graceful skip if missing) |
+| `comms` | Conversations, messages, mailbox |
+| `config` | OS config (graceful skip if missing) |
+
+### Common Options
+
+All export subcommands share these options:
+
+| Option | Description |
+|--------|-------------|
+| `--output <file>` | Write to file instead of stdout |
+| `--pretty` | Pretty-print JSON |
+
+### Subcommand-Specific Options
+
+Some subcommands accept additional arguments:
+
+| Subcommand | Extra options |
+|------------|---------------|
+| `boards [name]` | Optional board name to export a single board |
+| `tasks` | `--project <name>` — filter by project name |
+| `schedules [name]` | Optional schedule name to export a single schedule |
+
+### Examples
+
+```bash
+# Full backup to file
+genie export all --output backup.json --pretty
+
+# Export just boards
+genie export boards --pretty
+
+# Export a specific board
+genie export boards my-board --output my-board.json
+
+# Export tasks for one project
+genie export tasks --project my-project --output tasks.json
+
+# Export a specific schedule
+genie export schedules nightly-build --pretty
+
+# Pipe to jq for filtering
+genie export agents | jq '.agents[] | select(.status == "active")'
+```
+
+## `genie import`
+
+Import Genie data from a JSON export file.
+
+```bash
+genie import <file> [options]
+```
+
+### Conflict Resolution
+
+Import supports three conflict-resolution strategies. Exactly one must apply (default is `--fail`):
+
+| Option | Behavior |
+|--------|----------|
+| `--fail` | Abort on any conflict (default) |
+| `--merge` | Skip existing rows, import new ones |
+| `--overwrite` | Replace existing rows with imported data |
+
+### Selective Import
+
+| Option | Description |
+|--------|-------------|
+| `--groups <list>` | Comma-separated groups to import (e.g., `boards,tags`) |
+
+When `--groups` is specified, only the listed data groups are imported from the file. Groups not in the list are skipped even if present in the export.
+
+### Examples
+
+```bash
+# Import with default (fail on conflict)
+genie import backup.json
+
+# Merge — keep existing data, add new rows
+genie import backup.json --merge
+
+# Overwrite — replace existing rows
+genie import backup.json --overwrite
+
+# Import only boards and tags from a full backup
+genie import backup.json --merge --groups boards,tags
+```
+
+## Workflows
+
+### Full Backup and Restore
+
+```bash
+# Back up everything
+genie export all --output genie-backup-2025-03-28.json --pretty
+
+# Restore on a fresh instance
+genie import genie-backup-2025-03-28.json
+```
+
+### Migrate Boards Between Instances
+
+```bash
+# Export boards from source
+genie export boards --output boards.json --pretty
+
+# Import on target (skip duplicates)
+genie import boards.json --merge --groups boards
+```
+
+### Project Snapshot
+
+```bash
+# Export project tasks + tags
+genie export tasks --project my-project --output project-tasks.json --pretty
+genie export tags --output tags.json --pretty
+
+# Restore on another instance
+genie import tags.json --merge
+genie import project-tasks.json --merge --groups tasks
+```
