@@ -131,6 +131,7 @@
               "omni/cli/messaging",
               "omni/cli/agents",
               "omni/cli/management",
+              "omni/cli/tts-batch-prompts",
               "omni/cli/system"
             ]
           },
