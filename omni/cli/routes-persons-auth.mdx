@@ -1,0 +1,310 @@
+---
+title: "Routes, Persons & Auth"
+description: "Agent routing, person directory, authentication, and API key management."
+---
+
+# Routes, Persons & Auth
+
+Three command groups for access and routing: `omni routes` controls which agent handles which chat, `omni persons` manages the contact directory, and `omni auth`/`omni keys` handle authentication and API key lifecycle.
+
+## Route Commands
+
+Routes determine which AI agent handles messages for a specific chat or person.
+
+### `omni routes list`
+
+List agent routes for an instance.
+
+```bash
+omni routes list [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--instance <id>` | Instance ID |
+| `--scope <scope>` | Filter by scope: `chat` or `user` |
+| `--active` | Show only active routes |
+
+### `omni routes get`
+
+Get route details.
+
+```bash
+omni routes get <routeId>
+```
+
+### `omni routes create`
+
+Create a new agent route.
+
+```bash
+omni routes create [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--instance <id>` | Instance ID |
+| `--scope <scope>` | Route scope: `chat` or `user` |
+| `--chat <chatId>` | Chat UUID (required when scope=`chat`) |
+| `--person <personId>` | Person UUID (required when scope=`user`) |
+| `--agent <agentId>` | Agent UUID |
+| `--timeout <seconds>` | Agent timeout in seconds |
+| `--stream` / `--no-stream` | Enable or disable streaming responses |
+| `--prefix-sender` / `--no-prefix-sender` | Prefix messages with sender name |
+| `--wait-media` / `--no-wait-media` | Wait for media processing before routing |
+| `--send-media-path` / `--no-send-media-path` | Include file path in media text |
+| `--gate` / `--no-gate` | Enable or disable LLM response gate |
+| `--gate-model <model>` | Response gate model |
+| `--gate-prompt <prompt>` | Response gate prompt |
+| `--reply-filter-mode <mode>` | Reply filter: `all` or `filtered` |
+| `--label <label>` | Human-readable label |
+| `--priority <number>` | Priority (higher = higher priority, default: 0) |
+| `--inactive` | Create as inactive |
+
+```bash
+# Route a chat to an agent
+omni routes create \
+  --instance <id> \
+  --scope chat \
+  --chat <chat-uuid> \
+  --agent <agent-uuid> \
+  --label "Support Bot"
+
+# Route all messages from a person to an agent
+omni routes create \
+  --instance <id> \
+  --scope user \
+  --person <person-uuid> \
+  --agent <agent-uuid> \
+  --gate \
+  --gate-model "claude-sonnet-4-20250514"
+
+# High-priority route with streaming
+omni routes create \
+  --instance <id> \
+  --scope chat \
+  --chat <chat-uuid> \
+  --agent <agent-uuid> \
+  --stream \
+  --priority 10
+```
+
+### `omni routes update`
+
+Update an existing route. Accepts the same options as `create`.
+
+```bash
+omni routes update <routeId> [options]
+```
+
+### `omni routes delete`
+
+Delete a route.
+
+```bash
+omni routes delete <routeId>
+```
+
+### `omni routes test`
+
+Test which route would resolve for a given instance, chat, and/or person.
+
+```bash
+omni routes test [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--instance <id>` | Instance ID |
+| `--chat <chatId>` | Chat UUID to test |
+| `--person <personId>` | Person UUID to test |
+
+```bash
+omni routes test --instance <id> --chat <chat-uuid>
+```
+
+### `omni routes metrics`
+
+View route cache metrics.
+
+```bash
+omni routes metrics
+```
+
+---
+
+## Person Commands
+
+### `omni persons search`
+
+Search the person directory.
+
+```bash
+omni persons search <query> [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--limit <n>` | Limit results (default: 20) |
+
+```bash
+omni persons search "João" --limit 10
+```
+
+### `omni persons get`
+
+Get full person details.
+
+```bash
+omni persons get <id>
+```
+
+### `omni persons presence`
+
+Get person presence and activity info.
+
+```bash
+omni persons presence <id>
+```
+
+---
+
+## Auth Commands
+
+### `omni auth login`
+
+Save API credentials.
+
+```bash
+omni auth login [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--api-key <key>` | API key for authentication |
+| `--api-url <url>` | API base URL (default: `http://localhost:8882`) |
+
+### `omni auth status`
+
+Show current authentication status.
+
+```bash
+omni auth status
+```
+
+### `omni auth logout`
+
+Clear stored credentials.
+
+```bash
+omni auth logout
+```
+
+### `omni auth recover`
+
+Recover API key when auth is invalid. Requires local PM2 access.
+
+```bash
+omni auth recover [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--api-url <url>` | API base URL (default: `http://localhost:8882`) |
+| `--rotate` | Generate a new key instead of recovering the existing one |
+
+---
+
+## API Key Commands
+
+### `omni keys create`
+
+Create a new API key with scoped permissions.
+
+```bash
+omni keys create [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--name <name>` | Key name |
+| `--scopes <scopes>` | Comma-separated scopes (e.g., `messages:read,instances:write`) |
+| `--instances <ids>` | Comma-separated instance IDs to restrict access |
+| `--description <desc>` | Key description |
+| `--rate-limit <n>` | Rate limit (requests/minute) |
+| `--expires <date>` | Expiration date (ISO 8601) |
+
+```bash
+# Full-access key
+omni keys create --name "admin" --scopes "*"
+
+# Scoped read-only key
+omni keys create \
+  --name "monitoring" \
+  --scopes "messages:read,events:read" \
+  --rate-limit 100
+
+# Instance-restricted key with expiry
+omni keys create \
+  --name "temp-access" \
+  --instances <id1>,<id2> \
+  --expires 2025-12-31T23:59:59Z
+```
+
+### `omni keys list`
+
+List API keys.
+
+```bash
+omni keys list [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--status <status>` | Filter by status: `active`, `revoked`, `expired` |
+| `--limit <n>` | Max results |
+
+### `omni keys get`
+
+Get API key details.
+
+```bash
+omni keys get <id>
+```
+
+### `omni keys update`
+
+Update an API key.
+
+```bash
+omni keys update <id> [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--name <name>` | New name |
+| `--description <desc>` | New description |
+| `--scopes <scopes>` | New scopes (comma-separated) |
+| `--instances <ids>` | New instance IDs (empty string to unrestrict) |
+| `--rate-limit <n>` | New rate limit |
+| `--expires <date>` | New expiration (empty string to clear) |
+
+### `omni keys revoke`
+
+Revoke an API key.
+
+```bash
+omni keys revoke <id> [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--reason <reason>` | Reason for revocation |
+
+### `omni keys delete`
+
+Permanently delete an API key.
+
+```bash
+omni keys delete <id>
+```

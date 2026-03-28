@@ -141,6 +141,8 @@
               "omni/cli/providers",
               "omni/cli/webhooks",
               "omni/cli/tts-batch-prompts",
+              "omni/cli/events",
+              "omni/cli/routes-persons-auth",
               "omni/cli/system"
             ]
           },
