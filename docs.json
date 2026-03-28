@@ -67,6 +67,7 @@
               "genie/cli/agents",
               "genie/cli/messaging",
               "genie/cli/export-import",
+              "genie/cli/spawn",
               "genie/cli/directory",
               "genie/cli/infrastructure",
               "genie/cli/registry",

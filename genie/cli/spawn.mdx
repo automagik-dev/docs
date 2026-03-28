@@ -1,0 +1,119 @@
+---
+title: "Spawn & Lifecycle"
+description: "Spawn agents, stop, resume, and force-kill — the full agent process lifecycle"
+---
+
+# Agent Lifecycle Commands
+
+The `genie spawn`, `genie stop`, `genie resume`, and `genie kill` commands manage agent processes. Agents run in tmux panes and can be stopped, resumed, and killed independently.
+
+## `genie spawn`
+
+Spawn a new agent by name. Resolves the agent from the directory registry or built-in roles.
+
+```bash
+genie spawn <name> [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--provider <provider>` | Provider: `claude` or `codex` (default: `claude`) |
+| `--team <team>` | Team name |
+| `--model <model>` | Model override (e.g., `sonnet`, `opus`) |
+| `--skill <skill>` | Skill to load on start |
+| `--layout <layout>` | Layout mode: `mosaic` (default) or `vertical` |
+| `--color <color>` | Teammate pane border color |
+| `--plan-mode` | Start teammate in plan mode |
+| `--permission-mode <mode>` | Permission mode (e.g., `acceptEdits`) |
+| `--extra-args <args...>` | Extra CLI args forwarded to provider |
+| `--cwd <path>` | Working directory (overrides directory entry) |
+| `--session <session>` | Tmux session name to spawn into |
+| `--no-auto-resume` | Disable auto-resume on pane death |
+
+### Examples
+
+```bash
+# Spawn a reviewer agent
+genie spawn reviewer
+
+# Spawn with model override
+genie spawn engineer --model opus
+
+# Spawn with a skill loaded
+genie spawn engineer --skill work
+
+# Spawn into a specific tmux session
+genie spawn qa --session docs
+
+# Spawn in plan mode for review before execution
+genie spawn engineer --plan-mode
+
+# Spawn with custom working directory
+genie spawn engineer --cwd /home/user/my-project
+
+# Spawn with accept-edits permission
+genie spawn engineer --permission-mode acceptEdits
+```
+
+## `genie stop`
+
+Stop an agent gracefully. Preserves the session so the agent can be resumed later.
+
+```bash
+genie stop <name>
+```
+
+```bash
+genie stop reviewer
+```
+
+The agent's Claude session is preserved — use `genie resume` to pick up where it left off.
+
+## `genie resume`
+
+Resume a suspended or failed agent with its preserved Claude session.
+
+```bash
+genie resume [name] [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--all` | Resume all eligible agents |
+
+```bash
+# Resume a specific agent
+genie resume reviewer
+
+# Resume all stopped agents
+genie resume --all
+```
+
+## `genie kill`
+
+Force-kill an agent by name. Unlike `stop`, this does not preserve the session.
+
+```bash
+genie kill <name>
+```
+
+```bash
+genie kill reviewer
+```
+
+<Warning>
+`kill` terminates the agent immediately without preserving its session. Use `stop` if you want to resume later.
+</Warning>
+
+## Lifecycle Flow
+
+```
+spawn → running → stop → suspended → resume → running
+                    ↘ kill → terminated (no resume)
+```
+
+| State | Description |
+|-------|-------------|
+| **running** | Agent is active in a tmux pane |
+| **suspended** | Stopped gracefully, session preserved for resume |
+| **terminated** | Force-killed, session lost |
