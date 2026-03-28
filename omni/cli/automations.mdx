@@ -1,0 +1,206 @@
+---
+title: "Automations"
+description: "Create event-driven workflows — trigger actions on messages, events, and custom conditions."
+---
+
+# Automation Commands
+
+The `omni automations` command group manages event-driven workflows. Automations listen for trigger events (like incoming messages), evaluate conditions, and execute actions (webhooks, agent calls, message sends).
+
+## `omni automations list`
+
+List all automations.
+
+```bash
+omni automations list [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--enabled` | Show only enabled automations |
+| `--disabled` | Show only disabled automations |
+
+```bash
+omni automations list
+omni automations list --enabled
+```
+
+## `omni automations get`
+
+Get full details of an automation.
+
+```bash
+omni automations get <id>
+```
+
+## `omni automations create`
+
+Create a new automation.
+
+```bash
+omni automations create [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--name <name>` | Automation name |
+| `--trigger <event>` | Trigger event type (e.g., `message.received`) |
+| `--action <type>` | Action type: `webhook`, `send_message`, `emit_event`, `log`, `call_agent` |
+| `--action-config <json>` | Action configuration as JSON |
+| `--condition <json>` | Trigger conditions as JSON array |
+| `--condition-logic <logic>` | Condition logic: `and` (all must match) or `or` (any must match) |
+| `--description <desc>` | Automation description |
+| `--priority <n>` | Priority (higher = runs first) |
+| `--disabled` | Create in disabled state |
+| `--agent-id <id>` | Agent ID (for `call_agent` action) |
+| `--provider-id <id>` | Provider ID (for `call_agent` action) |
+| `--response-as <var>` | Store agent response as variable (for `call_agent` action) |
+
+### Action Types
+
+| Type | Description |
+|------|-------------|
+| `webhook` | POST event payload to an external URL |
+| `send_message` | Send a message to a chat |
+| `emit_event` | Emit a new event into the Omni event bus |
+| `log` | Log the event (useful for debugging) |
+| `call_agent` | Invoke an AI agent with the event as context |
+
+### Examples
+
+```bash
+# Log all incoming messages
+omni automations create \
+  --name "Message Logger" \
+  --trigger message.received \
+  --action log \
+  --description "Log every incoming message"
+
+# Forward messages to a webhook
+omni automations create \
+  --name "Webhook Forwarder" \
+  --trigger message.received \
+  --action webhook \
+  --action-config '{"url": "https://example.com/hook"}'
+
+# Route messages to an AI agent
+omni automations create \
+  --name "Support Bot" \
+  --trigger message.received \
+  --action call_agent \
+  --agent-id <agent-uuid> \
+  --provider-id <provider-uuid> \
+  --condition '[{"field": "payload.chat.isGroup", "op": "eq", "value": false}]' \
+  --description "Route DMs to support agent"
+
+# Create disabled (for testing setup before going live)
+omni automations create \
+  --name "Draft Automation" \
+  --trigger message.received \
+  --action log \
+  --disabled
+```
+
+## `omni automations update`
+
+Update an existing automation's metadata.
+
+```bash
+omni automations update <id> [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--name <name>` | New name |
+| `--description <desc>` | New description |
+| `--priority <n>` | New priority |
+
+```bash
+omni automations update <id> --name "Renamed Automation" --priority 10
+```
+
+## `omni automations delete`
+
+Delete an automation permanently.
+
+```bash
+omni automations delete <id>
+```
+
+## `omni automations enable`
+
+Enable a disabled automation.
+
+```bash
+omni automations enable <id>
+```
+
+## `omni automations disable`
+
+Disable an automation without deleting it.
+
+```bash
+omni automations disable <id>
+```
+
+```bash
+# Disable during maintenance
+omni automations disable <id>
+
+# Re-enable after
+omni automations enable <id>
+```
+
+## `omni automations test`
+
+Test an automation with a mock event. Evaluates conditions and simulates the action **without actually executing it**.
+
+```bash
+omni automations test <id> [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--event <json>` | Event JSON to test against |
+
+```bash
+omni automations test <id> --event '{"type": "message.received", "payload": {"text": "hello", "chat": {"isGroup": false}}}'
+```
+
+## `omni automations execute`
+
+Execute an automation with a provided event. Unlike `test`, this **actually runs the action**.
+
+```bash
+omni automations execute <id> [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--event <json>` | Event JSON to execute with |
+
+```bash
+omni automations execute <id> --event '{"type": "message.received", "payload": {"text": "trigger this"}}'
+```
+
+<Warning>
+`execute` runs the real action (sends messages, calls webhooks, invokes agents). Use `test` first to verify conditions match as expected.
+</Warning>
+
+## `omni automations logs`
+
+View execution logs for an automation.
+
+```bash
+omni automations logs <id> [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--limit <n>` | Number of results (default: 20) |
+| `--cursor <cursor>` | Pagination cursor for next page |
+
+```bash
+omni automations logs <id>
+omni automations logs <id> --limit 50
+```

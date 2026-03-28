@@ -133,6 +133,7 @@
               "omni/cli/messaging",
               "omni/cli/agents",
               "omni/cli/management",
+              "omni/cli/automations",
               "omni/cli/system"
             ]
           },
