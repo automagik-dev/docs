@@ -140,6 +140,7 @@
               "omni/cli/automations",
               "omni/cli/providers",
               "omni/cli/webhooks",
+              "omni/cli/tts-batch-prompts",
               "omni/cli/system"
             ]
           },

@@ -1,0 +1,225 @@
+---
+title: "TTS, Batch & Prompts"
+description: "Text-to-speech voices, batch media processing, and LLM prompt overrides"
+---
+
+# TTS, Batch & Prompts
+
+Three utility command groups: `omni tts` for voice synthesis, `omni batch` for bulk media processing, and `omni prompts` for customizing LLM prompt templates.
+
+## TTS Commands
+
+### `omni tts voices`
+
+List available text-to-speech voices.
+
+```bash
+omni tts voices
+```
+
+TTS is also available inline via `omni send --tts "text"` — see [Messaging](/omni/cli/messaging) for details.
+
+---
+
+## Batch Commands
+
+The `omni batch` command group manages bulk media processing jobs — transcribing audio, describing images, and extracting document content at scale.
+
+### `omni batch create`
+
+Create a batch processing job.
+
+```bash
+omni batch create [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--instance <id>` | Instance ID |
+| `--type <type>` | Job type: `targeted_chat_sync`, `time_based_batch`, or `media_redownload` |
+| `--chat <id>` | Chat ID (required for `targeted_chat_sync`) |
+| `--days <n>` | Days to look back (required for `time_based_batch` and `media_redownload`) |
+| `--limit <n>` | Max items to process |
+| `--content-types <types>` | Content types: `audio`, `image`, `video`, `document` (comma-separated) |
+| `--force` | Re-process items that already have content |
+| `--delay-min <ms>` | Min random delay between items in ms (default: 1000) |
+| `--delay-max <ms>` | Max random delay between items in ms (default: 3000) |
+| `--no-confirm` | Skip confirmation prompt |
+
+### Job Types
+
+| Type | Description |
+|------|-------------|
+| `targeted_chat_sync` | Process media from a specific chat |
+| `time_based_batch` | Process media from all chats within a time window |
+| `media_redownload` | Re-download and reprocess media files |
+
+### Examples
+
+```bash
+# Transcribe all audio from a chat
+omni batch create \
+  --instance <id> \
+  --type targeted_chat_sync \
+  --chat <chat-id> \
+  --content-types audio
+
+# Process last 7 days of images and documents
+omni batch create \
+  --instance <id> \
+  --type time_based_batch \
+  --days 7 \
+  --content-types image,document
+
+# Force reprocess with no confirmation
+omni batch create \
+  --instance <id> \
+  --type time_based_batch \
+  --days 30 \
+  --force \
+  --no-confirm
+```
+
+### `omni batch list`
+
+List batch jobs.
+
+```bash
+omni batch list [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--instance <id>` | Filter by instance ID |
+| `--status <status>` | Filter by status: `pending`, `running`, `completed`, `failed`, `cancelled` (comma-separated) |
+| `--type <type>` | Filter by job type |
+| `--limit <n>` | Max results |
+
+```bash
+omni batch list
+omni batch list --status running,pending
+omni batch list --instance <id> --type time_based_batch
+```
+
+### `omni batch status`
+
+Get job status with optional live updates.
+
+```bash
+omni batch status <jobId> [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--watch` | Watch for updates |
+| `--interval <ms>` | Poll interval in ms (default: 2000) |
+
+```bash
+omni batch status <jobId>
+omni batch status <jobId> --watch
+```
+
+### `omni batch cancel`
+
+Cancel a running job.
+
+```bash
+omni batch cancel <jobId>
+```
+
+### `omni batch estimate`
+
+Estimate job scope and cost without creating the job. Accepts the same options as `create`.
+
+```bash
+omni batch estimate [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--instance <id>` | Instance ID |
+| `--type <type>` | Job type |
+| `--chat <id>` | Chat ID (for `targeted_chat_sync`) |
+| `--days <n>` | Days to look back |
+| `--limit <n>` | Max items |
+| `--content-types <types>` | Content types to include |
+
+```bash
+# Check how many items before committing
+omni batch estimate \
+  --instance <id> \
+  --type time_based_batch \
+  --days 30 \
+  --content-types audio,image
+```
+
+---
+
+## Prompt Commands
+
+The `omni prompts` command group manages LLM prompt templates used for media description (images, videos, documents) and gating decisions. Override defaults to customize how Omni processes media.
+
+### `omni prompts list`
+
+List all prompt settings with their override status.
+
+```bash
+omni prompts list
+```
+
+### `omni prompts get`
+
+Show the current prompt for a specific type.
+
+```bash
+omni prompts get <name>
+```
+
+| Name | Description |
+|------|-------------|
+| `image` | Prompt for describing images |
+| `video` | Prompt for describing videos |
+| `document` | Prompt for extracting document content |
+| `gate` | Prompt for gating decisions |
+
+```bash
+omni prompts get image
+omni prompts get gate
+```
+
+### `omni prompts set`
+
+Set a prompt override. Reads from stdin if no value is provided (for multiline prompts).
+
+```bash
+omni prompts set <name> [value] [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--reason <reason>` | Reason for change |
+
+```bash
+# Inline override
+omni prompts set image "Describe this image in detail, including text and objects" --reason "More detailed descriptions"
+
+# Multiline via stdin
+cat <<'EOF' | omni prompts set document --reason "Custom extraction"
+Extract all text from this document. Include:
+- Headers and titles
+- Body text
+- Table contents as markdown
+EOF
+```
+
+### `omni prompts reset`
+
+Clear a prompt override, reverting to the code default.
+
+```bash
+omni prompts reset <name>
+```
+
+```bash
+omni prompts reset image
+```
