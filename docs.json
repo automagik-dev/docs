@@ -70,7 +70,8 @@
               "genie/cli/directory",
               "genie/cli/infrastructure",
               "genie/cli/registry",
-              "genie/cli/releases-tags-types"
+              "genie/cli/releases-tags-types",
+              "genie/cli/database"
             ]
           },
           {

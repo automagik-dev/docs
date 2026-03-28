@@ -1,0 +1,51 @@
+---
+title: "Database"
+description: "Database management — check health, run migrations, and execute SQL queries via pgserve"
+---
+
+# Database Commands
+
+The `genie db` command group manages the embedded PostgreSQL instance (pgserve) that backs Genie's task store, agent registry, schedules, and more.
+
+## `genie db status`
+
+Show pgserve health, port, data directory, and table counts.
+
+```bash
+genie db status
+```
+
+Outputs connection info, running state, and a summary of how many rows exist in each core table.
+
+## `genie db migrate`
+
+Run pending database migrations.
+
+```bash
+genie db migrate
+```
+
+Applies any unapplied migrations in order. Safe to run multiple times — already-applied migrations are skipped.
+
+## `genie db query`
+
+Execute arbitrary SQL and print results.
+
+```bash
+genie db query <sql>
+```
+
+```bash
+# Count tasks by stage
+genie db query "SELECT stage, count(*) FROM tasks GROUP BY stage"
+
+# Check recent schedule runs
+genie db query "SELECT * FROM schedule_triggers ORDER BY created_at DESC LIMIT 5"
+
+# Inspect app store
+genie db query "SELECT name, item_type, version FROM app_store"
+```
+
+<Warning>
+This runs raw SQL against the Genie database. Write queries (`INSERT`, `UPDATE`, `DELETE`) will modify data directly — use with care.
+</Warning>
