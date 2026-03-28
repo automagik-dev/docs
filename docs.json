@@ -69,7 +69,8 @@
               "genie/cli/export-import",
               "genie/cli/directory",
               "genie/cli/infrastructure",
-              "genie/cli/registry"
+              "genie/cli/registry",
+              "genie/cli/releases-tags-types"
             ]
           },
           {
