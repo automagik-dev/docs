@@ -67,8 +67,13 @@
               "genie/cli/agents",
               "genie/cli/messaging",
               "genie/cli/export-import",
+              "genie/cli/spawn",
               "genie/cli/directory",
-              "genie/cli/infrastructure"
+              "genie/cli/infrastructure",
+              "genie/cli/registry",
+              "genie/cli/releases-tags-types",
+              "genie/cli/database",
+              "genie/cli/scheduling"
             ]
           },
           {
@@ -132,6 +137,12 @@
               "omni/cli/messaging",
               "omni/cli/agents",
               "omni/cli/management",
+              "omni/cli/automations",
+              "omni/cli/providers",
+              "omni/cli/webhooks",
+              "omni/cli/tts-batch-prompts",
+              "omni/cli/events",
+              "omni/cli/routes-persons-auth",
               "omni/cli/system"
             ]
           },

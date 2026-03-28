@@ -1,0 +1,233 @@
+---
+title: "Item Registry"
+description: "Install, publish, update, and manage reusable Genie items — agents, skills, apps, boards, workflows, stacks, templates, and hooks"
+---
+
+# Item Registry
+
+The `genie install`, `genie publish`, and `genie item` commands manage the Genie item registry. Items are reusable components distributed via git repositories and described by a `genie.yaml` manifest.
+
+## Item Types
+
+| Type | Description |
+|------|-------------|
+| `agent` | Autonomous agent with model config, roles, and entrypoint |
+| `skill` | Reusable skill with triggers and entrypoint |
+| `app` | Application with runtime, NATS prefix, and entrypoint |
+| `board` | Board definition with stage pipeline and gate configs |
+| `workflow` | Scheduled workflow with cron expression and command |
+| `stack` | Bundle of multiple items installed together |
+| `template` | Project template for scaffolding |
+| `hook` | Hook script triggered by lifecycle events |
+
+## `genie install`
+
+Install a Genie item from a git repository.
+
+```bash
+genie install <target> [options]
+```
+
+The target is a git URL with an optional version tag:
+
+```
+github.com/user/repo
+github.com/user/repo@v1.0.0
+https://github.com/user/repo.git@v2.0.0
+git@github.com:user/repo.git
+```
+
+| Option | Description |
+|--------|-------------|
+| `--force` | Override existing item with same name |
+| `--full` | Full git clone instead of shallow |
+
+### What happens on install
+
+1. Clones the repository (shallow by default) to `~/.genie/items/<name>/`
+2. Detects the manifest — `genie.yaml`, or inferred from `AGENTS.md`, `manifest.ts`, `skill.md`
+3. Validates the manifest against type-specific rules
+4. Registers the item in the app store (PostgreSQL)
+5. Runs type-specific setup:
+   - **agent** — regenerates agent cache
+   - **board** — creates task type with stage pipeline
+   - **workflow** — registers schedule with cron expression
+   - **stack** — recursively installs all bundled items
+
+### Examples
+
+```bash
+# Install an agent
+genie install github.com/automagik-dev/agent-reviewer
+
+# Install a specific version
+genie install github.com/automagik-dev/board-software@v1.2.0
+
+# Force reinstall
+genie install github.com/automagik-dev/agent-reviewer --force
+
+# Full clone (for development)
+genie install github.com/automagik-dev/my-stack --full
+```
+
+## `genie publish`
+
+Publish the current directory as a Genie item. Must be run from a directory containing a valid manifest. Requires a pushed git tag matching the manifest version.
+
+```bash
+genie publish
+```
+
+### Prerequisites
+
+1. A `genie.yaml` manifest (or detectable convention) in the current directory
+2. A git tag matching the manifest version (e.g., `v1.0.0` for version `1.0.0`)
+3. The tag must be pushed to the remote
+
+### What happens on publish
+
+1. Detects and validates the manifest in the current directory
+2. Verifies a git tag matching `v<version>` exists and is pushed to the remote
+3. Registers or updates the item in the app store
+4. Records the version in `app_versions` with git SHA
+5. Sets approval status to `pending`
+
+### Example
+
+```bash
+# Tag and publish
+git tag v1.0.0
+git push origin v1.0.0
+genie publish
+```
+
+## `genie item update`
+
+Update an installed item to the latest version or a specific tag.
+
+```bash
+genie item update [name] [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--all` | Update all git-installed items |
+
+```bash
+# Update a specific item
+genie item update my-agent
+
+# Update all installed items
+genie item update --all
+```
+
+## `genie item uninstall`
+
+Remove an installed item.
+
+```bash
+genie item uninstall <name>
+```
+
+```bash
+genie item uninstall my-agent
+```
+
+## Manifest Format
+
+Every item is described by a `genie.yaml` manifest:
+
+```yaml
+name: my-agent
+type: agent
+version: 1.0.0
+description: A review agent
+author:
+  name: automagik
+  url: https://github.com/automagik-dev
+tags: [review, code-quality]
+category: development
+license: MIT
+dependencies:
+  - some-other-item
+
+agent:
+  model: sonnet
+  entrypoint: AGENTS.md
+  roles: [reviewer, qa]
+```
+
+### Required Fields
+
+| Field | Description |
+|-------|-------------|
+| `name` | Item name (used as identifier) |
+| `type` | One of: `agent`, `skill`, `app`, `board`, `workflow`, `stack`, `template`, `hook` |
+| `version` | Semantic version string |
+
+### Type-Specific Sections
+
+Each type has its own section with type-specific fields:
+
+**agent**
+```yaml
+agent:
+  model: sonnet
+  entrypoint: AGENTS.md
+  roles: [engineer, reviewer]
+```
+
+**skill**
+```yaml
+skill:
+  triggers: ["/review", "review this"]
+  entrypoint: skill.md
+```
+
+**board**
+```yaml
+board:
+  stages:
+    - name: draft
+      gate: human
+    - name: build
+      gate: agent
+      auto_advance: true
+    - name: review
+      gate: human+agent
+```
+
+**workflow**
+```yaml
+workflow:
+  cron: "0 9 * * 1-5"
+  timezone: America/Sao_Paulo
+  command: genie spawn reporter
+```
+
+**stack**
+```yaml
+stack:
+  items:
+    - name: my-board
+      type: board
+      inline: true
+      config:
+        stages:
+          - name: todo
+            gate: human
+    - name: my-agent
+      type: agent
+      source: github.com/user/agent-repo
+```
+
+### Manifest Detection
+
+If no `genie.yaml` exists, Genie infers the manifest from conventions:
+
+| File | Inferred type |
+|------|---------------|
+| `genie.yaml` | Explicit manifest (first priority) |
+| `AGENTS.md` | `agent` — reads name, model, roles from YAML frontmatter |
+| `manifest.ts` | `app` |
+| `skill.md` | `skill` |

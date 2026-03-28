@@ -112,6 +112,32 @@ Disbanded team "auth-rewrite".
   Agents terminated.
 ```
 
+## `genie team done`
+
+Mark a team's work as complete.
+
+```bash
+genie team done <name>
+```
+
+```bash Terminal
+$ genie team done auth-rewrite
+Marked team "auth-rewrite" as done.
+```
+
+## `genie team blocked`
+
+Mark a team as blocked.
+
+```bash
+genie team blocked <name>
+```
+
+```bash Terminal
+$ genie team blocked auth-rewrite
+Marked team "auth-rewrite" as blocked.
+```
+
 ## Auto-Detection
 
 When `--team` is omitted, genie auto-detects the team from the leader context (environment variables or tmux session).
