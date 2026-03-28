@@ -69,7 +69,7 @@
               "genie/cli/export-import",
               "genie/cli/directory",
               "genie/cli/infrastructure",
-              "genie/cli/export-import"
+              "genie/cli/registry"
             ]
           },
           {
