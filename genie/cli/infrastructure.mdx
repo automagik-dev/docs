@@ -1,11 +1,11 @@
 ---
 title: "Infrastructure"
-description: "Setup, diagnostics, updates, and terminal shortcuts — setup, doctor, update, shortcuts."
+description: "Setup, diagnostics, updates, database management, and terminal shortcuts."
 ---
 
 # Infrastructure Commands
 
-Commands for setting up Genie, diagnosing issues, updating, and configuring terminal shortcuts.
+Commands for setting up Genie, diagnosing issues, updating, database management, and configuring terminal shortcuts.
 
 ## `genie setup`
 
@@ -93,6 +93,83 @@ Checking for updates...
   Latest:  v4.260324.8
 Updating...
   ✅ Updated to v4.260324.8
+```
+
+## `genie uninstall`
+
+Remove Genie from the system. Cleans up global state, configuration, and the CLI binary.
+
+```bash
+genie uninstall
+```
+
+```bash Terminal
+$ genie uninstall
+Uninstalling Genie...
+  Removed ~/.genie/
+  Removed CLI binary
+  ✅ Genie uninstalled.
+```
+
+## `genie db`
+
+Database management commands for the embedded PostgreSQL instance.
+
+### `genie db status`
+
+Show pgserve health, port, data directory, and table counts.
+
+```bash
+genie db status
+```
+
+```bash Terminal
+$ genie db status
+PostgreSQL (pgserve):
+  Status:     running
+  Port:       19642
+  Data dir:   ~/.genie/data/pgserve/
+  Tables:     18
+  Migrations: 10/10 applied
+
+Table Counts:
+  tasks           42
+  agents          5
+  boards          3
+  audit_events    1,234
+  sessions        8
+```
+
+### `genie db migrate`
+
+Run pending database migrations.
+
+```bash
+genie db migrate
+```
+
+```bash Terminal
+$ genie db migrate
+Running migrations...
+  ✅ 008_boards.sql (applied)
+  ✅ 009_app_store.sql (applied)
+2 migrations applied.
+```
+
+### `genie db query`
+
+Execute arbitrary SQL and print results.
+
+```bash
+genie db query <sql>
+```
+
+```bash Terminal
+$ genie db query "SELECT count(*) FROM tasks WHERE stage = 'build'"
+ count
+-------
+     3
+(1 row)
 ```
 
 ## `genie shortcuts`

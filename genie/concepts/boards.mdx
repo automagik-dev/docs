@@ -1,0 +1,130 @@
+---
+title: "Boards"
+sidebarTitle: "Boards"
+description: "Kanban-style pipeline boards for visualizing and managing task flow."
+---
+
+# Boards
+
+A **board** is a Kanban-style pipeline that organizes tasks into columns. Each column represents a stage in a workflow, with optional gates that control when tasks can advance.
+
+## How Boards Work
+
+Boards replace the legacy `task_types` system with richer, project-scoped pipeline management. Every board has an ordered set of columns, and tasks move through them left-to-right.
+
+```
+┌─────────┐  ┌───────┐  ┌───────────┐  ┌──────┐  ┌───────┐  ┌────────┐  ┌────┐  ┌──────┐
+│ Triage  │→│ Draft │→│ Brainstorm│→│ Wish │→│ Build │→│ Review │→│ QA │→│ Ship │
+└─────────┘  └───────┘  └───────────┘  └──────┘  └───────┘  └────────┘  └────┘  └──────┘
+  agent       human      human+agent    human     agent       human      agent    human
+```
+
+## Columns
+
+Each column has:
+
+| Property | Description |
+|----------|-------------|
+| `name` | Machine-readable identifier (e.g., `build`) |
+| `label` | Human-readable display name (e.g., `Build`) |
+| `gate` | Who can advance tasks: `human`, `agent`, or `human+agent` |
+| `action` | Skill invoked when a task enters this column (e.g., `/work`) |
+| `auto_advance` | Whether tasks auto-advance when the gate clears |
+| `roles` | Which roles can move tasks into this column |
+| `color` | Display color (hex code) |
+| `position` | Column ordering (0-indexed) |
+
+## Column Gates
+
+Gates control task flow. They define who can move a task into a column:
+
+| Gate | Meaning |
+|------|---------|
+| `human` | Requires human approval to advance |
+| `agent` | An agent can auto-advance the task |
+| `human+agent` | Either a human or an agent can advance |
+
+When `auto_advance` is `true` and the gate is `agent`, the task moves forward automatically when the linked skill completes. For example, a task in `build` (gate: `agent`, action: `/work`) will auto-advance to `review` when the work skill finishes.
+
+## Board Templates
+
+Templates are reusable board blueprints. Genie ships five built-in templates:
+
+| Template | Stages | Use case |
+|----------|--------|----------|
+| **software** | triage, draft, brainstorm, wish, build, review, qa, ship | Full delivery pipeline |
+| **sales** | lead, qualified, proposal, negotiation, closed-won, closed-lost | Sales pipeline |
+| **hiring** | sourcing, screening, interview, offer, hired | Recruitment pipeline |
+| **ops** | identified, planning, in-progress, done | Operations workflow |
+| **bug** | triage, draft, build, review, qa, ship | Bug fix pipeline |
+
+Create a board from a template:
+
+```bash
+genie board create "Sprint 12" --template software
+```
+
+## Projects and Boards
+
+Boards are scoped to projects. A project can have multiple boards (e.g., one for features, one for bugs). When you set an active board with `genie board use`, that board becomes the default for task operations in the current repo.
+
+```bash
+# Set active board for this repo
+genie board use "Sprint 12"
+
+# Tasks now default to this board
+genie task create "Add auth" --stage build
+```
+
+Global boards (no project scope) are also supported for cross-project workflows.
+
+## Board Lifecycle
+
+```bash
+# Create from template
+genie board create "Q2 Sprint" --template software --project myapp
+
+# View columns
+genie board columns "Q2 Sprint"
+
+# Set as active
+genie board use "Q2 Sprint"
+
+# Export for sharing
+genie board export "Q2 Sprint" > q2-sprint.json
+
+# Import on another machine
+genie board import --file q2-sprint.json
+```
+
+## Relationship to Tasks
+
+Tasks link to boards via `board_id` and track their current column via `column_id`. When you move a task (`genie task move`), the column_id and stage update together. The board's column pipeline validates that the target stage exists.
+
+## Database Storage
+
+Boards are stored in PostgreSQL:
+
+| Table | Purpose |
+|-------|---------|
+| `boards` | Board metadata and column definitions (JSONB) |
+| `board_templates` | Reusable board blueprints |
+| `tasks.board_id` | Links a task to its board |
+| `tasks.column_id` | Tracks which column the task is in |
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Use templates as starting points">
+    Start with a built-in template and customize columns for your workflow. The `software` template maps directly to Genie skills.
+  </Accordion>
+  <Accordion title="Keep column counts manageable">
+    More than 8-10 columns creates cognitive overhead. If you need more, consider splitting into multiple boards.
+  </Accordion>
+  <Accordion title="Set gate types intentionally">
+    Use `agent` gates for stages that can run autonomously (build, qa). Use `human` gates for stages that need judgment (review, ship).
+  </Accordion>
+  <Accordion title="One active board per repo">
+    Use `genie board use` to set the default. This simplifies task operations by removing the need to specify `--board` on every command.
+  </Accordion>
+</AccordionGroup>

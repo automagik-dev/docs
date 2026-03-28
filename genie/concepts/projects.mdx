@@ -1,0 +1,97 @@
+---
+title: "Projects"
+sidebarTitle: "Projects"
+description: "Named task containers that scope work to specific initiatives."
+---
+
+# Projects
+
+A **project** is a named container that groups tasks, boards, and releases into a coherent initiative. Projects provide the organizational layer between individual tasks and the overall system.
+
+## What Projects Do
+
+Projects serve three purposes:
+
+1. **Scope tasks** -- every task belongs to a project, making it easy to filter and track work per initiative
+2. **Scope boards** -- boards can be project-specific, so different teams use pipelines suited to their workflow
+3. **Auto-detection** -- when you run task commands inside a git repo, the project is detected from the working directory
+
+## Creating Projects
+
+Projects are created explicitly or auto-detected from repository paths:
+
+```bash
+genie project create mobile-app --description "iOS and Android app"
+```
+
+When you create a task inside a repo that has no project, one is auto-created from the repository name.
+
+## Default Project
+
+When running commands outside a git repository, Genie needs to know which project to scope to. Set a default:
+
+```bash
+genie project set-default myapp
+```
+
+This default is used for `genie task list`, `genie task create`, and other task commands when no repo is detected.
+
+## Projects and Boards
+
+Each project can have multiple boards. A typical setup:
+
+```
+Project: myapp
+├── Board: Sprint 12     (active — current sprint)
+├── Board: Backlog       (incoming work)
+└── Board: Bug Triage    (bug-specific pipeline)
+```
+
+Set the active board for a project:
+
+```bash
+genie board use "Sprint 12"
+```
+
+## Projects and Tasks
+
+Tasks reference their project via `project_id`. When listing tasks, you can filter by project:
+
+```bash
+genie task list --project myapp
+```
+
+For scripting, the JSON output includes `repoPath` for reliable filtering:
+
+```bash
+genie task list --all --json > /tmp/tasks.json
+jq '.[] | select(.repoPath | test("myapp"))' /tmp/tasks.json
+```
+
+## Project Stats
+
+View a project's health at a glance:
+
+```bash
+genie project show myapp
+```
+
+This displays task counts by stage, active boards, and overall completion metrics.
+
+## Database Storage
+
+Projects are stored in the `projects` table (migration 003) with a reference to the repo path. Task-project relationships are maintained through the `tasks.project_id` foreign key.
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="One project per repository">
+    Map projects 1:1 with git repositories. This makes auto-detection seamless and keeps task scoping intuitive.
+  </Accordion>
+  <Accordion title="Use boards for workflow variation">
+    Instead of creating separate projects for features vs. bugs, use different boards within the same project.
+  </Accordion>
+  <Accordion title="Set a default for CLI convenience">
+    If you primarily work on one project, `genie project set-default` saves typing `--project` on every command.
+  </Accordion>
+</AccordionGroup>
