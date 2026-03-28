@@ -134,6 +134,7 @@
               "omni/cli/agents",
               "omni/cli/management",
               "omni/cli/automations",
+              "omni/cli/providers",
               "omni/cli/system"
             ]
           },

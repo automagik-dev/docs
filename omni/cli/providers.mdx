@@ -1,0 +1,238 @@
+---
+title: "Providers"
+description: "Manage AI and agent providers — create, configure, test, and connect to Agno, OpenClaw, Claude Code, Genie, and more."
+---
+
+# Provider Commands
+
+The `omni providers` command group manages AI and agent provider connections. Providers define how Omni routes messages to AI backends — each provider has a schema type, connection config, and optional agent resources.
+
+## Provider Schemas
+
+| Schema | Description |
+|--------|-------------|
+| `agno` | Agno platform — agents, teams, workflows |
+| `webhook` | Generic webhook — POST events to any URL |
+| `openclaw` | OpenClaw gateway via WebSocket |
+| `ag-ui` | AG-UI protocol |
+| `claude-code` | Claude Code CLI as agent backend |
+| `a2a` | Agent-to-agent protocol |
+| `genie` | Genie team inbox integration |
+
+## `omni providers list`
+
+List all providers.
+
+```bash
+omni providers list [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--active` | Show only active providers |
+
+```bash
+omni providers list
+omni providers list --active
+```
+
+## `omni providers get`
+
+Get full details of a provider.
+
+```bash
+omni providers get <id>
+```
+
+## `omni providers create`
+
+Create a new provider.
+
+```bash
+omni providers create [options]
+```
+
+### Common Options
+
+| Option | Description |
+|--------|-------------|
+| `--name <name>` | Provider name (unique) |
+| `--schema <schema>` | Provider schema (see table above) |
+| `--base-url <url>` | API base URL (`ws://` or `wss://` for OpenClaw) |
+| `--api-key <key>` | API key |
+| `--description <desc>` | Provider description |
+| `--timeout <seconds>` | Default timeout in seconds (default: 60) |
+| `--stream` | Enable streaming by default |
+
+### Claude Code Options
+
+| Option | Description |
+|--------|-------------|
+| `--project-path <path>` | Project directory path (required) |
+| `--max-turns <number>` | Max conversation turns |
+| `--permission-mode <mode>` | `default`, `acceptEdits`, `bypassPermissions`, `plan` |
+| `--model <model>` | Model override |
+| `--system-prompt <prompt>` | System prompt prepended to agent |
+
+### Genie Options
+
+| Option | Description |
+|--------|-------------|
+| `--agent-name <name>` | Agent identity / "from" field (required) |
+| `--target-agent <name>` | Target agent inbox to deliver to (required) |
+| `--team-name <template>` | Team name template — supports `{chat_id}`, `{thread_id}`, `{sender_id}` (default: `omni-{chat_id}`) |
+
+### OpenClaw Options
+
+| Option | Description |
+|--------|-------------|
+| `--default-agent-id <id>` | Default agent ID (required) |
+
+### Examples
+
+```bash
+# Create a webhook provider
+omni providers create \
+  --name "my-webhook" \
+  --schema webhook \
+  --base-url https://example.com/api/hook
+
+# Create a Claude Code provider
+omni providers create \
+  --name "code-agent" \
+  --schema claude-code \
+  --project-path /home/user/my-project \
+  --permission-mode acceptEdits \
+  --model sonnet
+
+# Create a Genie provider
+omni providers create \
+  --name "genie-sofia" \
+  --schema genie \
+  --agent-name sofia \
+  --target-agent team-lead \
+  --team-name "omni-{chat_id}"
+
+# Create an Agno provider
+omni providers create \
+  --name "agno-prod" \
+  --schema agno \
+  --base-url https://api.agno.com \
+  --api-key <key> \
+  --stream
+```
+
+## `omni providers update`
+
+Update a provider's configuration.
+
+```bash
+omni providers update <id> [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--name <name>` | New name |
+| `--base-url <url>` | New base URL |
+| `--api-key <key>` | New API key |
+| `--description <desc>` | New description |
+| `--timeout <seconds>` | New timeout |
+| `--stream` / `--no-stream` | Enable or disable streaming |
+| `--active` / `--no-active` | Activate or deactivate |
+| `--schema-config <json>` | Raw schemaConfig as JSON (overrides individual flags) |
+
+Schema-specific options (`--project-path`, `--agent-name`, `--target-agent`, etc.) are also available on update.
+
+```bash
+# Deactivate a provider
+omni providers update <id> --no-active
+
+# Change model for Claude Code provider
+omni providers update <id> --model opus
+
+# Update raw schema config
+omni providers update <id> --schema-config '{"maxTurns": 20}'
+```
+
+## `omni providers delete`
+
+Delete a provider.
+
+```bash
+omni providers delete <id> [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--force` | Skip confirmation |
+
+## `omni providers test`
+
+Test a provider's health and connectivity.
+
+```bash
+omni providers test <id>
+```
+
+```bash
+omni providers test <id>
+# Output: ✓ Provider "my-webhook" is healthy
+```
+
+## `omni providers setup`
+
+Interactive setup wizards that guide you through creating a provider with all required configuration.
+
+### `omni providers setup openclaw`
+
+Set up an OpenClaw provider — generates keypairs, pairs the device, and creates the provider.
+
+```bash
+omni providers setup openclaw [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--gateway-url <url>` | Gateway WebSocket URL |
+| `--gateway-token <token>` | Gateway authentication token |
+| `--agent-id <id>` | Default agent ID |
+| `--name <name>` | Provider name (default: `openclaw-<agent-id>`) |
+| `--instance-id <uuid>` | Omni instance UUID for the channel account |
+| `--account-name <name>` | Account name in openclaw.json |
+| `--plugin-path <path>` | Path to omni.ts plugin entry (auto-detected) |
+| `--skip-openclaw-config` | Skip openclaw.json updates |
+| `--non-interactive` | Error on missing flags instead of prompting |
+
+### `omni providers setup genie`
+
+Set up a Genie provider — configures Claude Code team inbox integration.
+
+```bash
+omni providers setup genie [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--agent-name <name>` | Agent identity / "from" field |
+| `--target-agent <name>` | Target agent inbox |
+| `--team-name <template>` | Team name template |
+| `--agent-role <role>` | Registered genie dir agent name (default: `team-lead`) |
+| `--name <name>` | Provider name (default: `genie-<agent-name>`) |
+| `--base-url <url>` | Base URL |
+| `--instance-id <uuid>` | Omni instance UUID to auto-assign |
+| `--non-interactive` | Error on missing flags instead of prompting |
+
+## Agno Resource Listing
+
+For Agno providers, you can list remote resources:
+
+```bash
+# List agents registered with an Agno provider
+omni providers agents <id>
+
+# List teams
+omni providers teams <id>
+
+# List workflows
+omni providers workflows <id>
+```
