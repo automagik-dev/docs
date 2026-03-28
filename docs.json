@@ -67,7 +67,8 @@
               "genie/cli/agents",
               "genie/cli/messaging",
               "genie/cli/directory",
-              "genie/cli/infrastructure"
+              "genie/cli/infrastructure",
+              "genie/cli/registry"
             ]
           },
           {
