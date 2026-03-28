@@ -1,0 +1,365 @@
+---
+title: "Export & Import"
+description: "Back up, migrate, and restore Genie data as schema-versioned JSON."
+---
+
+# Export & Import
+
+Genie's export/import system produces schema-versioned JSON documents for full backups, selective snapshots, and cross-instance migration. Data is organized into **9 groups** that can be exported individually or all at once.
+
+### At a Glance
+
+<Frame>
+  <CodeGroup>
+```bash Full backup
+$ genie export all
+Exported 23 tables (4412 rows) to genie-backup-20260328.json
+Skipped tables (not found): os_config, instances, warm_pool, golden_images
+```
+
+```bash Selective export
+$ genie export boards --pretty --output boards.json
+Exported 3 tables (12 rows) to boards.json
+
+$ genie export tasks --project myapp --output myapp-tasks.json
+Exported 5 tables (847 rows) to myapp-tasks.json
+```
+
+```bash Import with merge
+$ genie import genie-backup-20260328.json --merge
+Import complete: 4412 rows across 23 tables
+  boards: 3 rows
+  tasks: 847 rows
+  tags: 12 rows
+  ...
+```
+  </CodeGroup>
+</Frame>
+
+## Data Groups
+
+Every export targets one or more **groups**. Each group maps to a set of database tables:
+
+| Group | Tables | Description |
+|-------|--------|-------------|
+| `boards` | boards, board_templates, task_types | Kanban boards, column configs, templates |
+| `tasks` | tasks, task_tags, task_actors, task_dependencies, task_stage_log | Tasks with relationships and audit trail |
+| `tags` | tags | Tag definitions (excludes test tags) |
+| `projects` | projects | Project records |
+| `schedules` | schedules | Cron schedules with run_spec |
+| `agents` | agents, agent_templates, agent_checkpoints | Agent configs, templates, state checkpoints |
+| `apps` | app_store, installed_apps, app_versions | App registry (graceful skip if missing) |
+| `comms` | conversations, conversation_members, messages, mailbox, team_chat, notification_preferences | All messaging data |
+| `config` | os_config, instances, warm_pool, golden_images | Infrastructure config (graceful skip if missing) |
+
+<Note>
+Groups that reference optional tables (apps, config) will gracefully skip any tables not present in your database schema.
+</Note>
+
+## Export Format
+
+Every export produces a JSON document with this structure:
+
+```json
+{
+  "version": "1.0",
+  "exportedAt": "2026-03-28T07:56:27.030Z",
+  "exportedBy": "genie",
+  "genieVersion": "4.260328.2",
+  "type": "full",
+  "groups": ["boards", "tasks", "tags", "..."],
+  "skippedTables": ["os_config"],
+  "data": {
+    "boards": [{ "id": "board-ae107433", "name": "Sprint 12", "..." }],
+    "tasks": [{ "id": "task-001", "title": "Fix login bug", "..." }]
+  }
+}
+```
+
+| Field | Description |
+|-------|-------------|
+| `version` | Schema version (currently `1.0`). Import validates this before proceeding |
+| `exportedAt` | ISO 8601 timestamp |
+| `exportedBy` | Actor name (agent or user) |
+| `genieVersion` | Genie CLI version that produced the export |
+| `type` | `full` for `export all`, `partial` for single-group exports |
+| `groups` | Which data groups are included |
+| `skippedTables` | Tables that were requested but not found in the database |
+| `data` | Table name → array of row objects |
+
+---
+
+## Export Commands
+
+### `genie export all`
+
+Full backup of all 9 data groups. Automatically generates an output filename if `--output` is not specified.
+
+```bash
+genie export all [options]
+```
+
+```bash Terminal
+$ genie export all --pretty
+Exported 23 tables (4412 rows) to genie-backup-20260328.json
+Skipped tables (not found): os_config, instances, warm_pool, golden_images
+```
+
+The auto-generated filename follows the pattern `genie-backup-YYYYMMDD.json`.
+
+### `genie export boards`
+
+Export boards, board templates, and custom task types. Optionally filter by board name.
+
+```bash
+genie export boards [name] [options]
+```
+
+```bash Terminal
+$ genie export boards "Sprint 12" --pretty
+{"version":"1.0","type":"partial","groups":["boards"],...}
+
+$ genie export boards --output all-boards.json
+Exported 3 tables (12 rows) to all-boards.json
+```
+
+<Note>
+Custom task types (`is_builtin = false`) are included. Built-in types are excluded since they're recreated on install.
+</Note>
+
+### `genie export tasks`
+
+Export tasks with tags, actors, dependencies, and stage log. Optionally filter by project.
+
+```bash
+genie export tasks [options]
+```
+
+| Flag | Description |
+|------|-------------|
+| `--project <name>` | Only export tasks belonging to this project |
+
+```bash Terminal
+$ genie export tasks --project myapp --output myapp-tasks.json
+Exported 5 tables (847 rows) to myapp-tasks.json
+
+$ genie export tasks --pretty
+{"version":"1.0","type":"partial","groups":["tasks"],...}
+```
+
+<Tip>
+Ephemeral fields (`checkout_run_id`, `execution_locked_at`, `session_id`, `pane_id`) are automatically stripped from exported tasks to avoid stale lock state on import.
+</Tip>
+
+### `genie export tags`
+
+Export tag definitions. Test tags (prefixed with `test-`) are excluded.
+
+```bash
+genie export tags [options]
+```
+
+```bash Terminal
+$ genie export tags --pretty
+{
+  "version": "1.0",
+  "type": "partial",
+  "groups": ["tags"],
+  "data": {
+    "tags": [
+      { "id": "bug", "name": "Bug", "color": "#ef4444" },
+      { "id": "feature", "name": "Feature", "color": "#3b82f6" }
+    ]
+  }
+}
+```
+
+### `genie export projects`
+
+Export project records.
+
+```bash
+genie export projects [options]
+```
+
+### `genie export schedules`
+
+Export cron schedules with their `run_spec` configuration. Optionally filter by schedule name.
+
+```bash
+genie export schedules [name] [options]
+```
+
+```bash Terminal
+$ genie export schedules "nightly-backup" --pretty --output schedule.json
+Exported 1 tables (1 rows) to schedule.json
+```
+
+### `genie export agents`
+
+Export agent configurations, templates, and state checkpoints.
+
+```bash
+genie export agents [options]
+```
+
+### `genie export apps`
+
+Export the app store registry. Gracefully skips if app tables don't exist.
+
+```bash
+genie export apps [options]
+```
+
+### `genie export comms`
+
+Export all communication data: conversations, messages, mailbox, team chat, and notification preferences.
+
+```bash
+genie export comms [options]
+```
+
+### `genie export config`
+
+Export infrastructure configuration. Gracefully skips if config tables don't exist.
+
+```bash
+genie export config [options]
+```
+
+### Shared Export Options
+
+All export commands accept:
+
+| Flag | Description |
+|------|-------------|
+| `--output <file>` | Write to file instead of stdout. Parent directories are created automatically |
+| `--pretty` | Pretty-print JSON with 2-space indentation |
+
+---
+
+## Import Command
+
+### `genie import`
+
+Import data from a JSON export file. Validates schema version, resolves FK dependencies automatically, and runs the entire import in a single transaction.
+
+```bash
+genie import <file> [options]
+```
+
+| Flag | Description |
+|------|-------------|
+| `--fail` | Abort on any conflict (default) |
+| `--merge` | Skip existing rows, import only new ones |
+| `--overwrite` | Replace existing rows with imported data |
+| `--groups <list>` | Comma-separated groups to import (e.g., `boards,tags`) |
+
+### Conflict Modes
+
+<AccordionGroup>
+  <Accordion title="--fail (default)">
+    Checks all tables for conflicting primary keys **before** inserting anything. If any row already exists, the entire import is aborted with an error message showing which rows conflict.
+
+    ```bash Terminal
+    $ genie import backup.json
+    Error: Conflict in table "boards": 2 existing row(s) (e.g., board-ae107433; board-f3c21b90).
+    Use --merge or --overwrite to resolve.
+    ```
+  </Accordion>
+
+  <Accordion title="--merge">
+    Uses `INSERT ... ON CONFLICT DO NOTHING` — existing rows are untouched, only new rows are added. Safe for incremental imports where you want to preserve local changes.
+
+    ```bash Terminal
+    $ genie import backup.json --merge
+    Import complete: 312 rows across 8 tables
+      tasks: 245 rows
+      tags: 3 rows
+      task_tags: 64 rows
+    ```
+  </Accordion>
+
+  <Accordion title="--overwrite">
+    Deletes the conflicting row first, then inserts the imported version. Use this to force-sync from a known-good export.
+
+    ```bash Terminal
+    $ genie import backup.json --overwrite
+    Import complete: 4412 rows across 23 tables
+    ```
+
+    <Warning>
+    `--overwrite` replaces existing data. Make sure you have a backup before using this mode.
+    </Warning>
+  </Accordion>
+</AccordionGroup>
+
+### Selective Import
+
+Use `--groups` to import only specific data groups from a full backup:
+
+```bash Terminal
+$ genie import genie-backup-20260328.json --groups boards,tags --merge
+Import complete: 15 rows across 4 tables
+  boards: 3 rows
+  board_templates: 2 rows
+  task_types: 1 rows
+  tags: 9 rows
+```
+
+Unknown group names produce a warning and are skipped.
+
+### FK Dependency Resolution
+
+Import automatically sorts tables into 4 dependency levels to satisfy foreign key constraints:
+
+| Level | Tables |
+|-------|--------|
+| 0 | schedules, projects, agent_templates, tags, task_types, ... |
+| 1 | boards, board_templates, agents, conversations, ... |
+| 2 | tasks, messages, mailbox, team_chat, ... |
+| 3 | task_tags, task_actors, task_dependencies, task_stage_log, ... |
+
+Self-referential columns (`tasks.parent_id`, `messages.reply_to_id`, `conversations.parent_message_id`) are handled with a two-pass insert: rows are inserted with `NULL` self-references first, then updated after all rows exist.
+
+### Audit Trail
+
+Every successful import is recorded as an audit event with:
+- Conflict mode used
+- Per-table row counts
+- Skipped tables
+- Source export version and date
+
+---
+
+## Recipes
+
+### Nightly backup
+
+```bash
+genie export all --pretty --output /backups/genie-$(date +%Y%m%d).json
+```
+
+### Migrate boards between instances
+
+```bash
+# On source instance
+genie export boards --pretty --output boards-export.json
+
+# On target instance
+genie import boards-export.json --merge
+```
+
+### Clone a project's tasks
+
+```bash
+genie export tasks --project "Sprint 12" --output sprint12.json
+genie import sprint12.json --merge
+```
+
+### Selective restore after incident
+
+```bash
+# Restore only comms and agents from last night's backup
+genie import genie-backup-20260327.json --groups comms,agents --overwrite
+```
