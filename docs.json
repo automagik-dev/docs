@@ -131,6 +131,8 @@
               "omni/cli/messaging",
               "omni/cli/agents",
               "omni/cli/management",
+              "omni/cli/events",
+              "omni/cli/routes-persons-auth",
               "omni/cli/system"
             ]
           },

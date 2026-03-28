@@ -1,0 +1,131 @@
+---
+title: "Events & Analytics"
+description: "Query events, search content, view timelines, replay sessions, and analyze messaging metrics."
+---
+
+# Event Commands
+
+The `omni events` command group provides event querying, search, analytics, and replay capabilities across all connected channels.
+
+## `omni events list`
+
+List events with filters.
+
+```bash
+omni events list [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--instance <id>` | Filter by instance ID |
+| `--channel <type>` | Filter by channel type |
+| `--type <type>` | Filter by event type |
+| `--chat-id <id>` | Filter by chat ID |
+| `--since <time>` | Events since (e.g., `24h`, `7d`, or ISO timestamp) |
+| `--until <time>` | Events until (ISO timestamp) |
+| `--limit <n>` | Limit results (default: 50) |
+
+```bash
+omni events list --since 24h
+omni events list --instance <id> --type message.received --limit 100
+omni events list --chat-id <id> --since 7d
+```
+
+## `omni events search`
+
+Full-text search across event content.
+
+```bash
+omni events search <query> [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--since <time>` | Events since (e.g., `24h`, `7d`) |
+| `--limit <n>` | Limit results (default: 50) |
+
+```bash
+omni events search "deployment" --since 7d
+omni events search "error" --limit 20
+```
+
+## `omni events timeline`
+
+Show the event timeline for a specific person.
+
+```bash
+omni events timeline <personId> [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--limit <n>` | Limit results (default: 50) |
+
+```bash
+omni events timeline <person-uuid> --limit 100
+```
+
+## `omni events metrics`
+
+Get event processing metrics — throughput, latency, queue depth.
+
+```bash
+omni events metrics
+```
+
+## `omni events analytics`
+
+Show event analytics summary.
+
+```bash
+omni events analytics [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--instance <id>` | Filter by instance ID |
+| `--since <time>` | Events since (e.g., `24h`, `7d`, or ISO timestamp) |
+| `--all-time` | Show all-time stats (default: last 24h) |
+
+```bash
+omni events analytics
+omni events analytics --instance <id> --since 7d
+omni events analytics --all-time
+```
+
+## `omni events replay`
+
+Start, manage, or monitor event replay sessions. Replays re-process historical events through the automation pipeline.
+
+```bash
+omni events replay [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--start` | Start a new replay session |
+| `--since <time>` | Replay events since (required with `--start`) |
+| `--until <time>` | Replay events until |
+| `--types <types>` | Comma-separated event types to replay |
+| `--instance <id>` | Filter by instance ID |
+| `--speed <n>` | Speed multiplier |
+| `--dry-run` | Dry run (don't actually process) |
+| `--status <id>` | Get status of a replay session |
+| `--cancel <id>` | Cancel a replay session |
+
+```bash
+# Start a replay of last 24h message events
+omni events replay --start --since 24h --types message.received
+
+# Dry run first
+omni events replay --start --since 7d --dry-run
+
+# Replay at 5x speed
+omni events replay --start --since 24h --speed 5
+
+# Check replay status
+omni events replay --status <session-id>
+
+# Cancel a running replay
+omni events replay --cancel <session-id>
+```
