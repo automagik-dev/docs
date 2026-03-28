@@ -1,0 +1,227 @@
+---
+title: "Scheduling & Notifications"
+description: "Manage scheduled triggers, the scheduler daemon, and notification preferences"
+---
+
+# Scheduling & Notifications
+
+Three command groups for time-based automation: `genie schedule` manages triggers, `genie daemon` controls the scheduler process, and `genie notify` configures delivery channels.
+
+## Schedule Commands
+
+### `genie schedule create`
+
+Create a new scheduled trigger.
+
+```bash
+genie schedule create <name> [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--command <cmd>` | Command to execute (e.g., `"genie spawn reviewer"`) |
+| `--at <time>` | One-time schedule at absolute time (ISO 8601) |
+| `--every <interval>` | Repeating: duration (`10m`, `2h`, `24h`) or cron expression |
+| `--after <duration>` | One-time schedule after delay (`10m`, `2h`) |
+| `--timezone <tz>` | Timezone (default: `UTC`) |
+| `--lease-timeout <duration>` | Lease timeout for runs (default: `5m`) |
+
+Exactly one of `--at`, `--every`, or `--after` is required.
+
+```bash
+# Run every 30 minutes
+genie schedule create "heartbeat" --command "genie spawn reporter" --every 30m
+
+# Run on a cron schedule (weekdays at 9am São Paulo time)
+genie schedule create "standup" --command "genie spawn scribe" --every "0 9 * * 1-5" --timezone America/Sao_Paulo
+
+# One-time at a specific time
+genie schedule create "deploy" --command "genie spawn deployer" --at 2025-04-01T14:00:00Z
+
+# One-time after a delay
+genie schedule create "reminder" --command "genie notify set" --after 2h
+```
+
+### `genie schedule list`
+
+List schedules with next due trigger time.
+
+```bash
+genie schedule list [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--json` | Output as JSON |
+| `--watch` | Refresh every 2s |
+
+```bash
+genie schedule list
+genie schedule list --watch
+```
+
+### `genie schedule cancel`
+
+Cancel a schedule and skip pending triggers.
+
+```bash
+genie schedule cancel <name> [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--filter <expr>` | Filter expression (e.g., `status=pending`) |
+
+```bash
+genie schedule cancel heartbeat
+genie schedule cancel heartbeat --filter status=pending
+```
+
+### `genie schedule retry`
+
+Reset a failed trigger to pending so it runs again.
+
+```bash
+genie schedule retry <name>
+```
+
+### `genie schedule history`
+
+Show past executions for a schedule.
+
+```bash
+genie schedule history <name> [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--limit <n>` | Max rows to show (default: 20) |
+
+```bash
+genie schedule history heartbeat
+genie schedule history standup --limit 50
+```
+
+---
+
+## Daemon Commands
+
+The scheduler daemon is the background process that polls for due triggers and executes them.
+
+### `genie daemon start`
+
+Start the scheduler daemon.
+
+```bash
+genie daemon start [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--foreground` | Run in foreground (for systemd `ExecStart`) |
+
+```bash
+genie daemon start
+genie daemon start --foreground
+```
+
+### `genie daemon stop`
+
+Stop the scheduler daemon gracefully.
+
+```bash
+genie daemon stop
+```
+
+### `genie daemon status`
+
+Show daemon state, PID, uptime, and trigger stats.
+
+```bash
+genie daemon status
+```
+
+### `genie daemon install`
+
+Generate a systemd service unit and enable it for auto-start on boot.
+
+```bash
+genie daemon install
+```
+
+### `genie daemon logs`
+
+Tail structured JSON scheduler logs.
+
+```bash
+genie daemon logs [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `-f`, `--follow` | Follow log output |
+| `--lines <n>` | Number of lines to show (default: 20) |
+
+```bash
+genie daemon logs -f
+genie daemon logs --lines 100
+```
+
+---
+
+## Notification Commands
+
+Configure where Genie delivers notifications (task updates, schedule alerts, etc.).
+
+### `genie notify set`
+
+Set a notification preference for a channel.
+
+```bash
+genie notify set [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--channel <channel>` | Channel: `whatsapp`, `telegram`, `email`, `slack`, `discord`, `tmux` |
+| `--priority <priority>` | Minimum priority threshold (default: `normal`) |
+| `--default` | Set as default channel |
+
+```bash
+# Send urgent notifications to WhatsApp
+genie notify set --channel whatsapp --priority urgent
+
+# Set Slack as default channel
+genie notify set --channel slack --default
+
+# Only high-priority to Telegram
+genie notify set --channel telegram --priority high
+```
+
+### `genie notify list`
+
+List notification preferences.
+
+```bash
+genie notify list [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--json` | Output as JSON |
+
+### `genie notify remove`
+
+Remove a notification preference.
+
+```bash
+genie notify remove [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--channel <channel>` | Channel to remove |
+
+```bash
+genie notify remove --channel telegram
+```
