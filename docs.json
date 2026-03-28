@@ -71,7 +71,8 @@
               "genie/cli/infrastructure",
               "genie/cli/registry",
               "genie/cli/releases-tags-types",
-              "genie/cli/database"
+              "genie/cli/database",
+              "genie/cli/scheduling"
             ]
           },
           {
