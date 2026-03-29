@@ -30,6 +30,8 @@
               "genie/concepts/wishes",
               "genie/concepts/agents",
               "genie/concepts/teams",
+              "genie/concepts/boards",
+              "genie/concepts/projects",
               "genie/concepts/skills",
               "genie/concepts/byoa"
             ]
