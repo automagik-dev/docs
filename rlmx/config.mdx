@@ -1,0 +1,266 @@
+---
+title: "Configuration"
+sidebarTitle: "Configuration"
+description: "rlmx.yaml format, config commands, fallback files, and settings priority."
+---
+
+# Configuration
+
+RLMX uses a layered configuration system. Most users only need `rlmx.yaml` in their project directory.
+
+## rlmx.yaml
+
+The primary config file. Run `rlmx init` to scaffold one with inline comments.
+
+```yaml
+# Model configuration
+model:
+  provider: google                            # pi/ai provider: google, anthropic, openai, etc.
+  model: gemini-3.1-flash-lite-preview        # Model ID
+  sub-call-model: gemini-3.1-flash-lite-preview  # Model for llm_query() sub-calls (optional)
+
+# System prompt — the RLM paper prompt is used by default.
+# Override only if you know what you're doing.
+# system: |
+#   Custom system prompt here...
+
+# Custom Python tools injected into the REPL namespace
+tools:
+  search_docs: |
+    def search_docs(keyword):
+        """Search context for files matching keyword."""
+        matches = [item for item in context if keyword.lower() in item['content'].lower()]
+        return [m['path'] for m in matches]
+
+  summarize_chunk: |
+    def summarize_chunk(text, max_words=100):
+        """Summarize a chunk using an LLM sub-call."""
+        return llm_query(f"Summarize in {max_words} words:\n{text}")
+
+# Output criteria appended to the system prompt
+criteria: |
+  - Be concise and direct
+  - Cite specific file paths when referencing code
+  - Use code blocks for code snippets
+
+# Context loading configuration
+context:
+  extensions:
+    - .md
+    - .ts
+    - .js
+  exclude:
+    - node_modules
+    - .git
+    - dist
+
+# Budget limits (null = unlimited)
+budget:
+  max-cost: null         # Maximum USD per run
+  max-tokens: null       # Maximum total tokens per run
+  max-depth: null        # Maximum recursive rlm_query depth
+
+# Tool level: core, standard, or full
+tools-level: core
+
+# Cache/CAG configuration
+cache:
+  enabled: false          # Enable provider-level prompt caching
+  retention: long         # short | long — maps to provider TTL strategy
+  ttl: 3600              # seconds (optional, provider-specific)
+  expire-time: ""        # ISO 8601 (optional, for Google explicit caching)
+  session-prefix: ""     # Prepended to content hash for cache key
+
+# Gemini 3 native features (silently ignored on non-Google providers)
+gemini:
+  thinking-level: null         # minimal | low | medium | high
+  google-search: false         # Enable web_search() battery in REPL
+  url-context: false           # Enable fetch_url() battery in REPL
+  code-execution: false        # Enable server-side Python execution
+  media-resolution:
+    images: auto               # low | medium | high | auto
+    pdfs: auto
+    video: auto
+
+# Structured output (Gemini only — other providers use FINAL() fallback)
+output:
+  schema:
+    type: object
+    properties:
+      answer:
+        type: string
+      confidence:
+        type: number
+```
+
+## Config sections explained
+
+### model
+
+Controls which LLM provider and model RLMX uses. Supports any provider available in [pi/ai](https://github.com/nickarora/pi-ai).
+
+| Field | Description |
+|-------|-------------|
+| `provider` | Provider name: `google`, `anthropic`, `openai`, etc. |
+| `model` | Model ID (provider-specific) |
+| `sub-call-model` | Optional model for `llm_query()` sub-calls. Defaults to `model` if omitted. |
+
+### system
+
+The system prompt sent to the LLM. Defaults to the exact RLM paper prompt, which includes research-backed guidance on decomposition, tool use, and iterative reasoning. Override only if you have a specific need.
+
+The system prompt supports a `{custom_tools_section}` placeholder that RLMX replaces with your custom tool definitions.
+
+### tools
+
+Custom Python functions injected into the REPL namespace. Each key is the function name, and the value is the Python source code.
+
+Custom tools have access to:
+- `context` — the loaded context variable
+- `llm_query()` — make LLM sub-calls
+- All standard Python builtins
+
+### criteria
+
+Quality and format criteria appended to the system prompt. Use this to control output style without touching the core system prompt.
+
+### context
+
+Controls how files are loaded when `--context` points to a directory.
+
+| Field | Description |
+|-------|-------------|
+| `extensions` | File extensions to include (default: `[".md"]`) |
+| `exclude` | Directory/file patterns to skip (default: `["node_modules", ".git", "dist"]`) |
+
+### budget
+
+Safety limits to prevent runaway costs.
+
+| Field | Description |
+|-------|-------------|
+| `max-cost` | Maximum USD spend per run. `null` = unlimited. |
+| `max-tokens` | Maximum total tokens per run. `null` = unlimited. |
+| `max-depth` | Maximum recursive `rlm_query` nesting depth. `null` = unlimited. |
+
+<Warning>
+  Without budget limits, a complex query with recursive sub-calls can get expensive. Set `max-cost` for production use.
+</Warning>
+
+### cache
+
+Controls provider-level context caching (CAG mode). See [Batch Mode](/rlmx/batch) for usage patterns.
+
+| Field | Description |
+|-------|-------------|
+| `enabled` | Enable caching. Can also use `--cache` flag per-invocation. |
+| `retention` | `short` or `long` — maps to provider-specific TTL behavior. |
+| `ttl` | TTL in seconds (optional, provider-specific). |
+| `expire-time` | ISO 8601 timestamp for Google explicit caching (optional). |
+| `session-prefix` | Prepended to the content hash for the cache session ID. |
+
+### gemini
+
+Gemini 3 native features. All are opt-in and silently ignored on non-Google providers.
+
+| Field | Description |
+|-------|-------------|
+| `thinking-level` | Controls reasoning depth: `minimal`, `low`, `medium`, `high` |
+| `google-search` | Enable `web_search()` battery in REPL |
+| `url-context` | Enable `fetch_url()` battery in REPL |
+| `code-execution` | Enable server-side Python execution alongside local REPL |
+| `media-resolution` | Per-type token cost control for images, PDFs, and video |
+
+### output.schema
+
+JSON Schema for structured output. On Google providers, this is enforced via the API. On other providers, RLMX falls back to `FINAL()` text parsing.
+
+---
+
+## Global settings
+
+Global settings are stored at `~/.rlmx/settings.json` and managed with `rlmx config` commands.
+
+```bash
+# Set an API key
+rlmx config set GEMINI_API_KEY your-key
+
+# Set a default provider
+rlmx config set model.provider google
+
+# View all settings
+rlmx config list
+
+# Show settings file path
+rlmx config path
+```
+
+See the [CLI Reference](/rlmx/cli/reference#rlmx-config) for the full list of config commands and keys.
+
+## Priority order
+
+Settings are resolved highest-priority first:
+
+| Priority | Source | Example |
+|----------|--------|---------|
+| 1 (highest) | CLI flags | `--max-cost 0.10` |
+| 2 | Project `rlmx.yaml` | `budget.max-cost: 0.50` |
+| 3 | Global settings | `~/.rlmx/settings.json` |
+| 4 (lowest) | Hardcoded defaults | `max-iterations: 30` |
+
+---
+
+## Fallback files (v0.1 compatibility)
+
+Before `rlmx.yaml` existed, RLMX read configuration from individual Markdown files. These still work as fallbacks when no `rlmx.yaml` is present.
+
+| File | Equivalent `rlmx.yaml` section |
+|------|-------------------------------|
+| `SYSTEM.md` | `system:` |
+| `TOOLS.md` | `tools:` |
+| `CRITERIA.md` | `criteria:` |
+| `MODEL.md` | `model:` |
+
+### MODEL.md format
+
+```markdown
+provider: google
+model: gemini-3.1-flash-lite-preview
+sub-call-model: gemini-3.1-flash-lite-preview
+```
+
+### TOOLS.md format
+
+Custom tools defined as `## heading` + Python code block:
+
+```markdown
+## search_docs
+
+` ``python
+def search_docs(keyword):
+    """Search context for files matching keyword."""
+    matches = [item for item in context if keyword.lower() in item['content'].lower()]
+    return [m['path'] for m in matches]
+` ``
+```
+
+<Tip>
+  Migrate to `rlmx.yaml` when convenient. Run `rlmx init` to generate the unified config, then move your custom settings into it. The fallback files will be ignored once `rlmx.yaml` exists.
+</Tip>
+
+---
+
+## Environment variables
+
+API keys can also be set as environment variables instead of using `rlmx config set`:
+
+| Variable | Provider |
+|----------|----------|
+| `GEMINI_API_KEY` | Google Gemini |
+| `ANTHROPIC_API_KEY` | Anthropic |
+| `OPENAI_API_KEY` | OpenAI |
+| `GROQ_API_KEY` | Groq |
+| `XAI_API_KEY` | xAI |
+| `OPENROUTER_API_KEY` | OpenRouter |
+
+Keys set via `rlmx config set` are injected into `process.env` before any command runs, so they behave identically to environment variables.

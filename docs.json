@@ -153,6 +153,33 @@
             ]
           }
         ]
+      },
+      {
+        "product": "RLMX",
+        "icon": "brain-circuit",
+        "description": "RLM algorithm CLI for coding agents",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "pages": [
+              "rlmx/index",
+              "rlmx/quickstart"
+            ]
+          },
+          {
+            "group": "CLI Reference",
+            "pages": [
+              "rlmx/cli/reference"
+            ]
+          },
+          {
+            "group": "Configuration",
+            "pages": [
+              "rlmx/config",
+              "rlmx/batch"
+            ]
+          }
+        ]
       }
     ]
   },
