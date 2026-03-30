@@ -38,7 +38,7 @@ When `genie spawn engineer` runs:
 1. Find or create the tmux session (based on team or default)
 2. Create a new window named after the agent role
 3. Launch Claude Code in the window's pane with the appropriate arguments
-4. Register the agent in the worker registry with the pane ID
+4. Register the agent in the agent registry with the pane ID
 
 ```bash
 # What genie spawn actually does (simplified):
@@ -191,5 +191,5 @@ tmux new-session -d -s genie
 
 If `genie read` or state detection fails, check:
 - `terminal.readLines` is sufficient (increase if prompts are far from bottom)
-- The pane ID in the worker registry matches an actual tmux pane
+- The pane ID in the agent registry matches an actual tmux pane
 - tmux server hasn't been restarted since agents were spawned

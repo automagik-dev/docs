@@ -8,9 +8,9 @@ description: "The structured plan that drives everything — from brainstorm to 
 
 A **wish** is Genie's unit of work. It's a structured document (`WISH.md`) that defines what to build, how to validate it, and how to break it into parallelizable execution groups.
 
-## The Pipeline
+## The Workflow
 
-Every wish flows through a five-stage pipeline:
+Every wish flows through a five-stage workflow:
 
 ```text
 brainstorm → wish → work → review → ship
@@ -112,7 +112,7 @@ Genie tracks execution state in PostgreSQL via the task system. A wish becomes a
 The task system records:
 - Which groups are complete
 - Which agents are assigned
-- Current pipeline stage
+- Current workflow stage
 - Timestamps and error states
 
 State is stored in the `tasks` and `task_dependencies` tables — no file locks needed, and concurrency is handled natively by PostgreSQL.

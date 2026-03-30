@@ -76,7 +76,7 @@ Message sent to engineer.
 
 The sender is auto-detected using this cascade:
 1. `GENIE_AGENT_NAME` env var (explicit override)
-2. `TMUX_PANE` → worker registry lookup
+2. `TMUX_PANE` → agent registry lookup
 3. `TMUX_PANE` → native team config match
 4. Fallback: `cli`
 
