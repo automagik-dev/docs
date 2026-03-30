@@ -5,7 +5,7 @@ description: "The scheduler daemon — cron triggers, lease-based claiming, hear
 
 # Scheduler
 
-The scheduler daemon is the background process that claims and fires triggers from pgserve. It runs as a persistent loop, combining real-time PostgreSQL notifications with poll-based fallback for reliability.
+The scheduler daemon is the background process that claims and fires triggers from [pgserve](/genie/architecture/postgres). It tracks worker liveness via the [state management](/genie/architecture/state) layer. It runs as a persistent loop, combining real-time PostgreSQL notifications with poll-based fallback for reliability.
 
 ## Architecture
 

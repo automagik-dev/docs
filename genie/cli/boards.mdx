@@ -5,7 +5,7 @@ description: "Board and pipeline management — create, configure, and manage ka
 
 # Board Commands
 
-The `genie board` command group manages kanban-style boards with configurable column pipelines. Boards are project-scoped and replace task types as the primary pipeline mechanism. Each column can have its own gate type and associated action skill.
+The `genie board` command group manages kanban-style boards with configurable column pipelines. For an overview of how boards, columns, and gates work, see [Boards](/genie/concepts/boards). Boards are project-scoped and replace task types as the primary pipeline mechanism. Each column can have its own gate type and associated action skill.
 
 ## `genie board create`
 
@@ -180,6 +180,3 @@ Each board column can have a gate that controls whether tasks can auto-advance t
 
 Gates work with the [task lifecycle](/genie/cli/tasks) — when a task is moved to a gated column, the gate determines who can move it out.
 
-## See Also
-
-- [Boards concept](/genie/concepts/boards) — how boards, columns, gates, and templates work

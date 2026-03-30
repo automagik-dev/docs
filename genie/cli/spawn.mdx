@@ -5,7 +5,7 @@ description: "Spawn agents, stop, resume, and force-kill — the full agent proc
 
 # Agent Lifecycle Commands
 
-The `genie spawn`, `genie stop`, `genie resume`, and `genie kill` commands manage agent processes. Agents run in tmux panes and can be stopped, resumed, and killed independently.
+The `genie spawn`, `genie stop`, `genie resume`, and `genie kill` commands manage [agent](/genie/concepts/agents) processes. Agents run in tmux panes and can be stopped, resumed, and killed independently.
 
 ## `genie spawn`
 
@@ -118,6 +118,3 @@ spawn → running → stop → suspended → resume → running
 | **suspended** | Stopped gracefully, session preserved for resume |
 | **terminated** | Force-killed, session lost |
 
-## See Also
-
-- [Agents concept](/genie/concepts/agents) — agent identities, roles, and lifecycle management
