@@ -14,8 +14,8 @@
     "decoration": "gradient"
   },
   "fonts": {
-    "heading": "Geist",
-    "body": "Geist"
+    "heading": { "family": "Geist" },
+    "body": { "family": "Geist" }
   },
   "styling": {
     "codeblocks": "dark"
