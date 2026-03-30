@@ -98,6 +98,34 @@ Team: auth-rewrite
     reviewer    (worker)
 ```
 
+## `genie team archive`
+
+Archive a team. Preserves all data but kills active members.
+
+```bash
+genie team archive <name>
+```
+
+```bash Terminal
+$ genie team archive auth-rewrite
+Archived team "auth-rewrite".
+  Members terminated.
+  Data preserved — use 'genie team unarchive' to restore.
+```
+
+## `genie team unarchive`
+
+Restore an archived team.
+
+```bash
+genie team unarchive <name>
+```
+
+```bash Terminal
+$ genie team unarchive auth-rewrite
+Restored team "auth-rewrite".
+```
+
 ## `genie team disband`
 
 Disband a team and clean up its worktree.

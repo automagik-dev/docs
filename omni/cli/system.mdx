@@ -94,12 +94,57 @@ omni journey summary                    # Aggregated journey metrics
 
 ---
 
-## `omni auth`
+## `omni replay`
 
-Authentication management.
+Replay missed messages for an agent instance. Useful for recovering messages that arrived while an agent was offline.
 
 ```bash
-omni auth                               # Check auth status
+omni replay <instanceId> [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `-s, --since <timestamp>` | Replay messages received after this ISO 8601 timestamp (default: `lastSeenAt`, max 24h ago) |
+
+```bash
+# Replay missed messages since the agent's last seen time
+omni replay wa-main
+
+# Replay messages received after a specific timestamp
+omni replay wa-main --since 2026-02-27T10:00:00Z
+```
+
+---
+
+## `omni auth`
+
+Manage API authentication — login, check status, logout, and recover credentials.
+
+```bash
+omni auth [command]
+```
+
+### Subcommands
+
+| Command | Description |
+|---------|-------------|
+| `login` | Save API credentials |
+| `status` | Show current authentication status |
+| `logout` | Clear stored credentials |
+| `recover` | Recover API key when `keyValid` shows `no` (requires local PM2 access) |
+
+```bash
+# Save credentials
+omni auth login
+
+# Check current auth status
+omni auth status
+
+# Clear stored credentials
+omni auth logout
+
+# Recover a broken API key
+omni auth recover
 ```
 
 ---
@@ -124,6 +169,52 @@ omni stop       # Stop services
 omni restart    # Restart services
 omni status     # API health and connection info
 omni update     # Update CLI to latest version
+```
+
+---
+
+## `omni logs`
+
+View system logs. This is a hidden debug command (visible with `--all`).
+
+```bash
+omni logs [options] [level]
+```
+
+| Argument | Description |
+|----------|-------------|
+| `level` | Log level filter: `debug`, `info`, `warn`, `error` |
+
+| Option | Description |
+|--------|-------------|
+| `--modules <modules>` | Comma-separated module names to filter |
+| `--limit <n>` | Limit results (default: `100`) |
+| `--process [service]` | Stream PM2 process logs (default: `api`) |
+| `--follow` | Stream live logs (only with `--process`) |
+
+```bash
+omni logs error --limit 50
+omni logs --process api --follow
+omni logs warn --modules webhook,agent
+```
+
+---
+
+## `omni completions`
+
+Generate shell completions for the Omni CLI.
+
+```bash
+omni completions [shell]
+```
+
+| Argument | Description |
+|----------|-------------|
+| `shell` | Shell type: `bash`, `zsh`, `fish` |
+
+```bash
+omni completions bash >> ~/.bashrc
+omni completions zsh >> ~/.zshrc
 ```
 
 ---

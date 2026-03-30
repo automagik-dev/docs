@@ -145,7 +145,8 @@
               "omni/cli/tts-batch-prompts",
               "omni/cli/events",
               "omni/cli/routes-persons-auth",
-              "omni/cli/system"
+              "omni/cli/system",
+              "omni/cli/debug"
             ]
           },
           {

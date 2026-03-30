@@ -212,6 +212,59 @@ genie task dep #42 --blocks #43
 genie task dep #42 --remove #41
 ```
 
+## `genie task link`
+
+Link a task to an external tracker (GitHub, Jira, etc.).
+
+```bash
+genie task link <id> [options]
+```
+
+```bash
+genie task link #42 --url https://github.com/org/repo/issues/123
+genie task link #42 --url https://linear.app/team/ENG-456
+```
+
+## `genie task close-merged`
+
+Auto-close tasks whose wish slugs match recently merged PRs.
+
+```bash
+genie task close-merged [options]
+```
+
+```bash
+$ genie task close-merged
+Scanning merged PRs...
+  ✅ #42 "Add OAuth" — PR #123 merged, closing
+  ✅ #45 "Fix token refresh" — PR #127 merged, closing
+  2 tasks closed.
+```
+
+## `genie task archive`
+
+Archive a task (soft-delete — preserves all data).
+
+```bash
+genie task archive <id>
+```
+
+```bash
+genie task archive #42
+```
+
+## `genie task unarchive`
+
+Restore an archived task to its previous status.
+
+```bash
+genie task unarchive <id>
+```
+
+```bash
+genie task unarchive #42
+```
+
 ## Task ID Formats
 
 Tasks can be referenced by UUID or sequence number:

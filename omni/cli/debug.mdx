@@ -1,0 +1,133 @@
+---
+title: "Debug & Operations"
+description: "Hidden debug commands for troubleshooting Omni — dead letters, payloads, and system logs."
+---
+
+# Debug & Operations Commands
+
+These commands are hidden by default and visible with the `--all` flag. They are used for troubleshooting and operations.
+
+## Dead Letters
+
+Manage failed events that could not be processed.
+
+### `omni dead-letters list`
+
+List dead letters with optional filters.
+
+```bash
+omni dead-letters list [options]
+```
+
+### `omni dead-letters get`
+
+Get dead letter details.
+
+```bash
+omni dead-letters get <id>
+```
+
+### `omni dead-letters stats`
+
+Get dead letter statistics.
+
+```bash
+omni dead-letters stats
+```
+
+### `omni dead-letters retry`
+
+Retry processing a failed event.
+
+```bash
+omni dead-letters retry <id>
+```
+
+### `omni dead-letters resolve`
+
+Mark a dead letter as resolved (acknowledged, no retry needed).
+
+```bash
+omni dead-letters resolve [options] <id>
+```
+
+### `omni dead-letters abandon`
+
+Abandon a dead letter — stop all retry attempts.
+
+```bash
+omni dead-letters abandon <id>
+```
+
+```bash
+# List recent failures
+omni dead-letters list
+
+# Check failure stats
+omni dead-letters stats
+
+# Retry a specific event
+omni dead-letters retry dl-abc123
+
+# Mark as resolved (no retry)
+omni dead-letters resolve dl-abc123
+```
+
+---
+
+## Payloads
+
+Inspect event payloads at different processing stages.
+
+### `omni payloads list`
+
+List payloads for an event.
+
+```bash
+omni payloads list <eventId>
+```
+
+### `omni payloads get`
+
+Get a specific payload stage.
+
+```bash
+omni payloads get <eventId> <stage>
+```
+
+Stages: `webhook_raw`, `agent_request`, `agent_response`, `channel_send`, `error`.
+
+### `omni payloads delete`
+
+Delete payloads for an event.
+
+```bash
+omni payloads delete [options] <eventId>
+```
+
+### `omni payloads config`
+
+List or update payload storage configuration.
+
+```bash
+omni payloads config [options] [eventType]
+```
+
+### `omni payloads stats`
+
+Get payload storage statistics.
+
+```bash
+omni payloads stats
+```
+
+```bash
+# Inspect all payload stages for an event
+omni payloads list evt-abc123
+
+# Get the raw webhook payload
+omni payloads get evt-abc123 webhook_raw
+
+# Check storage stats
+omni payloads stats
+```

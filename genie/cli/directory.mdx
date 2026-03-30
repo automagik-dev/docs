@@ -103,6 +103,23 @@ Agent "sofia" registered locally.
   Provider: automagik-genie
 ```
 
+## `genie init agent`
+
+Scaffold a new agent in the workspace. Creates the agent directory structure with default configuration files.
+
+```bash
+genie init agent <name>
+```
+
+```bash
+$ genie init agent sofia
+Created agent scaffold at .genie/agents/sofia/
+  SOUL.md        — agent personality and instructions
+  HEARTBEAT.md   — recurring task checklist
+```
+
+---
+
 ## Scope
 
 Agent entries can be stored at two levels:

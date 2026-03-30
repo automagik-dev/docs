@@ -109,6 +109,19 @@ Import a board from a JSON file.
 genie board import --json <file> [--project <project>]
 ```
 
+## `genie board archive`
+
+Archive a board and its unfinished tasks.
+
+```bash
+genie board archive <name...> [--project <project>]
+```
+
+```bash
+genie board archive "Sprint 11"
+genie board archive "Sprint 11" --project my-app
+```
+
 ## `genie board reconcile`
 
 Fix orphaned `column_id` values by matching each task's stage name to the board's column names. Useful after renaming columns or switching boards.

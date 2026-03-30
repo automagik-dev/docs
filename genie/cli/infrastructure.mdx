@@ -1,12 +1,90 @@
 ---
 title: "Infrastructure"
 sidebarTitle: "Infrastructure"
-description: "Setup, diagnostics, updates, database management, and terminal shortcuts."
+description: "Setup, TUI, app, serve, diagnostics, updates, database management, and terminal shortcuts."
 ---
 
 # Infrastructure Commands
 
-Commands for setting up Genie, diagnosing issues, updating, database management, and configuring terminal shortcuts.
+Commands for setting up Genie, launching the TUI and desktop app, managing services, diagnosing issues, updating, database management, and configuring terminal shortcuts.
+
+## `genie tui`
+
+Launch the interactive terminal UI (OpenTUI nav + tmux Claude Code).
+
+```bash
+genie tui [options]
+```
+
+| Flag | Description |
+|------|-------------|
+| `--dev` | Development mode with auto-reload on file changes |
+
+```bash
+# Launch TUI
+genie tui
+
+# Launch in dev mode (auto-reloads on source changes)
+genie tui --dev
+```
+
+---
+
+## `genie serve`
+
+Start, stop, and check status of all genie infrastructure services (pgserve, tmux, scheduler).
+
+```bash
+genie serve [command]
+```
+
+### Subcommands
+
+| Command | Description |
+|---------|-------------|
+| `start` | Start genie serve (pgserve, tmux, scheduler) |
+| `stop` | Stop genie serve and all services |
+| `status` | Show service health |
+
+```bash
+# Start all services
+genie serve start
+
+# Check service health
+genie serve status
+
+# Stop all services
+genie serve stop
+```
+
+---
+
+## `genie app`
+
+Launch the Genie desktop app (backend sidecar + views).
+
+```bash
+genie app [options]
+```
+
+| Flag | Description |
+|------|-------------|
+| `--backend-only` | Start only the backend sidecar (IPC on stdin/stdout) |
+| `--tui` | Fall back to terminal UI mode |
+| `--dev` | Development mode |
+
+```bash
+# Launch the desktop app
+genie app
+
+# Start only the backend sidecar
+genie app --backend-only
+
+# Fall back to TUI mode
+genie app --tui
+```
+
+---
 
 ## `genie setup`
 
@@ -58,8 +136,12 @@ Genie Configuration:
 Diagnose the Genie installation and environment.
 
 ```bash
-genie doctor
+genie doctor [options]
 ```
+
+| Flag | Description |
+|------|-------------|
+| `--fix` | Auto-fix: kill zombie postgres, clean shared memory, restart daemon |
 
 ```bash Terminal
 $ genie doctor
@@ -84,8 +166,13 @@ Summary: 9/10 checks passed. 1 warning.
 Update Genie to the latest version.
 
 ```bash
-genie update
+genie update [options]
 ```
+
+| Flag | Description |
+|------|-------------|
+| `--next` | Switch to dev builds (npm `@next` tag) |
+| `--stable` | Switch to stable releases (npm `@latest` tag) |
 
 ```bash Terminal
 $ genie update
@@ -178,7 +265,26 @@ $ genie db query "SELECT count(*) FROM tasks WHERE stage = 'build'"
 Configure Warp-like keyboard shortcuts for tmux.
 
 ```bash
-genie shortcuts
+genie shortcuts [command]
+```
+
+### Subcommands
+
+| Command | Description |
+|---------|-------------|
+| `show` | Show available shortcuts and installation status |
+| `install` | Install shortcuts to config files (`~/.tmux.conf`, shell rc) |
+| `uninstall` | Remove shortcuts from config files |
+
+```bash
+# Show current shortcut status
+genie shortcuts show
+
+# Install shortcuts
+genie shortcuts install
+
+# Remove shortcuts
+genie shortcuts uninstall
 ```
 
 Generates and installs:

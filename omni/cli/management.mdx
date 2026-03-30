@@ -44,6 +44,64 @@ omni instances profile <id> <userId>  # Get user profile
 omni instances check <id> <phone>     # Check WhatsApp registration
 ```
 
+### WhatsApp Account Management
+
+Commands for managing the WhatsApp account associated with an instance.
+
+```bash
+omni instances update-bio <id> <status>             # Update profile bio/status
+omni instances block <id> <contactId>                # Block a contact
+omni instances unblock <id> <contactId>              # Unblock a contact
+omni instances blocklist <id>                        # List blocked contacts
+omni instances update-picture <id> [options]         # Update profile picture
+omni instances remove-picture <id>                   # Remove profile picture
+omni instances privacy <id>                          # Fetch privacy settings
+omni instances reject-call <id> [options]            # Reject an incoming call
+```
+
+```bash
+# Update your WhatsApp bio
+omni instances update-bio wa-main "Support Bot — online 24/7"
+
+# Block a spam contact
+omni instances block wa-main 5511999999999@s.whatsapp.net
+
+# Check who's blocked
+omni instances blocklist wa-main
+
+# Update profile picture from file
+omni instances update-picture wa-main --file avatar.png
+
+# View privacy settings
+omni instances privacy wa-main
+```
+
+### WhatsApp Group Management
+
+Commands for creating and managing WhatsApp groups.
+
+```bash
+omni instances group-create <id> [options]           # Create a new group
+omni instances group-update-picture <id> [options]   # Update group picture
+omni instances group-invite <id> <groupJid>          # Get group invite link
+omni instances group-revoke-invite <id> <groupJid>   # Revoke and regenerate invite link
+omni instances group-join <id> <code>                # Join a group via invite code
+```
+
+```bash
+# Create a new WhatsApp group
+omni instances group-create wa-main --name "Project Team" --participants 5511999999999@s.whatsapp.net
+
+# Get an invite link for a group
+omni instances group-invite wa-main 120363123456789@g.us
+
+# Revoke the current invite link and generate a new one
+omni instances group-revoke-invite wa-main 120363123456789@g.us
+
+# Join a group via invite code
+omni instances group-join wa-main AbCdEfGh
+```
+
 ---
 
 ## `omni automations`
