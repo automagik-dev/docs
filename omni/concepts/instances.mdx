@@ -126,4 +126,12 @@ omni instances blocklist <id>
 
 # Check if a number is on WhatsApp
 omni instances check <id> +5511999999999
+
+# Call management
+omni instances reject-call <id>                             # Reject an incoming call
+omni instances reject-call <id> --reason "Busy right now"   # Reject with reason
+
+# Additional group management
+omni instances group-join <id> <invite-code>                # Join a group via invite code
+omni instances group-update-picture <id> --file ./group.jpg # Update group profile picture
 ```
