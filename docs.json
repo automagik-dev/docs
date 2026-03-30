@@ -3,11 +3,24 @@
   "theme": "mint",
   "name": "Automagik",
   "colors": {
-    "primary": "#06B6D4",
-    "light": "#22D3EE",
-    "dark": "#0891B2"
+    "primary": "#D49355",
+    "light": "#C4956A",
+    "dark": "#B07A3B"
   },
-  "favicon": "/favicon.svg",
+  "appearance": {
+    "default": "dark"
+  },
+  "background": {
+    "decoration": "gradient"
+  },
+  "fonts": {
+    "heading": "Geist",
+    "body": "Geist"
+  },
+  "styling": {
+    "codeblocks": "dark"
+  },
+  "favicon": "/favicon.png",
   "navigation": {
     "products": [
       {
