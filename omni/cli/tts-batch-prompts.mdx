@@ -19,6 +19,16 @@ omni tts voices
 
 TTS is also available inline via `omni send --tts "text"` — see [Messaging](/omni/cli/messaging) for details.
 
+<CodeGroup>
+```bash Default Voice
+omni send --to +5511999 --tts "Hello! How can I help you today?"
+```
+
+```bash Custom Voice ID
+omni send --to +5511999 --tts "Premium greeting" --voice-id <eleven-labs-id>
+```
+</CodeGroup>
+
 ---
 
 ## Batch Commands
@@ -152,6 +162,10 @@ omni batch estimate \
   --days 30 \
   --content-types audio,image
 ```
+
+<Note>
+Always run `omni batch estimate` before `omni batch create` on large time ranges. Batch jobs incur API costs for each media item processed (transcription, vision, document extraction). The estimate shows item count and approximate cost.
+</Note>
 
 ---
 

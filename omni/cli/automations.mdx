@@ -68,22 +68,24 @@ omni automations create [options]
 
 ### Examples
 
-```bash
-# Log all incoming messages
+<CodeGroup>
+```bash Log Messages
 omni automations create \
   --name "Message Logger" \
   --trigger message.received \
   --action log \
   --description "Log every incoming message"
+```
 
-# Forward messages to a webhook
+```bash Webhook Forward
 omni automations create \
   --name "Webhook Forwarder" \
   --trigger message.received \
   --action webhook \
   --action-config '{"url": "https://example.com/hook"}'
+```
 
-# Route messages to an AI agent
+```bash AI Agent Router
 omni automations create \
   --name "Support Bot" \
   --trigger message.received \
@@ -92,14 +94,12 @@ omni automations create \
   --provider-id <provider-uuid> \
   --condition '[{"field": "payload.chat.isGroup", "op": "eq", "value": false}]' \
   --description "Route DMs to support agent"
-
-# Create disabled (for testing setup before going live)
-omni automations create \
-  --name "Draft Automation" \
-  --trigger message.received \
-  --action log \
-  --disabled
 ```
+</CodeGroup>
+
+<Tip>
+Create automations with `--disabled` first, then use `omni automations test` to verify conditions match expected events before enabling with `omni automations enable`.
+</Tip>
 
 ## `omni automations update`
 

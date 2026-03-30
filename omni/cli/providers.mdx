@@ -9,15 +9,29 @@ The `omni providers` command group manages AI and agent provider connections. Pr
 
 ## Provider Schemas
 
-| Schema | Description |
-|--------|-------------|
-| `agno` | Agno platform — agents, teams, workflows |
-| `webhook` | Generic webhook — POST events to any URL |
-| `openclaw` | OpenClaw gateway via WebSocket |
-| `ag-ui` | AG-UI protocol |
-| `claude-code` | Claude Code CLI as agent backend |
-| `a2a` | Agent-to-agent protocol |
-| `genie` | Genie team inbox integration |
+<AccordionGroup>
+  <Accordion title="genie — Genie team inbox integration">
+    Routes messages into a Genie agent's team inbox. Requires `--agent-name` and `--target-agent`. Supports team name templates with `{chat_id}`, `{thread_id}`, `{sender_id}` placeholders.
+  </Accordion>
+  <Accordion title="claude-code — Claude Code CLI agent">
+    Spawns a Claude Code CLI session per conversation. Requires `--project-path`. Supports `--permission-mode`, `--model`, `--max-turns`, and `--system-prompt`.
+  </Accordion>
+  <Accordion title="a2a — Agent-to-Agent protocol">
+    Google's agent-to-agent protocol. Connect to any A2A-compatible agent endpoint via `--base-url`.
+  </Accordion>
+  <Accordion title="ag-ui — Agent UI protocol">
+    CopilotKit's AG-UI protocol for streaming agent responses to frontend UIs. Configure via `--base-url`.
+  </Accordion>
+  <Accordion title="agno — Agno agent framework">
+    Connect to the Agno platform. Supports listing remote agents, teams, and workflows via `omni providers agents/teams/workflows`.
+  </Accordion>
+  <Accordion title="openclaw — OpenClaw gateway (WebSocket)">
+    Open-source agent via WebSocket. Use `omni providers setup openclaw` for guided keypair generation and device pairing.
+  </Accordion>
+  <Accordion title="webhook — Generic webhook">
+    POST event payloads to any URL. The simplest integration — no schema-specific config required beyond `--base-url`.
+  </Accordion>
+</AccordionGroup>
 
 ## `omni providers list`
 
@@ -178,6 +192,10 @@ omni providers test <id>
 omni providers test <id>
 # Output: ✓ Provider "my-webhook" is healthy
 ```
+
+<Note>
+Run `omni providers test` after creating or updating a provider to verify connectivity before assigning agents. A failing health check means messages routed to this provider will error.
+</Note>
 
 ## `omni providers setup`
 
