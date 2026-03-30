@@ -5,7 +5,7 @@ description: "Embedded PostgreSQL database, migrations, and the task service"
 
 # PostgreSQL (pgserve)
 
-Genie embeds [pgserve](https://github.com/nicholasgasior/pgserve) as a persistent database. One PostgreSQL instance runs per machine on port 19642, auto-started on demand. The connection is a lazy singleton — pgserve only starts when something actually needs the database.
+Genie embeds pgserve as a persistent database. One PostgreSQL instance runs per machine on port 19642, auto-started on demand. The connection is a lazy singleton — pgserve only starts when something actually needs the database.
 
 ## How pgserve Works
 
