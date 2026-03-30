@@ -162,7 +162,7 @@ genie spawn engineer --provider codex --team api-redesign
 genie spawn reviewer --provider claude --model sonnet --team api-redesign
 ```
 
-```
+```text
 AGENT       STATUS    PANE   PROVIDER   MODEL     TEAM
 team-lead   running   %40    claude     opus      api-redesign
 engineer    running   %41    codex      default   api-redesign
@@ -230,7 +230,7 @@ genie spawn engineer --provider claude --model sonnet --team auth-fix
 
 Under the hood, each provider is a function that translates `SpawnParams` into a shell command:
 
-```
+```text
 SpawnParams → buildLaunchCommand() → provider-specific CLI invocation
 ```
 

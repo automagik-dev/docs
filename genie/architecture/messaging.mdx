@@ -57,7 +57,7 @@ The protocol router (`protocol-router.ts`) is provider-agnostic. It routes messa
 
 When a message is sent to a recipient, the router resolves the target through a strict tiered search:
 
-```
+```text
 1. Agent directory by name → built-in agents by name
 2. Worker registry: exact ID > role > team:role
 3. Auto-spawn: if agent offline + in directory → spawn → deliver
@@ -66,7 +66,7 @@ When a message is sent to a recipient, the router resolves the target through a 
 
 ### Delivery Flow
 
-```
+```text
 genie send "fix the bug" --to engineer
          │
          ▼
@@ -123,7 +123,7 @@ The native teams bridge (`claude-native-teams.ts`) connects Genie's team/worker 
 
 ### Directory Structure
 
-```
+```text
 ~/.claude/teams/<team-name>/
 ├── config.json          # Team config: name, members, lead
 ├── inbox/

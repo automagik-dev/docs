@@ -12,7 +12,7 @@ Genie's hook system intercepts Claude Code events to add orchestration capabilit
 
 Claude Code fires events at specific lifecycle points. Genie registers a hook command (`genie hook dispatch`) that receives JSON on stdin, routes to matching handlers, and returns a JSON decision on stdout.
 
-```
+```text
 Claude Code Event → stdin JSON → genie hook dispatch → handlers → stdout JSON
 ```
 
@@ -39,7 +39,7 @@ For blocking events, handlers run in priority order (lower = first):
 
 Injects `[from:<agent-name>]` into SendMessage content so recipients always know who sent the message, even across teams.
 
-```
+```text
 Before: "Fix the auth bug"
 After:  "[from:team-lead] Fix the auth bug"
 ```

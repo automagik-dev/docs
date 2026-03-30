@@ -73,7 +73,7 @@ PR #89: "fix: auth token validation and error handling"
 
 Every team has a hierarchy:
 
-```
+```text
 team-lead
 ├── engineer (Group 1)
 ├── engineer (Group 2)
@@ -87,7 +87,7 @@ The **team-lead** is the orchestrator — it reads the wish, dispatches executio
 
 Each team works in its own git worktree:
 
-```
+```text
 ~/.genie/worktrees/<repo>/<team-name>/
 ```
 
@@ -98,7 +98,7 @@ Worktrees provide:
 
 ## Team Lifecycle
 
-```
+```text
 create → active → [review] → done/disbanded
 ```
 
@@ -164,7 +164,7 @@ The entire flow from `genie team create` to PR can run without human interventio
 
 Genie integrates with Claude Code's native team feature:
 
-```
+```text
 ~/.claude/teams/<team>/config.json
 ```
 
