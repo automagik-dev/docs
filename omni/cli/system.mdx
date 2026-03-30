@@ -83,20 +83,64 @@ omni journey summary                    # Aggregated journey metrics
 
 ## `omni auth`
 
-Authentication management.
+Authentication management — save credentials, check status, and recover lost keys.
+
+### `omni auth login`
+
+Save API credentials for the CLI.
 
 ```bash
-omni auth                               # Check auth status
+omni auth login [options]
 ```
+
+| Option | Description |
+|--------|-------------|
+| `--api-key <key>` | API key for authentication |
+| `--api-url <url>` | API base URL (default: `http://localhost:8882`) |
+
+### `omni auth status`
+
+Show current authentication status.
+
+```bash
+omni auth status
+```
+
+### `omni auth logout`
+
+Clear stored credentials.
+
+```bash
+omni auth logout
+```
+
+### `omni auth recover`
+
+Recover API key when auth is invalid. Requires local PM2 access to read the running server's environment.
+
+```bash
+omni auth recover [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--api-url <url>` | API base URL (default: `http://localhost:8882`) |
+| `--rotate` | Generate a new key instead of recovering the existing one |
+
+<Note>
+`omni auth recover` reads the API key directly from the running PM2 process. Use `--rotate` to generate a fresh key if the existing one may have been compromised.
+</Note>
 
 ---
 
 ## `omni settings`
 
-Server-level settings.
+Server-level settings — view and modify runtime configuration.
 
 ```bash
-omni settings                           # View server settings
+omni settings list [--category <cat>]   # List all settings (optionally filter by category)
+omni settings get <key>                 # Get a specific setting
+omni settings set <key> <value>         # Update a setting
 ```
 
 ---
@@ -110,12 +154,94 @@ omni start      # Start Omni services (API + NATS)
 omni stop       # Stop services
 omni restart    # Restart services
 omni status     # API health and connection info
-omni update     # Update CLI to latest version
 ```
 
 <Warning>
 `omni stop` shuts down both the API server and NATS. All connected instances will disconnect and incoming messages will be queued until the service restarts. Use `omni restart` for zero-downtime config changes when possible.
 </Warning>
+
+### `omni install`
+
+Bootstrap Omni server and CLI from scratch.
+
+```bash
+omni install [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--non-interactive` | Use all defaults, skip prompts (for CI/scripted installs) |
+| `--systemd` | Write a systemd unit instead of using PM2 (requires sudo) |
+| `--port <port>` | API port to use (default: `8882`) |
+
+### `omni update`
+
+Update the CLI to the latest version.
+
+```bash
+omni update [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--yes` / `-y` | Skip confirmation prompts |
+| `--no-restart` | Update CLI only — skip service restarts and API health check |
+
+<Note>
+By default, `omni update` restarts only services that were online before the update and runs an API health check on the configured port. Use `--no-restart` to update the CLI binary without touching running services.
+</Note>
+
+---
+
+## `omni resync`
+
+Re-sync instance history — backfill messages, contacts, and media from the channel.
+
+```bash
+omni resync [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--instance <id>` | Instance ID to resync |
+| `--all` | Resync all instances |
+| `--since <duration>` | How far back to sync (e.g., `7d`, `30d`) |
+| `--until <timestamp>` | Sync up to this timestamp (ISO 8601) |
+| `--dry-run` | Preview what would be synced without making changes |
+
+```bash
+# Backfill last 30 days for one instance
+omni resync --instance <id> --since 30d
+
+# Preview before committing
+omni resync --instance <id> --since 7d --dry-run
+
+# Resync all instances
+omni resync --all --since 14d
+```
+
+---
+
+## `omni replay`
+
+Replay missed agent messages for an instance. Useful when an agent was offline and missed incoming messages.
+
+```bash
+omni replay <instanceId> [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--since <timestamp>` | Replay messages since this timestamp (default: agent's `lastSeenAt`, max 24h ago) |
+
+```bash
+omni replay <instance-id>
+omni replay <instance-id> --since "2026-03-29T12:00:00Z"
+```
+
+<Note>
+`omni replay` re-delivers messages to the agent bound to the instance. The default window starts from the agent's last seen timestamp, capped at 24 hours ago.
+</Note>
 
 ---
 
