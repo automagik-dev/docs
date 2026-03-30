@@ -7,6 +7,10 @@ description: "How Genie v4 components connect — from CLI to database to agents
 
 Genie v4 is an agent orchestration system that turns wishes (structured plans) into pull requests through autonomous AI agents. The architecture is built around five subsystems that work together.
 
+<Note>
+The codebase uses `worker` internally in some identifiers (e.g., `workerProfiles`, `workers.json`). In these docs, **worker** and **agent** refer to the same concept.
+</Note>
+
 ## High-Level Component Map
 
 ```
@@ -49,7 +53,7 @@ Genie v4 is an agent orchestration system that turns wishes (structured plans) i
 
 | Subsystem | Module | Purpose |
 |-----------|--------|---------|
-| **State** | `wish-state.ts`, `agent-registry.ts`, `mailbox.ts`, `team-manager.ts` | Track wish execution groups, worker lifecycle, message delivery, team configs |
+| **State** | `wish-state.ts`, `agent-registry.ts`, `mailbox.ts`, `team-manager.ts` | Track wish execution groups, agent lifecycle, message delivery, team configs |
 | **Postgres** | `db.ts`, `db-migrations.ts`, `task-service.ts` | Embedded pgserve database — 10 migrations, tasks, boards, projects, agents, sessions, app registry |
 | **Messaging** | `nats-client.ts`, `protocol-router.ts`, `claude-native-teams.ts` | Real-time pub/sub, provider-agnostic routing, Claude Code native IPC bridge |
 | **Scheduler** | `scheduler-daemon.ts`, `cron.ts` | Cron-based trigger firing, lease-based claiming, heartbeat collection |
@@ -86,12 +90,12 @@ Genie state is intentionally distributed across four scopes:
 
 | Scope | Location | What Lives Here |
 |-------|----------|-----------------|
-| **Global** | `~/.genie/` | Worker registry, team configs, sessions, pgserve data |
+| **Global** | `~/.genie/` | Agent registry, team configs, sessions, pgserve data |
 | **Per-repo** | `<repo>/.genie/` | Wish state, mailbox, team chat |
 | **Per-worktree** | `<worktree>/.genie/` | Team chat (worktree-specific) |
 | **Claude native** | `~/.claude/teams/` | Native team configs, inbox messages |
 
-Worktrees share the main repo's `.genie/` via `git rev-parse --git-common-dir`. The worker registry is global, not per-worktree.
+Worktrees share the main repo's `.genie/` via `git rev-parse --git-common-dir`. The agent registry is global, not per-worktree.
 
 ## Environment Variables
 
@@ -103,5 +107,5 @@ Worktrees share the main repo's `.genie/` via `git rev-parse --git-common-dir`. 
 | `GENIE_NATS_URL` | NATS server URL (default: `nats://localhost:4222`) |
 | `GENIE_PG_PORT` | pgserve port (default: `19642`) |
 | `GENIE_MAX_CONCURRENT` | Max concurrent scheduler runs (default: `5`) |
-| `GENIE_IDLE_TIMEOUT_MS` | Auto-suspend idle workers after N ms |
+| `GENIE_IDLE_TIMEOUT_MS` | Auto-suspend idle agents after N ms |
 | `CLAUDECODE=1` | Enables Claude Code features in team-lead |

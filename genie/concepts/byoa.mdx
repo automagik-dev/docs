@@ -37,7 +37,7 @@ Today, Genie ships with built-in adapters for **Claude Code** and **Codex**. But
 
 ## The `--provider` Flag
 
-Every `genie spawn` command accepts a `--provider` flag that selects which AI agent backs the worker:
+Every `genie spawn` command accepts a `--provider` flag that selects which AI provider backs the agent:
 
 ```bash
 genie spawn <role> --provider <provider>
@@ -84,7 +84,7 @@ Genie normalizes the interface, but each provider has its own capabilities:
 
 Regardless of provider, Genie handles:
 
-- **Worker registry** — all agents tracked in PostgreSQL
+- **Agent registry** — all agents tracked in PostgreSQL
 - **Messaging** — `genie send` works the same for any provider
 - **Team chat** — broadcast messages reach all agents regardless of provider
 - **Task dispatch** — wish execution groups are provider-agnostic
@@ -98,7 +98,7 @@ When Genie spawns an agent, it saves a **template** — a snapshot of the spawn 
 ### How It Works
 
 1. **Spawn** — You run `genie spawn engineer --provider codex --team auth-fix`
-2. **Template saved** — Genie stores the spawn config in the worker registry:
+2. **Template saved** — Genie stores the spawn config in the agent registry:
 
 ```json
 {
@@ -120,7 +120,7 @@ When Genie spawns an agent, it saves a **template** — a snapshot of the spawn 
 
 When a message targets an offline agent, the auto-spawn handler:
 
-1. Checks the worker registry for a live tmux pane — skips if the agent is alive
+1. Checks the agent registry for a live tmux pane — skips if the agent is alive
 2. Looks up the agent in the directory for identity resolution
 3. Searches saved templates by name, ID, or role within the team
 4. Spawns using the matched template's provider and configuration
@@ -172,7 +172,7 @@ reviewer    idle      %43    claude     sonnet    api-redesign
 
 **Benefit:** Each agent uses the tool best suited to its role. The team-lead reasons about architecture with Opus, engineers iterate quickly with Codex, and the reviewer catches issues with Sonnet.
 
-**Trade-off:** Mixed providers mean mixed capabilities — Codex workers won't have Claude's native team integration features like session resume.
+**Trade-off:** Mixed providers mean mixed capabilities — Codex agents won't have Claude's native team integration features like session resume.
 
 **When to use:** Teams with diverse task types — architecture + implementation + review in the same wish.
 
@@ -240,7 +240,7 @@ The adapter handles:
 - **Environment setup** — setting `GENIE_AGENT_NAME`, `GENIE_TEAM`, etc.
 - **Preflight checks** — verifying the provider binary exists on PATH
 
-Genie owns everything else: worker registry, messaging, team state, task dispatch, worktree management, and lifecycle commands. The provider is just the process that runs inside the tmux pane.
+Genie owns everything else: agent registry, messaging, team state, task dispatch, worktree management, and lifecycle commands. The provider is just the process that runs inside the tmux pane.
 
 ## Adding a New Provider
 

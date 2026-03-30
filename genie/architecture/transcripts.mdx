@@ -148,7 +148,7 @@ Thread metadata lives in a SQLite database at `~/.codex/state_5.sqlite`. The `th
 
 Discovery follows a two-step strategy:
 
-1. **SQLite lookup** — query `threads` table for the most recent rollout matching the worker's CWD
+1. **SQLite lookup** — query `threads` table for the most recent rollout matching the agent's CWD
 2. **Directory scan** — if SQLite is unavailable or stale, scan session directories by date
 
 ```typescript

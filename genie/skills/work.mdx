@@ -18,7 +18,7 @@ Orchestrate execution of an approved wish. The orchestrator never executes direc
 1. **Load wish** — read `.genie/wishes/<slug>/WISH.md`, confirm scope.
 2. **Pick next task** — select next unblocked pending execution group.
 3. **Self-refine** — dispatch `/refine` on the task prompt with WISH.md as context.
-4. **Dispatch worker** — send the task to a fresh subagent session.
+4. **Dispatch agent** — send the task to a fresh subagent session.
 5. **Local review** — run `/review` per group against acceptance criteria. On FIX-FIRST, dispatch fix subagent (max 2 loops).
 6. **Quality review** — dispatch review subagent for quality pass (security, maintainability, perf).
 7. **Validate** — run the group validation command, record evidence.
@@ -39,9 +39,9 @@ All dispatch uses the `genie spawn` command:
 
 ## State Management
 
-- **Workers signal** completion via `genie send` to the leader.
+- **Agents signal** completion via `genie send` to the leader.
 - **Leader tracks** state via `genie status <slug>` and marks groups complete via `genie done <ref>`.
-- Workers do NOT call `genie done` — that is the leader's responsibility.
+- Agents do NOT call `genie done` — that is the leader's responsibility.
 - If a group gets stuck, the leader can use `genie reset <ref>` to retry.
 
 ## Escalation
@@ -71,6 +71,6 @@ Task integration is graceful — if no PG task exists, the work flow proceeds wi
 - Never execute directly — always dispatch subagents
 - Never expand scope during execution
 - Never skip validation commands
-- Never overwrite WISH.md from workers
+- Never overwrite WISH.md from agents
 - Keep work auditable: capture commands + outcomes
 - Run local `/review` per group before signaling done

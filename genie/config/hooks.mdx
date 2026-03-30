@@ -52,7 +52,7 @@ The agent name comes from `GENIE_AGENT_NAME` environment variable, set automatic
 When an agent sends a message to a recipient that doesn't have a live tmux pane, this handler respawns them from their saved template.
 
 Resolution order:
-1. Check worker registry for live pane → skip if alive
+1. Check agent registry for live pane → skip if alive
 2. Check agent directory for recipient identity
 3. Check saved spawn templates → spawn from template
 
