@@ -1,11 +1,11 @@
 ---
 title: "/dream"
-description: "Batch-execute SHIP-ready wishes overnight — pick wishes, orchestrate workers, review PRs, wake up to results."
+description: "Batch-execute SHIP-ready wishes overnight — pick wishes, orchestrate agents, review PRs, wake up to results."
 ---
 
 # /dream — Overnight Batch Execution
 
-Pick SHIP-ready wishes, build a dependency-ordered execution plan, spawn parallel workers, review PRs, merge to dev, run QA loop, produce a wake-up report.
+Pick SHIP-ready wishes, build a dependency-ordered execution plan, spawn parallel agents, review PRs, merge to dev, run QA loop, produce a wake-up report.
 
 ## When to Use
 
@@ -17,7 +17,7 @@ Pick SHIP-ready wishes, build a dependency-ordered execution plan, spawn paralle
 1. **Pick wishes** from `.genie/brainstorm.md`.
 2. **Generate DREAM.md** with dependency-ordered execution plan.
 3. **Human confirms** DREAM.md (may edit before run).
-4. **Phase 1 — Execute:** dispatch workers per wish via `genie work`.
+4. **Phase 1 — Execute:** dispatch agents per wish via `genie work`.
 5. **Phase 2 — Review + PR:** review each group, create PRs, fix valid issues, CI green.
 6. **Phase 3 — Merge + QA:** merge to dev, spawn QA, test against wish criteria.
 7. **Phase 4 — Report:** write `DREAM-REPORT.md` as the wake-up artifact.
@@ -41,9 +41,9 @@ For each selected wish:
 ### Phase 1: Execute
 
 - Create team: `genie team create dream-<date>`
-- Dispatch workers via `genie work <agent> <slug>#<group>`
+- Dispatch agents via `genie work <agent> <slug>#<group>`
 - Monitor via `genie status <slug>`
-- Workers signal completion via `genie send`
+- Agents signal completion via `genie send`
 
 ### Phase 2: Review + PR
 

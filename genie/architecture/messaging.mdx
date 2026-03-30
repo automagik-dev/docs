@@ -50,7 +50,7 @@ const handlers = [
 
 ## Protocol Router
 
-The protocol router (`protocol-router.ts`) is provider-agnostic. It routes messages between workers regardless of whether they are backed by Claude or Codex.
+The protocol router (`protocol-router.ts`) is provider-agnostic. It routes messages between agents regardless of whether they are backed by Claude or Codex.
 
 ### Resolution Order
 
@@ -87,7 +87,7 @@ genie send "fix the bug" --to engineer
     └────┬────┘
          │ Yes
     ┌────┴────┐
-    │Is worker│──No──→ Queue for later delivery
+    │Is agent │──No──→ Queue for later delivery
     │  idle?  │
     └────┬────┘
          │ Yes
@@ -102,13 +102,13 @@ genie send "fix the bug" --to engineer
 When a message targets an offline agent that exists in the directory or has a saved spawn template, the router automatically spawns a new instance:
 
 - Spawn from saved template (provider, team, role, skill, cwd)
-- Wait up to 15 seconds for the worker to reach idle state
+- Wait up to 15 seconds for the agent to reach idle state
 - Poll every 1 second for pane readiness
 - Deliver message once idle, or queue if timeout expires
 
 ## Claude Code Native Teams
 
-The native teams bridge (`claude-native-teams.ts`) connects Genie's team/worker system with Claude Code's internal teammate IPC protocol.
+The native teams bridge (`claude-native-teams.ts`) connects Genie's team/agent system with Claude Code's internal teammate IPC protocol.
 
 ### What Native Teams Provide
 
@@ -136,7 +136,7 @@ The native teams bridge (`claude-native-teams.ts`) connects Genie's team/worker 
 
 ### Member Registration
 
-When a worker joins a team with native teams enabled, it is registered in the team's `config.json`:
+When an agent joins a team with native teams enabled, it is registered in the team's `config.json`:
 
 ```typescript
 interface NativeTeamMember {
@@ -164,7 +164,7 @@ This ensures messages arrive even if one delivery mechanism is unavailable.
 
 ## Event Aggregator
 
-The event aggregator (`event-aggregator.ts`) subscribes to the normalized event stream and maintains per-worker dashboard state:
+The event aggregator (`event-aggregator.ts`) subscribes to the normalized event stream and maintains per-agent dashboard state:
 
 ```typescript
 interface WorkerDashboardState {
@@ -177,4 +177,4 @@ interface WorkerDashboardState {
 }
 ```
 
-When the event stream is unavailable, the aggregator falls back to building state from the worker registry.
+When the event stream is unavailable, the aggregator falls back to building state from the agent registry.
