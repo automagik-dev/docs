@@ -87,18 +87,30 @@ Broadcast to team "auth-rewrite":
 
 ## `genie inbox`
 
+Check agent inbox for recent messages.
+
+### `genie inbox list`
+
 List conversations with recent messages.
 
 ```bash
-genie inbox
+genie inbox list [options] [agent]
 ```
 
 ```bash Terminal
-$ genie inbox
+$ genie inbox list
 CONVERSATION          LAST MESSAGE                              TIME
 DM: team-lead        "Group 2 ready for review"                2m ago
 DM: engineer          "Starting Group 3 implementation"         5m ago
 Team: auth-rewrite    "Wave 1 complete. Starting Wave 2."       8m ago
+```
+
+### `genie inbox watch`
+
+Watch for new messages in real-time.
+
+```bash
+genie inbox watch
 ```
 
 ## `genie chat`
@@ -108,7 +120,13 @@ Send to a specific conversation, create threads, or list conversations.
 ### Send to conversation
 
 ```bash
-genie chat <conversation_id> '<message>'
+genie chat send <conversationId> '<message>'
+```
+
+### Read messages in a conversation
+
+```bash
+genie chat read [options] <conversationId>
 ```
 
 ### Create a thread
