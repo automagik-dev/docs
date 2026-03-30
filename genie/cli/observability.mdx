@@ -205,15 +205,13 @@ Full-text search across session content.
 genie sessions search <query> [--limit <n>] [--json]
 ```
 
-### `genie sessions ingest`
+### `genie sessions sync`
 
-Manual batch import of JSONL session files.
+Sync session data from JSONL files into PostgreSQL.
 
 ```bash
-genie sessions ingest [--backfill]
+genie sessions sync
 ```
-
-The `--backfill` flag imports all existing JSONL files that haven't been ingested yet.
 
 ---
 

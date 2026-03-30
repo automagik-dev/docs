@@ -151,10 +151,12 @@ omni auth recover
 
 ## `omni settings`
 
-Server-level settings.
+Server-level settings management.
 
 ```bash
-omni settings                           # View server settings
+omni settings list [options]            # List all server settings
+omni settings get <key>                 # Get a specific setting
+omni settings set [options] <key> <value>  # Set a setting value
 ```
 
 ---
