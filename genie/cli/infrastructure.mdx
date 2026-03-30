@@ -1,12 +1,12 @@
 ---
 title: "Infrastructure"
 sidebarTitle: "Infrastructure"
-description: "Setup, diagnostics, updates, database management, and terminal shortcuts."
+description: "Setup, TUI, app, serve, diagnostics, updates, database management, and terminal shortcuts."
 ---
 
 # Infrastructure Commands
 
-Commands for setting up Genie, diagnosing issues, updating, database management, and configuring terminal shortcuts.
+Commands for setting up Genie, launching the TUI and desktop app, managing services, diagnosing issues, updating, database management, and configuring terminal shortcuts.
 
 ## `genie tui`
 
@@ -55,6 +55,33 @@ genie serve status
 
 # Stop all services
 genie serve stop
+```
+
+---
+
+## `genie app`
+
+Launch the Genie desktop app (backend sidecar + views).
+
+```bash
+genie app [options]
+```
+
+| Flag | Description |
+|------|-------------|
+| `--backend-only` | Start only the backend sidecar (IPC on stdin/stdout) |
+| `--tui` | Fall back to terminal UI mode |
+| `--dev` | Development mode |
+
+```bash
+# Launch the desktop app
+genie app
+
+# Start only the backend sidecar
+genie app --backend-only
+
+# Fall back to TUI mode
+genie app --tui
 ```
 
 ---

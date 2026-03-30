@@ -173,6 +173,52 @@ omni update     # Update CLI to latest version
 
 ---
 
+## `omni logs`
+
+View system logs. This is a hidden debug command (visible with `--all`).
+
+```bash
+omni logs [options] [level]
+```
+
+| Argument | Description |
+|----------|-------------|
+| `level` | Log level filter: `debug`, `info`, `warn`, `error` |
+
+| Option | Description |
+|--------|-------------|
+| `--modules <modules>` | Comma-separated module names to filter |
+| `--limit <n>` | Limit results (default: `100`) |
+| `--process [service]` | Stream PM2 process logs (default: `api`) |
+| `--follow` | Stream live logs (only with `--process`) |
+
+```bash
+omni logs error --limit 50
+omni logs --process api --follow
+omni logs warn --modules webhook,agent
+```
+
+---
+
+## `omni completions`
+
+Generate shell completions for the Omni CLI.
+
+```bash
+omni completions [shell]
+```
+
+| Argument | Description |
+|----------|-------------|
+| `shell` | Shell type: `bash`, `zsh`, `fish` |
+
+```bash
+omni completions bash >> ~/.bashrc
+omni completions zsh >> ~/.zshrc
+```
+
+---
+
 ## Global Flags
 
 These flags work with any command:

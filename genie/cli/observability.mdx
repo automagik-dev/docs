@@ -1,12 +1,12 @@
 ---
 title: "Observability"
 sidebarTitle: "Observability"
-description: "Events, sessions, metrics, schedules, and QA — monitor everything happening in your Genie system"
+description: "Events, sessions, metrics, schedules, QA, log feed, and brief — monitor everything happening in your Genie system"
 ---
 
 # Observability Commands
 
-Genie provides five command groups for observability: `events` for the audit log, `sessions` for Claude Code session history, `metrics` for machine state, `schedule` for cron triggers, and `qa` for self-testing.
+Genie provides seven command groups for observability: `events` for the audit log, `sessions` for Claude Code session history, `metrics` for machine state, `schedule` for cron triggers, `qa` for self-testing, `log` for a unified real-time feed, and `brief` for session startup context.
 
 ## Events
 
@@ -95,6 +95,18 @@ High-level stats: agents spawned, tasks moved, costs, errors.
 genie events summary [--today] [--since <duration>] [--json]
 ```
 
+### `genie events scan`
+
+Full server cost scan via ccusage. Scans all Claude Code sessions on the machine, not just genie-spawned ones.
+
+```bash
+genie events scan [options]
+```
+
+```bash
+genie events scan
+```
+
 ---
 
 ## Log
@@ -130,28 +142,30 @@ genie log --team auth-rewrite --last 20
 genie log engineer --type tool_call --ndjson -f
 ```
 
-### `genie events scan`
+---
 
-Full server cost scan via ccusage — covers all Claude Code sessions, not just genie-spawned ones.
+## Brief
+
+`genie brief` shows an aggregated startup brief with context since the last session — useful for agents resuming work or operators reviewing what happened overnight.
+
+### `genie brief`
 
 ```bash
-genie events scan [options]
+genie brief [options]
 ```
 
-```bash
-genie events scan
-```
-
-### `genie qa check`
-
-Evaluate a QA spec against current team logs and publish a qa-report.
+| Option | Description |
+|--------|-------------|
+| `--team <name>` | Team name (default: `GENIE_TEAM` env var) |
+| `--agent <name>` | Agent name (default: `GENIE_AGENT_NAME` env var) |
+| `--since <iso>` | Start timestamp (default: last executor end) |
 
 ```bash
-genie qa check <specFile> [options]
-```
+# Show brief for the current agent
+genie brief
 
-```bash
-genie qa check specs/messaging.yaml
+# Show brief for a specific team since midnight
+genie brief --team auth-rewrite --since 2026-03-30T00:00:00Z
 ```
 
 ---
@@ -307,4 +321,24 @@ Show recent QA runs.
 
 ```bash
 genie qa history
+```
+
+### `genie qa check`
+
+Evaluate a QA spec against current team logs and publish a qa-report.
+
+```bash
+genie qa check <specFile> [options]
+```
+
+```bash
+genie qa check specs/messaging.yaml
+```
+
+### `genie qa-report`
+
+Publish a QA result to the PostgreSQL event log. Called internally by the QA team-lead.
+
+```bash
+genie qa-report <json>
 ```
