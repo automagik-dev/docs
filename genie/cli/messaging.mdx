@@ -53,14 +53,23 @@ Thread: #msg-201      thread  3          20m ago
 Send a direct message to a specific agent via PG conversation.
 
 ```bash
-genie send '<message>' --to <name>
+genie send '<message>' [options]
 ```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--to <agent>` | Recipient agent name | `team-lead` |
+| `--from <sender>` | Sender ID (auto-detected from context) | — |
+| `--team <name>` | Explicit team context for sender/recipient resolution | — |
 
 ```bash Terminal
 $ genie send 'Group 1 complete — all criteria met' --to team-lead
 Message sent to team-lead.
   Conversation: DM with team-lead
   Timestamp: 2026-03-24T14:30:00Z
+
+$ genie send 'Starting wave 2' --to engineer --from reviewer --team auth-rewrite
+Message sent to engineer.
 ```
 
 ### Sender Identity Detection
@@ -76,14 +85,24 @@ The sender is auto-detected using this cascade:
 Send a message to the team conversation.
 
 ```bash
-genie broadcast '<message>'
+genie broadcast '<message>' [options]
 ```
+
+| Flag | Description |
+|------|-------------|
+| `--from <sender>` | Sender ID (auto-detected from context) |
+| `--team <name>` | Team name (auto-detected from context) |
 
 ```bash Terminal
 $ genie broadcast 'Wave 1 complete. Starting Wave 2.'
 Broadcast to team "auth-rewrite":
   Message: Wave 1 complete. Starting Wave 2.
   Recipients: team-lead, engineer, reviewer
+
+$ genie broadcast 'Deploying hotfix' --team auth-rewrite --from team-lead
+Broadcast to team "auth-rewrite":
+  Message: Deploying hotfix
+  Recipients: engineer, reviewer, fixer
 ```
 
 ## `genie inbox`

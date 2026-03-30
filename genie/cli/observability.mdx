@@ -97,6 +97,65 @@ genie events summary [--today] [--since <duration>] [--json]
 
 ---
 
+## Log
+
+The `genie log` command provides a unified observability feed that aggregates transcripts, DMs, team chat, tool calls, and system events into a single stream.
+
+### `genie log`
+
+Unified observability feed for an agent or team.
+
+```bash
+genie log [agent] [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--team <name>` | Show interleaved feed for all agents in a team |
+| `--type <kind>` | Filter by event kind: `transcript`, `message`, `tool_call`, `state`, `system` |
+| `--since <timestamp>` | Only events after ISO timestamp |
+| `--last <n>` | Show last N events |
+| `--ndjson` | Output as newline-delimited JSON (pipeable to jq) |
+| `--json` | Output as pretty JSON |
+| `-f, --follow` | Follow mode — real-time streaming |
+
+```bash
+# Follow an agent's live feed
+genie log engineer -f
+
+# Show last 20 events for the whole team
+genie log --team auth-rewrite --last 20
+
+# Stream tool calls as NDJSON
+genie log engineer --type tool_call --ndjson -f
+```
+
+### `genie events scan`
+
+Full server cost scan via ccusage — covers all Claude Code sessions, not just genie-spawned ones.
+
+```bash
+genie events scan [options]
+```
+
+```bash
+genie events scan
+```
+
+### `genie qa check`
+
+Evaluate a QA spec against current team logs and publish a qa-report.
+
+```bash
+genie qa check <specFile> [options]
+```
+
+```bash
+genie qa check specs/messaging.yaml
+```
+
+---
+
 ## Sessions
 
 The `genie sessions` command group provides history and search across Claude Code sessions. Session metadata and content are stored in PostgreSQL.

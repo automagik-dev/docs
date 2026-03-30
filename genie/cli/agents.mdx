@@ -195,10 +195,10 @@ Session Summary for engineer (compressed):
 | `--full` | Full conversation (not compressed) |
 | `--since <n>` | Last N user/assistant exchanges |
 | `--last <n>` | Last N transcript entries |
-| `--type <role>` | Filter by role (user, assistant, tool) |
+| `--type <role>` | Filter by role (`user`, `assistant`, `tool_call`) |
 | `--after <timestamp>` | Only entries after ISO timestamp |
-| `--raw` | Raw transcript output (no formatting) |
-| `--log-file <path>` | Read from a specific log file |
+| `--raw` | Output raw JSONL entries (no formatting) |
+| `--log-file <path>` | Direct path to log file |
 | `--json` | JSON output |
 | `--ndjson` | Newline-delimited JSON (pipeable to jq) |
 
@@ -214,12 +214,13 @@ genie read <agent> [options]
 
 | Flag | Description |
 |------|-------------|
+| `-n, --lines <number>` | Number of lines to read |
 | `--from <line>` | Start from line number |
 | `--to <line>` | End at line number |
 | `--range <range>` | Line range (e.g., `10-50`) |
 | `--search <text>` | Search for text in transcript |
 | `--grep <pattern>` | Grep with regex pattern |
-| `-f, --follow` | Follow mode -- stream new output |
+| `-f, --follow` | Follow mode — stream new output |
 | `--all` | Show full transcript (not truncated) |
 | `-r, --reverse` | Show newest entries first |
 | `--json` | Output as JSON |

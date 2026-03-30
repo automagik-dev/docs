@@ -50,3 +50,57 @@ genie db query "SELECT name, item_type, version FROM app_store"
 <Warning>
 This runs raw SQL against the Genie database. Write queries (`INSERT`, `UPDATE`, `DELETE`) will modify data directly — use with care.
 </Warning>
+
+## `genie db backup`
+
+Dump the database to a compressed snapshot file.
+
+```bash
+genie db backup
+```
+
+Creates a backup at `~/.genie/snapshot.sql.gz`.
+
+```bash
+$ genie db backup
+Dumping database to ~/.genie/snapshot.sql.gz...
+  ✅ Backup complete (2.3 MB)
+```
+
+## `genie db restore`
+
+Restore the database from a backup snapshot.
+
+```bash
+genie db restore [file]
+```
+
+If no file is specified, restores from the default `~/.genie/snapshot.sql.gz`.
+
+```bash
+# Restore from default snapshot
+genie db restore
+
+# Restore from a specific file
+genie db restore ~/backups/genie-2026-03-30.sql.gz
+```
+
+<Warning>
+This replaces the current database contents with the snapshot data. Make sure to back up first if you have unsaved state.
+</Warning>
+
+## `genie db url`
+
+Print the PostgreSQL connection URL for direct access with external tools.
+
+```bash
+genie db url [options]
+```
+
+```bash
+$ genie db url
+postgresql://genie:genie@localhost:19642/genie
+
+# Use with psql
+psql $(genie db url)
+```
