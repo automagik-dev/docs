@@ -9,7 +9,7 @@ The scheduler daemon is the background process that claims and fires triggers fr
 
 ## Architecture
 
-```
+```text
 ┌──────────────────────────────────────────────────┐
 │                Scheduler Daemon                  │
 │                                                  │
@@ -84,7 +84,7 @@ CREATE UNIQUE INDEX idx_triggers_idempotency
 
 ### State Flow
 
-```
+```text
 pending → executing → completed
                   ↓
                failed
@@ -96,7 +96,7 @@ pending → executing → completed
 
 The cron parser supports standard 5-field expressions with extensions:
 
-```
+```text
 ┌───────────── minute (0-59)
 │ ┌─────────── hour (0-23)
 │ │ ┌───────── day of month (1-31)

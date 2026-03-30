@@ -9,7 +9,7 @@ Genie reads agent conversation logs from both Claude Code and Codex through a un
 
 ## Architecture
 
-```
+```text
 genie read engineer --last 10
          │
          ▼
@@ -65,7 +65,7 @@ interface TranscriptEntry {
 
 Transcripts support three filter dimensions, applied in order:
 
-```
+```text
 since → roles → last
 ```
 
@@ -91,12 +91,12 @@ const entries = await readTranscript(worker, {
 
 Claude Code stores logs in a project-scoped directory:
 
-```
+```text
 ~/.claude/projects/<project-hash>/<session-uuid>.jsonl
 ```
 
 The project hash is derived from the workspace path with slashes replaced by dashes:
-```
+```text
 /home/genie/workspace/myproject → -home-genie-workspace-myproject
 ```
 
@@ -138,7 +138,7 @@ The transcript parser extracts these into separate `tool_call` entries.
 
 Codex stores session logs in a date-hierarchical directory:
 
-```
+```text
 ~/.codex/sessions/<YYYY>/<MM>/<DD>/rollout-<timestamp>-<uuid>.jsonl
 ```
 

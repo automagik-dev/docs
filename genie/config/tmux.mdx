@@ -9,7 +9,7 @@ tmux is the transport layer for all Genie agents. Every spawned agent runs in a 
 
 ## Session Architecture
 
-```
+```text
 tmux session: "genie" (or team-specific name)
 ├── window: "shell"          # Default interactive window
 ├── window: "team-lead"      # Team leader agent
@@ -101,7 +101,7 @@ When `session.autoCreate` is `true` (default), Genie automatically creates the t
 
 Each team gets its own tmux session (or window group). The session name is derived from the sanitized team name:
 
-```
+```text
 Team: feat/auth-fix → Session: feat-auth-fix
 ```
 
@@ -126,7 +126,7 @@ Install shortcuts with `genie setup --shortcuts` or `genie shortcuts install`.
 
 For teams with multiple agents, Genie supports a mosaic layout that tiles all agent panes in a single view:
 
-```
+```text
 ┌──────────────────┬──────────────────┐
 │   team-lead      │   engineer       │
 │                  │                  │

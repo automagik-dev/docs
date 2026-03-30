@@ -19,7 +19,7 @@ A known bug in Claude Code can flip `core.bare=true` on the parent repository vi
 
 ### How It Works
 
-```
+```text
 genie team create auth-fix --repo /home/user/myproject --wish auth-bug
          │
          ▼
@@ -38,7 +38,7 @@ genie team create auth-fix --repo /home/user/myproject --wish auth-bug
 
 ## Directory Structure
 
-```
+```text
 ~/.genie/worktrees/
 └── <repo-name>/
     └── <team-name>/          # Full clone, shared objects
@@ -83,7 +83,7 @@ export GENIE_HOME=/data/genie
 
 When a team is created, the worktree path is computed as:
 
-```
+```text
 <worktreeBase>/<repo-basename>/<team-name>
 ```
 
