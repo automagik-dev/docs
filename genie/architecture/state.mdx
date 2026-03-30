@@ -155,8 +155,8 @@ Messages persist to the PostgreSQL `mailbox` table before any push delivery atte
 ```typescript
 interface MailboxMessage {
   id: string;          // Unique message ID
-  from: string;        // Sender agent ID or "operator"
-  to: string;          // Recipient agent ID
+  from: string;        // Sender worker ID or "operator"
+  to: string;          // Recipient worker ID
   body: string;        // Message text
   createdAt: string;   // ISO timestamp
   read: boolean;       // Whether recipient has read this

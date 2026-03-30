@@ -143,7 +143,7 @@ As of v4, Genie's primary state store is an embedded PostgreSQL instance managed
 | Tasks, stages, dependencies | PostgreSQL `tasks`, `task_dependencies`, `task_stage_log` | Full lifecycle with audit trail |
 | Boards and pipelines | PostgreSQL `boards`, `board_templates` | Project-scoped column pipelines |
 | Projects | PostgreSQL `projects` | Named task boards |
-| Agents | PostgreSQL `agents`, `agent_templates` | Replaces `~/.genie/workers.json` |
+| Agents (workers) | PostgreSQL `agents`, `agent_templates` | Replaces `~/.genie/workers.json` |
 | Teams | PostgreSQL `teams` | Replaces `~/.genie/teams/*.json` |
 | Mailbox | PostgreSQL `mailbox` | Replaces `.genie/mailbox/*.json` |
 | Team chat | PostgreSQL `team_chat` | Replaces `.genie/chat/*.jsonl` |
