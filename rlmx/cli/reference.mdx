@@ -1,0 +1,353 @@
+---
+title: "CLI Reference"
+sidebarTitle: "CLI Reference"
+description: "Complete reference for all RLMX commands, flags, and output modes."
+---
+
+# CLI Reference
+
+## `rlmx "query"`
+
+Run an RLM query against a context.
+
+```bash
+rlmx "query" [options]
+```
+
+The default command. Loads context into a Python REPL, then iterates with the LLM until it produces a final answer.
+
+### Options
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--context <path>` | string | — | Path to context directory or file |
+| `--output <mode>` | string | `text` | Output mode: `text`, `json`, or `stream` |
+| `--verbose` | boolean | `false` | Show iteration progress on stderr |
+| `--max-iterations <n>` | number | `30` | Maximum RLM iterations before forced termination |
+| `--timeout <ms>` | number | `300000` | Timeout in milliseconds (5 minutes) |
+| `--stats` | boolean | `false` | Emit JSON stats to stderr (or include in `--output json`) |
+| `--log <path>` | string | — | Write structured JSONL log to file |
+| `--tools <level>` | string | `core` | Tool level: `core`, `standard`, or `full` |
+| `--max-cost <n>` | number | — | Maximum USD spend per run |
+| `--max-tokens <n>` | number | — | Maximum total tokens per run |
+| `--max-depth <n>` | number | — | Maximum recursive `rlm_query` depth |
+| `--ext <list>` | string | `.md` | File extensions for context dirs (comma-separated) |
+| `--thinking <level>` | string | — | Thinking level: `minimal`, `low`, `medium`, `high` (Gemini only) |
+| `--cache` | boolean | `false` | Enable CAG mode (full context cached in system prompt) |
+
+### Context loading
+
+| Input | Behavior |
+|-------|----------|
+| `--context dir/` | Recursively reads files matching `--ext` as `list[{path, content}]` |
+| `--context file.md` | Reads as single string |
+| `--context file.json` | Parses JSON as dict or list |
+| stdin pipe | Reads as single string |
+
+### Examples
+
+```bash
+# Basic query with directory context
+rlmx "How does IPC work?" --context ./docs/
+
+# JSON output with stats
+rlmx "Summarize this" --context paper.md --output json --stats
+
+# Code analysis with extended file types
+rlmx "Analyze code" --context ./src/ --tools full --ext .ts,.js
+
+# Budget-limited query
+rlmx "Quick question" --max-cost 0.10 --max-tokens 5000
+
+# Piped input with logging
+echo "data" | rlmx "Analyze this" --log run.jsonl
+
+# CAG mode for repeated queries
+rlmx "First question" --context ./docs/ --cache
+rlmx "Follow-up question" --context ./docs/ --cache
+
+# Gemini thinking mode
+rlmx "Complex analysis" --context ./src/ --thinking high
+```
+
+### Output formats
+
+<CodeGroup>
+```json JSON output (--output json)
+{
+  "answer": "The answer to your query...",
+  "references": ["docs/start/create-project.md", "docs/concept/ipc.md"],
+  "usage": {
+    "inputTokens": 12500,
+    "outputTokens": 3200,
+    "llmCalls": 5
+  },
+  "iterations": 3,
+  "model": "google/gemini-3.1-flash-lite-preview"
+}
+```
+
+```jsonl Stream output (--output stream)
+{"type":"iteration","index":1,"code":"context_files = [c['path'] for c in context]...","result":"['src/auth.ts', ...]"}
+{"type":"iteration","index":2,"code":"auth_code = [c for c in context if 'auth' in c['path']]...","result":"..."}
+{"type":"final","answer":"Authentication uses JWT tokens...","iterations":2}
+```
+</CodeGroup>
+
+---
+
+## `rlmx init`
+
+Scaffold a new `rlmx.yaml` config file in the current directory.
+
+```bash
+rlmx init [--dir <path>]
+```
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--dir <path>` | string | `.` (cwd) | Directory to scaffold in |
+
+Creates a fully commented `rlmx.yaml` with sensible defaults. Idempotent — skips creation if the file already exists.
+
+<Tip>
+  You can skip `rlmx init` entirely. RLMX auto-scaffolds on first query if no config is found.
+</Tip>
+
+### Example
+
+```bash
+# Scaffold in current directory
+rlmx init
+
+# Scaffold in a specific directory
+rlmx init --dir ./my-project
+```
+
+---
+
+## `rlmx cache`
+
+Pre-warm the provider cache or estimate context size and costs.
+
+```bash
+rlmx cache [options]
+```
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--context <path>` | string | — | Path to context directory or file |
+| `--estimate` | boolean | `false` | Show cost estimate without making LLM calls |
+| `--ext <list>` | string | `.md` | File extensions for context dirs |
+
+### Examples
+
+```bash
+# Estimate cache costs (no LLM calls)
+rlmx cache --context ./docs/ --estimate
+
+# Warm the provider cache
+rlmx cache --context ./docs/
+
+# Estimate with custom extensions
+rlmx cache --context ./src/ --ext .ts,.js --estimate
+```
+
+### Estimate output
+
+The `--estimate` flag shows token counts, provider limits, and cost projections without making any API calls:
+
+```
+Context: ./docs/ (23 files, 145KB)
+Estimated tokens: 43,500
+Provider limit: 1,000,000 (google)
+Cache retention: long
+Estimated first-query cost: $0.003
+Estimated cached-query cost: $0.0003 (90% savings)
+```
+
+---
+
+## `rlmx batch`
+
+Run bulk queries from a questions file against cached context.
+
+```bash
+rlmx batch <file> [options]
+```
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--context <path>` | string | — | Path to context directory or file |
+| `--max-iterations <n>` | number | `30` | Maximum RLM iterations per question |
+| `--max-cost <n>` | number | — | Maximum total USD spend across all questions |
+| `--parallel <n>` | number | `1` | Concurrent questions |
+| `--batch-api` | boolean | `false` | Use Gemini Batch API for 50% cost reduction |
+| `--output <mode>` | string | — | Output mode |
+| `--verbose` | boolean | `false` | Show progress |
+
+Cache is always enabled for batch mode. See [Batch Mode](/rlmx/batch) for full details.
+
+### Example
+
+```bash
+# Run questions from a file
+rlmx batch questions.txt --context ./docs/
+
+# With budget cap
+rlmx batch questions.txt --context ./src/ --max-cost 1.00
+
+# Low iteration count for quick answers
+rlmx batch questions.txt --context ./docs/ --max-iterations 3
+```
+
+---
+
+## `rlmx config`
+
+Manage global settings stored at `~/.rlmx/settings.json`.
+
+### `rlmx config set`
+
+```bash
+rlmx config set <key> <value>
+```
+
+Set a configuration value. Values are type-coerced: `"true"` becomes boolean, numeric strings become numbers.
+
+```bash
+rlmx config set GEMINI_API_KEY sk-abc123
+rlmx config set model.provider google
+rlmx config set model.model gemini-3.1-flash-lite-preview
+rlmx config set budget.max_cost 0.50
+rlmx config set gemini.thinking_level medium
+```
+
+### `rlmx config get`
+
+```bash
+rlmx config get <key>
+```
+
+Retrieve a setting value. API keys are masked in output.
+
+```bash
+$ rlmx config get model.provider
+google
+```
+
+### `rlmx config list`
+
+```bash
+rlmx config list
+```
+
+Show all configured settings. Sensitive keys (containing `API_KEY`, `SECRET`, `TOKEN`) are masked.
+
+### `rlmx config delete`
+
+```bash
+rlmx config delete <key>
+```
+
+Remove a setting.
+
+### `rlmx config path`
+
+```bash
+rlmx config path
+```
+
+Print the settings file path (`~/.rlmx/settings.json`).
+
+### Common keys
+
+| Key | Description | Example |
+|-----|-------------|---------|
+| `GEMINI_API_KEY` | Google Gemini API key | `AIza...` |
+| `ANTHROPIC_API_KEY` | Anthropic API key | `sk-ant-...` |
+| `OPENAI_API_KEY` | OpenAI API key | `sk-...` |
+| `GROQ_API_KEY` | Groq API key | `gsk_...` |
+| `XAI_API_KEY` | xAI API key | `xai-...` |
+| `OPENROUTER_API_KEY` | OpenRouter API key | `sk-or-...` |
+| `model.provider` | LLM provider | `google`, `anthropic`, `openai` |
+| `model.model` | Model ID | `gemini-3.1-flash-lite-preview` |
+| `model.sub_call_model` | Model for `llm_query()` sub-calls | `gemini-3.1-flash-lite-preview` |
+| `budget.max_cost` | Default max USD per run | `0.50` |
+| `budget.max_tokens` | Default max tokens per run | `100000` |
+| `budget.max_depth` | Default max recursion depth | `3` |
+| `tools_level` | Default tool level | `core`, `standard`, `full` |
+| `cache.retention` | Cache TTL strategy | `short`, `long` |
+| `gemini.thinking_level` | Default thinking level | `minimal`, `low`, `medium`, `high` |
+| `gemini.google_search` | Enable web search battery | `true` |
+| `gemini.code_execution` | Enable server-side Python | `true` |
+
+### Priority order
+
+Settings are resolved in this order (highest priority first):
+
+1. CLI flags (`--max-cost 0.10`)
+2. Project `rlmx.yaml`
+3. Global `~/.rlmx/settings.json`
+4. Hardcoded defaults
+
+---
+
+## Tool levels
+
+The `--tools` flag controls which functions are available in the REPL:
+
+### `core` (default)
+
+Paper-faithful RLM functions:
+
+| Function | Description |
+|----------|-------------|
+| `context` | Injected context variable |
+| `llm_query(prompt)` | Single LLM completion |
+| `llm_query_batched(prompts)` | Concurrent LLM calls |
+| `rlm_query(prompt)` | Recursive child RLM session |
+| `rlm_query_batched(prompts)` | Parallel child RLM sessions |
+| `SHOW_VARS()` | List all REPL variables |
+| `FINAL(answer)` | Terminate with answer string |
+| `FINAL_VAR(name)` | Terminate with variable value |
+
+Plus any custom tools defined in `rlmx.yaml`.
+
+### `standard` (core + batteries)
+
+All core functions plus utility batteries:
+
+| Function | Description |
+|----------|-------------|
+| `describe_context()` | Metadata overview of loaded context |
+| `preview_context()` | Content sample |
+| `search_context(query)` | Semantic search over context |
+| `grep_context(pattern)` | Regex search over context |
+| `chunk_context()` | Split context into chunks |
+| `chunk_text(text)` | Split arbitrary text by size |
+| `map_query(fn, items)` | Distributed LLM calls |
+| `reduce_query(fn, items)` | Aggregation queries |
+
+With Google provider, also includes Gemini batteries:
+
+| Function | Description |
+|----------|-------------|
+| `web_search(query)` | Google web search |
+| `fetch_url(url)` | Fetch and summarize URL content |
+| `generate_image(prompt)` | Image generation |
+
+### `full` (standard + environment)
+
+All standard functions plus auto-injected information about available Python packages and versions in the REPL environment.
+
+---
+
+## Global flags
+
+These flags work with any command:
+
+| Flag | Description |
+|------|-------------|
+| `--help`, `-h` | Show help message |
+| `--version`, `-v` | Show version |

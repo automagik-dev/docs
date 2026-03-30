@@ -1,0 +1,65 @@
+---
+title: "RLMX"
+sidebarTitle: "Overview"
+description: "RLM algorithm CLI for coding agents — prompt externalization, iterative REPL execution, and recursive sub-calls."
+---
+
+# RLMX
+
+RLMX is a CLI research tool that implements the [RLM (REPL-LM) algorithm](https://arxiv.org/abs/2501.12599). It lets LLMs navigate large codebases and document collections programmatically through a persistent Python REPL — instead of stuffing everything into context.
+
+<Note>
+  **Research Preview** — RLMX is experimental. The RLM algorithm is bleeding-edge research. Expect sharp edges. [Tell us on Discord](https://discord.gg/automagik).
+</Note>
+
+## How it works
+
+Traditional RAG retrieves chunks and hopes for the best. RLMX takes a different approach:
+
+1. **Prompt externalization** — Your context (files, directories) is loaded into a Python REPL as the `context` variable. Only metadata appears in the LLM message history. The LLM never sees raw context in its messages.
+
+2. **Iterative REPL loop** — The LLM writes Python code in ` ```repl``` ` blocks. RLMX executes each block in a persistent subprocess, feeds results back, and the LLM iterates until it has the answer.
+
+3. **Recursive sub-calls** — Inside REPL code, the LLM can spawn child queries:
+   - `llm_query(prompt)` — single LLM completion
+   - `llm_query_batched(prompts)` — concurrent LLM calls
+   - `rlm_query(prompt)` — spawn a full child RLM session
+   - `rlm_query_batched(prompts)` — parallel child RLM sessions
+
+4. **Termination** — The loop ends when the LLM calls `FINAL("answer")` or `FINAL_VAR("variable_name")`, or when max iterations is reached.
+
+## Why use RLMX?
+
+| Approach | Context handling | Best for |
+|----------|-----------------|----------|
+| **RAG** | Retrieve chunks, stuff into prompt | Simple Q&A over small docs |
+| **Full context** | Dump everything into system prompt | Small codebases, high cost |
+| **RLMX (RLM)** | LLM navigates programmatically | Large codebases, complex analysis |
+| **RLMX (CAG)** | Cache full context at provider level | Repeated queries, batch Q&A |
+
+RLMX handles codebases and document collections that are too large for a single context window, while keeping costs low through programmatic navigation and provider-level caching.
+
+## Part of the Automagik ecosystem
+
+RLMX works standalone or as part of a [Genie](/genie/index) workflow. Use it as a research tool inside agent sessions, as a batch processor for document interrogation, or as a library in your own tools.
+
+## Requirements
+
+- Node.js >= 18
+- Python 3.10+ (for the REPL subprocess)
+- An LLM API key (Google Gemini, Anthropic, OpenAI, or any [pi/ai](https://github.com/nickarora/pi-ai) provider)
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/rlmx/quickstart">
+    Install, configure, and run your first query in under five minutes.
+  </Card>
+  <Card title="CLI Reference" icon="terminal" href="/rlmx/cli/reference">
+    Every command, flag, and output mode documented.
+  </Card>
+  <Card title="Configuration" icon="gear" href="/rlmx/config">
+    rlmx.yaml format, config commands, and fallback files.
+  </Card>
+  <Card title="Batch Mode" icon="layer-group" href="/rlmx/batch">
+    Bulk interrogation, caching, and cost estimation.
+  </Card>
+</CardGroup>

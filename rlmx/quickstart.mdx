@@ -1,0 +1,169 @@
+---
+title: "Quickstart"
+sidebarTitle: "Quickstart"
+description: "Install RLMX and run your first query in under five minutes."
+---
+
+# Quickstart
+
+Five minutes. One query. Any LLM provider you already use.
+
+<Note>
+  **Research Preview** — RLMX is experimental. The RLM algorithm is from a [recent paper](https://arxiv.org/abs/2501.12599). Things will change. [Tell us on Discord](https://discord.gg/automagik).
+</Note>
+
+<Steps>
+  <Step title="Install RLMX">
+    ```bash
+    npm install -g rlmx
+    ```
+
+    Verify the install:
+
+    ```bash
+    rlmx --version
+    ```
+
+    <Tip>
+      RLMX requires **Node.js >= 18** and **Python 3.10+** (for the REPL subprocess). Make sure both are available on your PATH.
+    </Tip>
+  </Step>
+
+  <Step title="Set your API key">
+    RLMX uses Google Gemini by default. Set your API key:
+
+    ```bash
+    rlmx config set GEMINI_API_KEY your-api-key-here
+    ```
+
+    <CodeGroup>
+    ```bash Google Gemini (default)
+    rlmx config set GEMINI_API_KEY your-key
+    ```
+
+    ```bash Anthropic
+    rlmx config set ANTHROPIC_API_KEY your-key
+    rlmx config set model.provider anthropic
+    rlmx config set model.model claude-sonnet-4-20250514
+    ```
+
+    ```bash OpenAI
+    rlmx config set OPENAI_API_KEY your-key
+    rlmx config set model.provider openai
+    rlmx config set model.model gpt-4o
+    ```
+    </CodeGroup>
+
+    Settings are stored at `~/.rlmx/settings.json` with `0600` permissions.
+  </Step>
+
+  <Step title="Initialize a project">
+    Navigate to your project directory and scaffold a config:
+
+    ```bash
+    rlmx init
+    ```
+
+    This creates an `rlmx.yaml` with sensible defaults and inline comments explaining every option. You can skip this step — RLMX auto-scaffolds on first query if no config exists.
+  </Step>
+
+  <Step title="Run your first query">
+    Point RLMX at some context and ask a question:
+
+    ```bash
+    rlmx "How does authentication work?" --context ./src/
+    ```
+
+    RLMX loads your source files into a Python REPL, then iterates — writing Python code to navigate the context, executing it, and refining until it calls `FINAL()` with the answer.
+
+    <Frame>
+      <CodeGroup>
+```bash Text output (default)
+$ rlmx "How does authentication work?" --context ./src/
+
+Authentication uses JWT tokens issued by the /auth/login endpoint.
+The middleware in src/middleware/auth.ts validates tokens on every
+request and attaches the decoded user to req.user. Refresh tokens
+are stored in HttpOnly cookies with a 7-day expiry.
+```
+
+```bash JSON output
+$ rlmx "How does authentication work?" --context ./src/ --output json
+
+{
+  "answer": "Authentication uses JWT tokens issued by the /auth/login endpoint...",
+  "references": ["src/middleware/auth.ts", "src/routes/auth.ts", "src/utils/jwt.ts"],
+  "usage": { "inputTokens": 12500, "outputTokens": 3200, "llmCalls": 5 },
+  "iterations": 3,
+  "model": "google/gemini-3.1-flash-lite-preview"
+}
+```
+
+```bash Verbose output
+$ rlmx "How does authentication work?" --context ./src/ --verbose
+
+[iter 1] LLM wrote 12 lines of Python... executed in 0.3s
+[iter 2] LLM wrote 8 lines of Python... executed in 0.2s
+[iter 3] FINAL() called — answer ready
+
+Authentication uses JWT tokens issued by the /auth/login endpoint...
+```
+      </CodeGroup>
+    </Frame>
+  </Step>
+
+  <Step title="Try different input modes">
+    RLMX handles directories, files, and piped input:
+
+    ```bash
+    # Directory of docs (recursively loads .md files by default)
+    rlmx "Summarize the API" --context ./docs/
+
+    # Single file
+    rlmx "What are the key findings?" --context paper.md
+
+    # Piped data
+    cat data.csv | rlmx "Analyze this dataset"
+
+    # Custom file extensions
+    rlmx "Review this code" --context ./src/ --ext .ts,.js,.py
+    ```
+  </Step>
+</Steps>
+
+## Output modes
+
+| Mode | Flag | Description |
+|------|------|-------------|
+| **text** | `--output text` (default) | Plain text answer to stdout |
+| **json** | `--output json` | Structured JSON with answer, references, usage stats |
+| **stream** | `--output stream` | JSONL events per iteration, then a final event |
+
+## What just happened?
+
+Under the hood, RLMX:
+
+1. Loaded your files into a persistent Python subprocess as the `context` variable
+2. Sent the LLM a system prompt with metadata about the context (not the content itself)
+3. The LLM wrote Python code to search, filter, and read specific parts of the context
+4. RLMX executed each code block and fed the results back
+5. After a few iterations, the LLM called `FINAL()` with its answer
+
+This is the RLM algorithm — the LLM navigates your code programmatically instead of having it stuffed into the prompt. It's cheaper and scales to larger codebases.
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="CLI Reference" icon="terminal" href="/rlmx/cli/reference">
+    Every command and flag documented.
+  </Card>
+  <Card title="Configuration" icon="gear" href="/rlmx/config">
+    Customize model, tools, caching, and budget limits.
+  </Card>
+  <Card title="Batch Mode" icon="layer-group" href="/rlmx/batch">
+    Run hundreds of questions against cached context.
+  </Card>
+  <Card title="Stuck? Ask on Discord" icon="discord" href="https://discord.gg/automagik">
+    Real humans. Real answers.
+  </Card>
+</CardGroup>
