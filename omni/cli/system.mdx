@@ -129,6 +129,59 @@ omni update     # Update CLI to latest version
 
 ---
 
+## Advanced / Debugging
+
+These commands are hidden from default `omni --help` output (visible via `omni --help --all`). They are useful for troubleshooting, inspecting internals, and automating shell setup.
+
+### `omni completions`
+
+Generate shell completion scripts for tab-completion support.
+
+```bash
+omni completions [shell]   # Shell type: bash, zsh, fish
+```
+
+### `omni dead-letters`
+
+Inspect and manage failed events that could not be processed.
+
+```bash
+omni dead-letters list [options]          # List dead letters
+omni dead-letters get <id>                # Get dead letter details
+omni dead-letters stats                   # Dead letter statistics
+omni dead-letters retry <id>              # Retry processing a dead letter
+omni dead-letters resolve [options] <id>  # Mark as resolved
+omni dead-letters abandon <id>            # Abandon retry attempts
+```
+
+### `omni logs`
+
+View and stream system logs with module and level filtering.
+
+```bash
+omni logs [level]                          # Filter by level: debug, info, warn, error
+omni logs --modules <modules>              # Comma-separated module filter
+omni logs --limit <n>                      # Limit results (default: 100)
+omni logs --process [service]              # Stream PM2 process logs (default: api)
+omni logs --process api --follow           # Stream live logs
+```
+
+### `omni payloads`
+
+Inspect raw event payloads at each processing stage — useful for debugging event pipeline issues.
+
+```bash
+omni payloads list <eventId>                # List payloads for an event
+omni payloads get <eventId> <stage>         # Get a specific stage
+omni payloads delete [options] <eventId>    # Delete payloads for an event
+omni payloads config [options] [eventType]  # View/update storage config
+omni payloads stats                         # Storage statistics
+```
+
+Payload stages: `webhook_raw`, `agent_request`, `agent_response`, `channel_send`, `error`.
+
+---
+
 ## Global Flags
 
 These flags work with any command:
