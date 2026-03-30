@@ -100,11 +100,11 @@ omni instances groups <id>
 
 # Profile management
 omni instances update-bio <id> "New status message"
-omni instances update-picture <id> --file ./avatar.jpg
+omni instances update-picture <id> --url https://example.com/avatar.jpg
 omni instances remove-picture <id>
 
 # Group management
-omni instances group-create <id> --name "Team Chat" --participants +5511...
+omni instances group-create <id> --subject "Team Chat" --participants "+5511..." "+5511..."
 omni instances group-invite <id> <group-jid>
 omni instances group-revoke-invite <id> <group-jid>
 

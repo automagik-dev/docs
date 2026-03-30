@@ -31,7 +31,7 @@ omni routes list [options]
 Get route details.
 
 ```bash
-omni routes get <routeId>
+omni routes get <route-id>
 ```
 
 ### `omni routes create`
@@ -46,9 +46,9 @@ omni routes create [options]
 |--------|-------------|
 | `--instance <id>` | Instance ID |
 | `--scope <scope>` | Route scope: `chat` or `user` |
-| `--chat <chatId>` | Chat UUID (required when scope=`chat`) |
-| `--person <personId>` | Person UUID (required when scope=`user`) |
-| `--agent <agentId>` | Agent UUID |
+| `--chat <chat-id>` | Chat UUID (required when scope=`chat`) |
+| `--person <person-id>` | Person UUID (required when scope=`user`) |
+| `--agent <agent-id>` | Agent UUID |
 | `--timeout <seconds>` | Agent timeout in seconds |
 | `--stream` / `--no-stream` | Enable or disable streaming responses |
 | `--prefix-sender` / `--no-prefix-sender` | Prefix messages with sender name |
@@ -95,7 +95,7 @@ omni routes create \
 Update an existing route. Accepts the same options as `create`.
 
 ```bash
-omni routes update <routeId> [options]
+omni routes update <route-id> [options]
 ```
 
 ### `omni routes delete`
@@ -103,7 +103,7 @@ omni routes update <routeId> [options]
 Delete a route.
 
 ```bash
-omni routes delete <routeId>
+omni routes delete <route-id>
 ```
 
 ### `omni routes test`
@@ -117,8 +117,8 @@ omni routes test [options]
 | Option | Description |
 |--------|-------------|
 | `--instance <id>` | Instance ID |
-| `--chat <chatId>` | Chat UUID to test |
-| `--person <personId>` | Person UUID to test |
+| `--chat <chat-id>` | Chat UUID to test |
+| `--person <person-id>` | Person UUID to test |
 
 ```bash
 omni routes test --instance <id> --chat <chat-uuid>

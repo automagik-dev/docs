@@ -124,10 +124,10 @@ Duration strings are also supported for interval-based scheduling:
 
 ## Heartbeat Collection
 
-Every 60 seconds, the scheduler collects heartbeats from all active workers:
+Every 60 seconds, the scheduler collects heartbeats from all active agents:
 
 1. **Pane liveness** — checks if tmux panes are still alive
-2. **Agent state** — reads current state from the worker registry
+2. **Agent state** — reads current state from the agent registry
 3. **Context capture** — stores pane content snapshot
 
 Heartbeats are stored in the `heartbeats` table:
@@ -165,7 +165,7 @@ CREATE TABLE machine_snapshots (
 Every 5 minutes, the scheduler scans for orphaned runs — agents that have stopped responding:
 
 1. Find runs in `leased` or `running` status
-2. Check if the worker has missed more than 2 consecutive heartbeats
+2. Check if the agent has missed more than 2 consecutive heartbeats
 3. Mark dead runs as `failed` with a reconciliation reason
 4. Reclaim expired leases for retry
 
@@ -174,7 +174,7 @@ Every 5 minutes, the scheduler scans for orphaned runs — agents that have stop
 On startup, the scheduler performs recovery:
 
 1. **Reclaim expired leases** — triggers where `leased_until < now()` are reset to `pending`
-2. **Reconcile orphaned runs** — runs without matching live workers are marked `failed`
+2. **Reconcile orphaned runs** — runs without matching live agents are marked `failed`
 3. **Resume polling** — normal LISTEN + poll loop begins
 
 ## Structured Logging

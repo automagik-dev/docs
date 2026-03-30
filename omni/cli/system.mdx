@@ -151,10 +151,12 @@ omni auth recover
 
 ## `omni settings`
 
-Server-level settings.
+Server-level settings management.
 
 ```bash
-omni settings                           # View server settings
+omni settings list [options]            # List all server settings
+omni settings get <key>                 # Get a specific setting
+omni settings set [options] <key> <value>  # Set a setting value
 ```
 
 ---
@@ -173,9 +175,47 @@ omni update     # Update CLI to latest version
 
 ---
 
-## `omni logs`
+## Advanced / Debugging
 
-View system logs. This is a hidden debug command (visible with `--all`).
+These commands are hidden from default `omni --help` output (visible via `omni --help --all`). They are useful for troubleshooting, inspecting internals, and automating shell setup.
+
+### `omni completions`
+
+Generate shell completions for the Omni CLI.
+
+```bash
+omni completions [shell]
+```
+
+| Argument | Description |
+|----------|-------------|
+| `shell` | Shell type: `bash`, `zsh`, `fish` |
+
+```bash
+omni completions bash >> ~/.bashrc
+omni completions zsh >> ~/.zshrc
+```
+
+---
+
+### `omni dead-letters`
+
+Inspect and manage failed events that could not be processed.
+
+```bash
+omni dead-letters list [options]          # List dead letters
+omni dead-letters get <id>                # Get dead letter details
+omni dead-letters stats                   # Dead letter statistics
+omni dead-letters retry <id>              # Retry processing a dead letter
+omni dead-letters resolve [options] <id>  # Mark as resolved
+omni dead-letters abandon <id>            # Abandon retry attempts
+```
+
+---
+
+### `omni logs`
+
+View system logs with module and level filtering.
 
 ```bash
 omni logs [options] [level]
@@ -200,23 +240,19 @@ omni logs warn --modules webhook,agent
 
 ---
 
-## `omni completions`
+### `omni payloads`
 
-Generate shell completions for the Omni CLI.
-
-```bash
-omni completions [shell]
-```
-
-| Argument | Description |
-|----------|-------------|
-| `shell` | Shell type: `bash`, `zsh`, `fish` |
+Inspect raw event payloads at each processing stage — useful for debugging event pipeline issues.
 
 ```bash
-omni completions bash >> ~/.bashrc
-omni completions zsh >> ~/.zshrc
+omni payloads list <eventId>                # List payloads for an event
+omni payloads get <eventId> <stage>         # Get a specific stage
+omni payloads delete [options] <eventId>    # Delete payloads for an event
+omni payloads config [options] [eventType]  # View/update storage config
+omni payloads stats                         # Storage statistics
 ```
 
+Payload stages: `webhook_raw`, `agent_request`, `agent_response`, `channel_send`, `error`.
 ---
 
 ## Global Flags

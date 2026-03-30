@@ -1,7 +1,7 @@
 ---
 title: "State Management"
 sidebarTitle: "State"
-description: "Wish state machine, worker registry, teams, mailbox, team chat, boards, and projects"
+description: "Wish state machine, agent registry, teams, mailbox, team chat, boards, and projects"
 ---
 
 # State Management
@@ -132,7 +132,7 @@ created → in_progress → done
 
 ### Isolation Model
 
-Teams use `git clone --shared` instead of `git worktree` to avoid a known bug where Claude Code workers can flip `core.bare=true` on the parent repo via shared `.git` metadata, silently corrupting it.
+Teams use `git clone --shared` instead of `git worktree` to avoid a known bug where Claude Code agents can flip `core.bare=true` on the parent repo via shared `.git` metadata, silently corrupting it.
 
 ```typescript
 interface TeamConfig {
@@ -165,7 +165,7 @@ interface MailboxMessage {
 }
 ```
 
-Delivery is state-aware: messages are queued and pushed to tmux panes only when the worker is idle (not mid-turn). A sent message log is also kept in an append-only JSONL outbox file.
+Delivery is state-aware: messages are queued and pushed to tmux panes only when the agent is idle (not mid-turn). A sent message log is also kept in an append-only JSONL outbox file.
 
 <Warning>
 Mailbox delivery is best-effort. Messages are persisted to PostgreSQL (durable), but tmux pane injection is not retried. If a pane dies, the message stays with `deliveredAt: null`.

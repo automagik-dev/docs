@@ -76,8 +76,8 @@ The primary configuration file, managed by `genie setup` or edited directly. Val
 ### Key Sections
 
 <AccordionGroup>
-  <Accordion title="Worker Profiles">
-    Worker profiles define how to launch Claude Code workers. Each profile specifies a launcher binary and CLI arguments.
+  <Accordion title="Agent Profiles">
+    Agent profiles (named `workerProfiles` in config) define how to launch Claude Code agents. Each profile specifies a launcher binary and CLI arguments.
 
     ```json
     "workerProfiles": {
@@ -108,11 +108,11 @@ The primary configuration file, managed by `genie setup` or edited directly. Val
     }
     ```
 
-    Each preset pairs two worker profiles (left/right panes) with a skill.
+    Each preset pairs two agent profiles (left/right panes) with a skill.
   </Accordion>
 
   <Accordion title="System Prompt Mode">
-    Controls how Genie injects system prompts into Claude Code workers:
+    Controls how Genie injects system prompts into Claude Code agents:
 
     | Mode | Flag | Behavior |
     |------|------|----------|
@@ -237,7 +237,7 @@ For each tool use, the auto-approve engine:
 | `GENIE_NATS_URL` | `nats://localhost:4222` | NATS server URL |
 | `GENIE_PG_PORT` | `19642` | pgserve PostgreSQL port |
 | `GENIE_MAX_CONCURRENT` | `5` | Max concurrent scheduler runs |
-| `GENIE_IDLE_TIMEOUT_MS` | — | Auto-suspend idle workers after N ms |
+| `GENIE_IDLE_TIMEOUT_MS` | — | Auto-suspend idle agents after N ms |
 | `CLAUDECODE` | — | Set to `1` to enable Claude Code features |
 | `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` | — | Set to `1` for native teammate UI |
 
