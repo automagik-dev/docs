@@ -58,7 +58,7 @@ Templates are reusable board blueprints. Genie ships five built-in templates:
 | **ops** | identified, planning, in-progress, done | Operations workflow |
 | **bug** | triage, draft, build, review, qa, ship | Bug fix pipeline |
 
-Create a board from a template:
+Create a board from a template (see the [Board CLI reference](/genie/cli/boards) for all commands):
 
 ```bash
 genie board create "Sprint 12" --template software
@@ -128,3 +128,4 @@ Boards are stored in PostgreSQL:
     Use `genie board use` to set the default. This simplifies task operations by removing the need to specify `--board` on every command.
   </Accordion>
 </AccordionGroup>
+
