@@ -22,28 +22,28 @@ omni send [options]
 | `--instance <id>` | Instance ID (defaults to configured instance) |
 | `--to <recipient>` | Recipient: WhatsApp JID, phone number, or Omni chat/person UUID |
 
-### Text Messages
+### Sending Messages
 
-```bash
+<CodeGroup>
+```bash Text
 omni send --to +5511999 --text "Hello!"
 omni send --to +5511999 --text "Reply" --reply-to <msg-id>
 ```
 
-### Media Messages
-
-```bash
+```bash Media
 omni send --to +5511999 --media ./photo.jpg --caption "Check this"
 omni send --to +5511999 --media ./audio.mp3 --voice  # Send as voice note
 ```
 
-### TTS Voice Notes
-
-Convert text to speech and send as a voice note:
-
-```bash
+```bash TTS Voice Note
 omni send --to +5511999 --tts "Hello from AI!"
 omni send --to +5511999 --tts "Custom voice" --voice-id <eleven-labs-id>
 ```
+</CodeGroup>
+
+<Tip>
+Use `--presence composing` before sending text and `--presence recording` before sending voice notes to make bot interactions feel more natural.
+</Tip>
 
 ### Reactions
 
@@ -88,6 +88,10 @@ omni send --to +5511999 --presence composing   # Show "typing..."
 omni send --to +5511999 --presence recording   # Show "recording audio..."
 omni send --to +5511999 --presence paused      # Clear presence
 ```
+
+<Warning>
+Presence indicators are channel-specific. WhatsApp supports `composing`, `recording`, and `paused`. Other channels may ignore unsupported presence types silently.
+</Warning>
 
 ### Message Forwarding
 
@@ -149,6 +153,10 @@ omni messages star <msg-id>                    # Star a message
 omni messages unstar <msg-id>                  # Unstar
 omni messages remove-reaction <msg-id>         # Remove a reaction
 ```
+
+<Note>
+`messages delete` triggers a "delete for everyone" on WhatsApp. The message must have been sent recently — WhatsApp enforces a time window after which deletion is no longer possible.
+</Note>
 
 ---
 

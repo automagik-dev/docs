@@ -24,23 +24,36 @@ created → connecting → connected → disconnected
                        restarting
 ```
 
-### Creating an Instance
+### Setting Up an Instance
 
-```bash
-omni instances create --channel whatsapp-baileys --name "Support Line"
-```
+<Steps>
+  <Step title="Create the instance">
+    ```bash
+    omni instances create --channel whatsapp-baileys --name "Support Line"
+    ```
+  </Step>
+  <Step title="Connect and pair">
+    WhatsApp requires pairing via QR code or pairing code:
+    ```bash
+    # QR code — displays in terminal, scan with phone
+    omni instances qr <instance-id>
 
-### Connecting (WhatsApp)
-
-WhatsApp instances require pairing via QR code or pairing code:
-
-```bash
-# QR code — displays in terminal, scan with phone
-omni instances qr <instance-id>
-
-# Pairing code — alternative for headless setups
-omni instances pair <instance-id> --phone +5511999999999
-```
+    # Pairing code — for headless setups
+    omni instances pair <instance-id> --phone +5511999999999
+    ```
+  </Step>
+  <Step title="Sync contacts and history">
+    ```bash
+    omni instances sync <instance-id>
+    ```
+  </Step>
+  <Step title="Verify the connection">
+    ```bash
+    omni instances status <instance-id>
+    omni instances whoami <instance-id>
+    ```
+  </Step>
+</Steps>
 
 ### Managing Connections
 

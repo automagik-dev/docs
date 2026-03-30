@@ -19,15 +19,30 @@ Omni routes incoming messages to AI agents. You define **providers** (the AI bac
 
 Providers are the AI backends that power agents.
 
+<CardGroup cols={2}>
+  <Card title="Genie" icon="hat-wizard">
+    Team inbox integration with Automagik Genie orchestration framework.
+  </Card>
+  <Card title="Claude Code" icon="terminal">
+    Anthropic Claude Code CLI agent — spawns a session per conversation.
+  </Card>
+  <Card title="A2A / AG-UI" icon="arrows-left-right">
+    Google A2A and CopilotKit AG-UI agent-to-agent protocols.
+  </Card>
+  <Card title="Agno / OpenClaw" icon="robot">
+    Agno platform agents and OpenClaw open-source agents via WebSocket.
+  </Card>
+  <Card title="Webhook" icon="webhook">
+    POST event payloads to any URL — the simplest integration path.
+  </Card>
+</CardGroup>
+
 ```bash
 # List providers
 omni providers list
 
-# Create a Genie provider
-omni providers create --name "Genie" --type genie
-
-# Create a Claude Code provider
-omni providers create --name "Claude" --type claude-code
+# Create a provider (use --schema for type)
+omni providers create --name "Genie" --schema genie
 
 # Test provider health
 omni providers test <provider-id>
@@ -36,7 +51,9 @@ omni providers test <provider-id>
 omni providers setup
 ```
 
-Supported provider types: `genie`, `claude-code`, `a2a`, `ag-ui`, `agno`, `openclaw`, `webhook`.
+<Warning>
+Provider API keys are stored in the Omni database. Use scoped keys with minimal permissions when possible, and rotate keys regularly. Never commit API keys to version control.
+</Warning>
 
 ## Agents
 

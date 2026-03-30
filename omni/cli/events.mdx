@@ -7,6 +7,10 @@ description: "Query events, search content, view timelines, replay sessions, and
 
 The `omni events` command group provides event querying, search, analytics, and replay capabilities across all connected channels.
 
+<Note>
+Events are stored in the Omni database. Use `--since` filters to keep queries fast — unbounded queries on high-volume instances may be slow.
+</Note>
+
 ## `omni events list`
 
 List events with filters.
@@ -129,3 +133,11 @@ omni events replay --status <session-id>
 # Cancel a running replay
 omni events replay --cancel <session-id>
 ```
+
+<Tip>
+Combine `--since`, `--types`, and `--instance` filters to narrow event queries. For example, `omni events list --instance <id> --type message.received --since 1h` is much faster than an unfiltered list.
+</Tip>
+
+<Warning>
+`omni events replay --start` re-processes events through the automation pipeline. This means automations **will fire again** — webhooks will be called, agents will be invoked, and messages will be sent. Always use `--dry-run` first to preview the blast radius.
+</Warning>

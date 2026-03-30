@@ -7,6 +7,10 @@ description: "Manage webhook event sources — create endpoints, validate header
 
 The `omni webhooks` command group manages webhook event sources. Webhooks allow external systems to push events into Omni, which can then trigger automations.
 
+<Warning>
+Webhook endpoints are publicly accessible. Always use `--headers` to require a secret header for authentication. Without header validation, anyone who discovers the URL can inject events into your pipeline.
+</Warning>
+
 ## `omni webhooks list`
 
 List all webhook sources.
@@ -120,3 +124,7 @@ omni webhooks trigger \
 <Note>
 Triggered events flow through the same pipeline as webhook-received events — they can fire automations that match the event type.
 </Note>
+
+<Tip>
+Use `omni webhooks trigger` to test your automations locally before connecting external systems. Pair it with `omni automations test` for a full dry-run validation of your event pipeline.
+</Tip>

@@ -7,6 +7,10 @@ description: "Agent routing, person directory, authentication, and API key manag
 
 Three command groups for access and routing: `omni routes` controls which agent handles which chat, `omni persons` manages the contact directory, and `omni auth`/`omni keys` handle authentication and API key lifecycle.
 
+<Warning>
+Route priority matters. When multiple routes match (per-user, per-chat, per-instance), the **most specific scope wins**, not the highest priority number. Priority only breaks ties within the same scope level. See [Routes concept page](/omni/concepts/routes) for the full resolution order.
+</Warning>
+
 ## Route Commands
 
 Routes determine which AI agent handles messages for a specific chat or person.
@@ -122,6 +126,10 @@ omni routes test [options]
 ```bash
 omni routes test --instance <id> --chat <chat-uuid>
 ```
+
+<Tip>
+Always run `omni routes test` after creating or updating routes to verify the resolution matches your intent. This is especially useful when combining per-user and per-chat routes on the same instance.
+</Tip>
 
 ### `omni routes metrics`
 
@@ -308,3 +316,7 @@ Permanently delete an API key.
 ```bash
 omni keys delete <id>
 ```
+
+<Warning>
+`omni keys revoke` disables a key immediately — any services using it will lose access. `omni keys delete` is permanent and cannot be undone. Prefer `revoke` for temporary access removal.
+</Warning>
