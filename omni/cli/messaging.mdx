@@ -21,6 +21,7 @@ omni send [options]
 |--------|-------------|
 | `--instance <id>` | Instance ID (defaults to configured instance) |
 | `--to <recipient>` | Recipient: WhatsApp JID, phone number, or Omni chat/person UUID |
+| `--thread-id <id>` | Thread/topic ID (e.g., Telegram forum topic) |
 
 ### Sending Messages
 
@@ -128,6 +129,8 @@ omni chats mute <chat-id>                          # Mute
 omni chats unmute <chat-id>                        # Unmute
 omni chats read <chat-id>                          # Mark as read
 omni chats disappearing <chat-id> --duration 7d   # Toggle disappearing messages
+omni chats update <chat-id> [options]              # Update a chat
+omni chats delete <chat-id>                        # Delete a chat
 ```
 
 ### Labels
