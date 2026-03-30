@@ -1,0 +1,214 @@
+---
+title: "Batch Mode"
+sidebarTitle: "Batch Mode"
+description: "Bulk interrogation with caching, cost estimation, and the Gemini Batch API."
+---
+
+# Batch Mode
+
+Run hundreds of questions against the same context. Cache is always enabled — the first question pays full cost, subsequent questions benefit from provider-level caching at up to 90% savings.
+
+## Quick start
+
+Create a questions file (one question per line):
+
+```txt questions.txt
+What authentication methods are supported?
+How does the rate limiter work?
+What database migrations exist?
+# This is a comment — skipped
+Where are the API routes defined?
+```
+
+Run it:
+
+```bash
+rlmx batch questions.txt --context ./src/
+```
+
+Output is JSONL — one JSON object per question, plus a final aggregate line:
+
+```jsonl
+{"question":"What authentication methods are supported?","answer":"JWT and OAuth2...","stats":{"iterations":2,"inputTokens":1500,"outputTokens":800,"cost":0.0045}}
+{"question":"How does the rate limiter work?","answer":"Token bucket algorithm...","stats":{"iterations":3,"inputTokens":1200,"outputTokens":600,"cost":0.0008}}
+{"question":"What database migrations exist?","answer":"12 migrations in src/db/...","stats":{"iterations":2,"inputTokens":1100,"outputTokens":500,"cost":0.0007}}
+{"question":"Where are the API routes defined?","answer":"src/routes/ directory...","stats":{"iterations":1,"inputTokens":900,"outputTokens":400,"cost":0.0005}}
+{"type":"aggregate","total_questions":4,"completed":4,"total_cost":0.0065,"cache_savings":0.0152}
+```
+
+## Questions file format
+
+- One question per line
+- Empty lines are skipped
+- Lines starting with `#` are treated as comments
+
+```txt
+What is the project structure?
+How does error handling work?
+
+# Security section
+What input validation exists?
+Are there any SQL injection risks?
+```
+
+## Cache behavior
+
+Batch mode always enables caching. Here's the cost flow:
+
+| Question | Cache status | Cost |
+|----------|-------------|------|
+| First | Cache miss (cold) | Full input token cost |
+| Second+ | Cache hit (warm) | **50-90% cheaper** (only cache-read tokens billed) |
+
+The exact savings depend on your provider:
+
+| Provider | Cache discount |
+|----------|---------------|
+| Google Gemini | ~90% on cached input tokens |
+| Anthropic | ~90% on cached input tokens |
+| OpenAI | ~50% on cached input tokens |
+
+### Pre-warming the cache
+
+Warm the cache before running batch queries to ensure the first question also gets cache pricing:
+
+```bash
+# Warm the cache
+rlmx cache --context ./docs/
+
+# Now run batch — all questions hit warm cache
+rlmx batch questions.txt --context ./docs/
+```
+
+### Estimating costs
+
+Check how much a batch run will cost before committing:
+
+```bash
+rlmx cache --context ./docs/ --estimate
+```
+
+```
+Context: ./docs/ (23 files, 145KB)
+Estimated tokens: 43,500
+Provider limit: 1,000,000 (google)
+Cache retention: long
+Estimated first-query cost: $0.003
+Estimated cached-query cost: $0.0003 (90% savings)
+```
+
+For a 100-question batch over this context: ~$0.003 (first) + 99 * $0.0003 = ~$0.033 total.
+
+## Budget enforcement
+
+Set a maximum spend to prevent runaway costs:
+
+```bash
+rlmx batch questions.txt --context ./src/ --max-cost 1.00
+```
+
+Cumulative cost is tracked across all questions. When the budget is exceeded, RLMX stops gracefully and reports how many questions were completed.
+
+## Batch options
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--context <path>` | — | Context directory or file |
+| `--max-iterations <n>` | `30` | Max RLM iterations per question |
+| `--max-cost <n>` | — | Max total USD spend |
+| `--parallel <n>` | `1` | Concurrent questions |
+| `--batch-api` | `false` | Use Gemini Batch API for 50% cost reduction |
+| `--output <mode>` | — | Output mode |
+| `--verbose` | `false` | Show progress |
+
+## Gemini Batch API
+
+For Google Gemini models, the `--batch-api` flag enables the Gemini Batch API, which provides an additional 50% cost reduction on top of caching:
+
+```bash
+rlmx batch questions.txt --context ./docs/ --batch-api
+```
+
+### Cost stacking
+
+| Mode | Input cost (per 1M tokens) | Savings |
+|------|---------------------------|---------|
+| Base (flash-lite) | $0.075 | — |
+| + Context caching | ~$0.0075 | 90% |
+| + Batch API | ~$0.0375 | 50% |
+| Cache + Batch | ~$0.00375 | **95%** |
+
+**100 queries over 500K tokens of context: under $2.00** with both cache and batch stacking.
+
+<Note>
+  Batch API jobs are asynchronous. Results may take longer to return compared to standard API calls, but the cost savings are significant for large runs.
+</Note>
+
+## Practical patterns
+
+### Study session over documentation
+
+```bash
+# Prepare questions
+cat > study.txt << 'EOF'
+What are the core abstractions?
+How does the plugin system work?
+What are the extension points?
+How is state managed?
+What patterns does the codebase use?
+EOF
+
+# Warm cache, then batch
+rlmx cache --context ./docs/
+rlmx batch study.txt --context ./docs/ --max-iterations 5
+```
+
+### Code audit
+
+```bash
+cat > audit.txt << 'EOF'
+Are there any hardcoded credentials?
+What input validation exists?
+How are SQL queries constructed?
+Are there any command injection risks?
+How is authentication implemented?
+What error information is leaked to users?
+EOF
+
+rlmx batch audit.txt --context ./src/ --ext .ts,.js --max-cost 2.00
+```
+
+### Codebase onboarding
+
+```bash
+cat > onboard.txt << 'EOF'
+What is the project structure and architecture?
+What are the main entry points?
+How is the database accessed?
+What external services are called?
+How are tests organized?
+What CI/CD pipeline is used?
+EOF
+
+rlmx batch onboard.txt --context . --ext .ts,.js,.json,.yaml --tools standard
+```
+
+## CAG vs RLM for batch
+
+| Approach | When to use |
+|----------|------------|
+| **Batch + cache (CAG)** | Context fits in provider window, many questions, cost matters |
+| **Batch + RLM (no cache)** | Context too large for system prompt, complex navigation needed |
+
+By default, batch mode uses CAG (cache enabled). For very large contexts that exceed provider limits, RLMX falls back to standard RLM iteration automatically.
+
+### Provider context limits
+
+| Provider | Max context (cached) |
+|----------|---------------------|
+| Google Gemini | 1,000,000 tokens |
+| Anthropic | 200,000 tokens |
+| OpenAI | 128,000 tokens |
+| Amazon Bedrock | 128,000 tokens |
+
+If your context exceeds the provider limit, RLMX will warn you and fall back to RLM mode where the LLM navigates the context programmatically.
