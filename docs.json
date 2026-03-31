@@ -188,7 +188,8 @@
   },
   "logo": {
     "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
+    "dark": "/logo/dark.svg",
+    "height": 38
   },
   "navbar": {
     "links": [
