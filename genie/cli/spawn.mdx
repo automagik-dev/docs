@@ -19,9 +19,12 @@ genie spawn <name> [options]
 | Option | Description |
 |--------|-------------|
 | `--provider <provider>` | Provider: `claude` or `codex` (default: `claude`) |
-| `--team <team>` | Team name |
+| `--team <team>` | Team name (default: `(genie)`) |
+| `--role <role>` | Role override (engineer, reviewer, qa, fix, etc.) |
 | `--model <model>` | Model override (e.g., `sonnet`, `opus`) |
 | `--skill <skill>` | Skill to load on start |
+| `--new-window` | Spawn in a new tmux window instead of a pane |
+| `--window <name>` | Target a specific tmux window by name |
 | `--layout <layout>` | Layout mode: `mosaic` (default) or `vertical` |
 | `--color <color>` | Teammate pane border color |
 | `--plan-mode` | Start teammate in plan mode |

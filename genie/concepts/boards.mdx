@@ -61,7 +61,7 @@ Templates are reusable board blueprints. Genie ships five built-in templates:
 Create a board from a template (see the [Board CLI reference](/genie/cli/boards) for all commands):
 
 ```bash
-genie board create "Sprint 12" --template software
+genie board create "Sprint 12" --from software
 ```
 
 ## Projects and Boards
@@ -82,7 +82,7 @@ Global boards (no project scope) are also supported for cross-project workflows.
 
 ```bash
 # Create from template
-genie board create "Q2 Sprint" --template software --project myapp
+genie board create "Q2 Sprint" --from software --project myapp
 
 # View columns
 genie board columns "Q2 Sprint"
@@ -91,10 +91,10 @@ genie board columns "Q2 Sprint"
 genie board use "Q2 Sprint"
 
 # Export for sharing
-genie board export "Q2 Sprint" > q2-sprint.json
+genie board export "Q2 Sprint" --output q2-sprint.json
 
 # Import on another machine
-genie board import --file q2-sprint.json
+genie board import --json q2-sprint.json
 ```
 
 ## Relationship to Tasks

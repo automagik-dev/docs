@@ -72,8 +72,12 @@ Dumping database to ~/.genie/snapshot.sql.gz...
 Restore the database from a backup snapshot.
 
 ```bash
-genie db restore [file]
+genie db restore [file] [--yes]
 ```
+
+| Option | Description |
+|--------|-------------|
+| `--yes` | Skip confirmation prompt |
 
 If no file is specified, restores from the default `~/.genie/snapshot.sql.gz`.
 
@@ -96,6 +100,10 @@ Print the PostgreSQL connection URL for direct access with external tools.
 ```bash
 genie db url [options]
 ```
+
+| Option | Description |
+|--------|-------------|
+| `--quiet` | Print only the URL with no extra formatting |
 
 ```bash
 $ genie db url

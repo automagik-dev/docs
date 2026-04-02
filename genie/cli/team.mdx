@@ -13,7 +13,7 @@ CRUD for [team](/genie/concepts/teams) lifecycle with worktree management.
 Create a new team with a git worktree.
 
 ```bash
-genie team create <name> --repo <path> [--branch dev] [--wish <slug>] [--session <name>]
+genie team create <name> --repo <path> [--branch dev] [--wish <slug>] [--tmux-session <name>] [--no-spawn]
 ```
 
 ```bash Terminal
@@ -32,7 +32,8 @@ $ genie team create auth-rewrite --repo . --wish add-oauth --branch dev
 | `--repo <path>` | Path to the git repository | **Required** |
 | `--branch <branch>` | Base branch to create from | `dev` |
 | `--wish <slug>` | Wish slug — auto-spawns a team leader with wish context | — |
-| `--session <name>` | Tmux session name (avoids session explosion) | — |
+| `--tmux-session <name>` | tmux session name (avoids session explosion) | — |
+| `--no-spawn` | Create team without spawning a leader agent | — |
 
 ## `genie team hire`
 
@@ -165,6 +166,19 @@ genie team blocked <name>
 ```bash Terminal
 $ genie team blocked auth-rewrite
 Marked team "auth-rewrite" as blocked.
+```
+
+## `genie team cleanup`
+
+Clean up orphaned team resources (stale worktrees, dead tmux sessions).
+
+```bash
+genie team cleanup [--dry-run]
+```
+
+```bash Terminal
+$ genie team cleanup
+Cleaned up 2 orphaned worktrees and 1 dead tmux session.
 ```
 
 ## Auto-Detection

@@ -13,7 +13,7 @@ The `genie project` command group manages named [projects](/genie/concepts/proje
 List all projects.
 
 ```bash
-genie project list [--json]
+genie project list [--all] [--json]
 ```
 
 ## `genie project create`
@@ -49,6 +49,22 @@ Set the default project for when you're outside any repo directory.
 
 ```bash
 genie project set-default <name>
+```
+
+## `genie project archive`
+
+Archive a project. Archived projects are hidden from `project list` unless `--all` is used.
+
+```bash
+genie project archive <name>
+```
+
+## `genie project unarchive`
+
+Restore an archived project.
+
+```bash
+genie project unarchive <name>
 ```
 
 ## Project Scoping

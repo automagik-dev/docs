@@ -103,8 +103,15 @@ Full server cost scan via ccusage. Scans all Claude Code sessions on the machine
 genie events scan [options]
 ```
 
+| Option | Description |
+|--------|-------------|
+| `--since <duration>` | Time window to scan (e.g., `24h`, `7d`) |
+| `--json` | Output as JSON |
+| `--breakdown` | Show per-session cost breakdown |
+
 ```bash
 genie events scan
+genie events scan --since 7d --breakdown
 ```
 
 ---
@@ -187,6 +194,7 @@ genie sessions list [options]
 | `--active` | Show only active sessions |
 | `--orphaned` | Show only orphaned sessions |
 | `--agent <name>` | Filter by agent |
+| `--limit <n>` | Max rows returned |
 | `--json` | Output as JSON |
 
 ### `genie sessions replay`
@@ -305,6 +313,11 @@ Run QA specs — all, a domain, or a single spec.
 genie qa run [target] [options]
 ```
 
+| Option | Description |
+|--------|-------------|
+| `--json` | Output as JSON |
+| `--verbose` | Show detailed per-spec output |
+
 ### `genie qa status`
 
 Show QA dashboard with last results per spec.
@@ -329,8 +342,14 @@ Evaluate a QA spec against current team logs and publish a qa-report.
 genie qa check <specFile> [options]
 ```
 
+| Option | Description |
+|--------|-------------|
+| `--team <name>` | Team to evaluate against |
+| `--json` | Output as JSON |
+
 ```bash
 genie qa check specs/messaging.yaml
+genie qa check specs/messaging.yaml --team auth-rewrite --json
 ```
 
 ### `genie qa-report`
