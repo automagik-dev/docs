@@ -66,7 +66,9 @@
               "genie/skills/dream",
               "genie/skills/docs",
               "genie/skills/genie",
-              "genie/skills/genie-hacks"
+              "genie/skills/genie-hacks",
+              "genie/skills/brain",
+              "genie/skills/learn"
             ]
           },
           {
