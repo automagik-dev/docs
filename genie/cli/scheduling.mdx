@@ -109,6 +109,10 @@ genie schedule history standup --limit 50
 
 The scheduler daemon is the background process that polls for due triggers and executes them.
 
+<Note>
+`genie daemon start` now redirects to `genie serve --headless`. Use `genie serve start` directly for explicit control over service startup. See [Infrastructure](/genie/cli/infrastructure) for serve options.
+</Note>
+
 ### `genie daemon start`
 
 Start the scheduler daemon.

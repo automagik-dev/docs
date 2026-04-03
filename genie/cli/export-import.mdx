@@ -204,14 +204,6 @@ Export agent configurations, templates, and state checkpoints.
 genie export agents [options]
 ```
 
-### `genie export apps`
-
-Export the app store registry. Gracefully skips if app tables don't exist.
-
-```bash
-genie export apps [options]
-```
-
 ### `genie export comms`
 
 Export all communication data: conversations, messages, mailbox, team chat, and notification preferences.
@@ -234,7 +226,7 @@ All export commands accept:
 
 | Flag | Description |
 |------|-------------|
-| `--output <file>` | Write to file instead of stdout. Parent directories are created automatically |
+| `-o, --output <file>` | Write to file instead of stdout. Parent directories are created automatically |
 | `--pretty` | Pretty-print JSON with 2-space indentation |
 
 ---

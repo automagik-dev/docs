@@ -45,7 +45,7 @@ The frontmatter defines:
 
 ## Built-in Skills
 
-Genie ships with 14 skills organized by function:
+Genie ships with 17 skills organized by function:
 
 ### Core Pipeline
 
@@ -73,6 +73,14 @@ Genie ships with 14 skills organized by function:
 | [Dream](/genie/skills/dream) | `/dream` | Batch-execute SHIP-ready wishes overnight |
 | [Genie](/genie/skills/genie) | `/genie` | Transform any session into a Genie orchestrator |
 
+### Knowledge & Learning
+
+| Skill | Command | Purpose |
+|-------|---------|---------|
+| [Brain](/genie/skills/brain) | `/brain` | Knowledge graph engine — search, ingest, analyze |
+| [Learn](/genie/skills/learn) | `/learn` | Behavioral correction from user feedback |
+| Brain Init | `/brain-init` | Initialize and personalize a knowledge brain |
+
 ### Utilities
 
 | Skill | Command | Purpose |
@@ -82,7 +90,7 @@ Genie ships with 14 skills organized by function:
 | [Docs](/genie/skills/docs) | `/docs` | Audit and generate documentation |
 
 <Note>
-The `/learn` skill was removed as a standalone skill — behavioral corrections are now handled through Claude Code's native memory system. The `qa-runner` agent has been merged into the `/qa` QA system accessible via `genie qa`.
+The `qa-runner` agent has been merged into the `/qa` QA system accessible via `genie qa`.
 </Note>
 
 ## Invoking Skills

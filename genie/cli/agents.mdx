@@ -105,7 +105,12 @@ Built-in agent roles: `engineer`, `reviewer`, `fixer`, `tracer`, `qa`, `docs`.
 | `--permission-mode <mode>` | Permission mode (e.g., `acceptEdits`) |
 | `--extra-args <args...>` | Extra CLI args forwarded to the provider |
 | `--cwd <path>` | Working directory for the agent |
-| `--session <session>` | Tmux session name to spawn into |
+| `--role <role>` | Role override (engineer, reviewer, qa, fix, etc.) |
+| `--new-window` | Spawn in a new tmux window instead of a pane |
+| `--window <name>` | Target a specific tmux window by name |
+| `--team <team>` | Team name (default: `(genie)`) |
+| `--skill <skill>` | Skill to load on start |
+| `--session <session>` | tmux session name to spawn into |
 | `--no-auto-resume` | Disable auto-resume on pane death |
 
 ## `genie resume`

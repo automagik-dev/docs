@@ -46,6 +46,18 @@ genie serve [command]
 | `stop` | Stop genie serve and all services |
 | `status` | Show service health |
 
+### `genie serve start` Options
+
+| Flag | Description |
+|------|-------------|
+| `--daemon` | Run as background daemon (redirects to `genie serve --headless`) |
+| `--foreground` | Run in foreground (for systemd `ExecStart`) |
+| `--headless` | Headless mode — no TUI, just services |
+
+<Note>
+`genie daemon start` now redirects to `genie serve --headless`. Use `genie serve start` directly for explicit control.
+</Note>
+
 ```bash
 # Start all services
 genie serve start
