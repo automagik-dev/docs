@@ -146,7 +146,7 @@ genie send 'switching to review phase' --to team --team auth
 genie chat --team auth
 ```
 
-Team chat is stored in `.genie/chat/<team>.jsonl` — a newline-delimited JSON log of all messages.
+Team chat is stored in the PostgreSQL `team_chat` table.
 
 ## Autonomous Execution
 

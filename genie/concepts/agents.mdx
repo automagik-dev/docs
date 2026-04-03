@@ -106,9 +106,9 @@ genie answer engineer yes   # Answer a pending question
 
 Agents communicate through two channels:
 
-### Direct Messages (Mailbox)
+### Direct Messages
 
-Point-to-point messages stored in `.genie/mailbox/<worker>.json`:
+Point-to-point messages stored in the PostgreSQL `mailbox` table:
 
 ```bash
 genie send 'implement the auth module' --to engineer
@@ -117,11 +117,11 @@ genie inbox                 # Check your messages
 
 ### Team Chat
 
-Broadcast messages visible to all team members, stored in `.genie/chat/<team>.jsonl`:
+Broadcast messages visible to all team members, stored in the PostgreSQL `team_chat` table:
 
 ```bash
-genie send 'group 1 is complete' --to team
-genie chat                  # Read team chat history
+genie broadcast 'group 1 is complete'
+genie chat list --team auth  # Read team chat history
 ```
 
 ## Worker Registry
