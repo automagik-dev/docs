@@ -1,0 +1,353 @@
+---
+title: "/brain"
+sidebarTitle: "/brain"
+icon: "brain"
+description: "Knowledge graph engine — search, analyze, and manage AI agent brains with confidence scoring, autoschema, and multimodal support."
+---
+
+# /brain — Knowledge Graph Engine
+
+Search, analyze, and manage knowledge brains powered by genie-brain. Brains are Postgres-backed, Obsidian-compatible knowledge vaults with BM25 + vector search, confidence scoring, and agentic autoschema.
+
+## When to Use
+
+- Search for knowledge before answering a domain question
+- Check what the brain knows (and doesn't know) about a topic
+- Analyze content with deep reasoning via rlmx
+- Ingest new content into the brain
+- Check brain health and coverage gaps
+- Mount external directories as brain sources
+- Manage brain access (attach agents, tasks, teams)
+- Audit query history and search strategy
+
+## Prerequisites
+
+Brain must be installed before use:
+
+```bash
+genie brain install
+```
+
+If not installed, the skill will guide you to run the install command.
+
+---
+
+## Lifecycle Commands
+
+### `genie brain init`
+
+Scaffold a new brain vault with Obsidian-compatible directory structure, templates, and Postgres registration.
+
+```bash
+genie brain init --name <name> --path <path> [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--type <type>` | Brain type: `gtm`, `pm`, `engineering`, `research`, `personal`, `generic` |
+| `--from <path>` | Path to raw content to seed the brain |
+| `--mode <mode>` | `automatic` or `guided` initialization |
+
+### `genie brain create`
+
+Register a brain in Postgres without creating a filesystem vault. For runtime brains that don't need a directory.
+
+```bash
+genie brain create --name <name> [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--owner <type:id>` | Owner entity (e.g., `agent:genie`, `task:123`) |
+| `--lifecycle <lifecycle>` | `permanent`, `ephemeral`, or `archived` |
+| `--type <type>` | Brain type |
+| `--ttl <duration>` | Time to live for ephemeral brains |
+| `--description <text>` | Brain description |
+
+### `genie brain archive`
+
+Mark a brain as archived. Still searchable, no longer accepts updates.
+
+```bash
+genie brain archive <brain-id>
+```
+
+### `genie brain migrate`
+
+Run database migrations for brain tables. Idempotent — safe to re-run.
+
+```bash
+genie brain migrate
+```
+
+---
+
+## Ingest Commands
+
+### `genie brain update`
+
+Sync filesystem content to Postgres. Walks the brain directory and mounts, chunks text, computes embeddings, and upserts to Postgres. Hash-based skip for unchanged files.
+
+```bash
+genie brain update --brain <id> [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--path <path>` | Brain directory path |
+| `--no-embed` | Skip embedding generation |
+| `--skip-if-locked` | Skip if another update is running |
+| `--verbose` | Show detailed progress |
+| `--budget-cents <num>` | Cap embedding cost |
+
+### `genie brain process`
+
+Handle multimodal files in the `to_process/` directory. Supports audio (Whisper transcription), video (frame extraction + transcript), PDF (page-level OCR), images (vision API), code (symbol extraction), and Markdown (classification).
+
+```bash
+genie brain process --brain <id> [--path <path>]
+```
+
+### `genie brain watch`
+
+Auto-index files when they appear in the `to_process/` directory.
+
+```bash
+genie brain watch start|stop|status --brain <id> [--path <path>] [--manual]
+```
+
+### `genie brain mount`
+
+Attach an external directory to a brain. Creates a symlink in `_mounts/` so the content is included in update scans and visible in Obsidian.
+
+```bash
+genie brain mount <path> --as <alias> --brain <id> [--path <brain-path>]
+```
+
+```bash
+# Mount a codebase into an engineering brain
+genie brain mount /home/user/project --as codebase --brain agent:genie:engineering
+```
+
+### `genie brain unmount`
+
+Remove an external directory mount.
+
+```bash
+genie brain unmount <alias> --brain <id> [--path <brain-path>]
+```
+
+---
+
+## Query Commands
+
+### `genie brain search`
+
+Find knowledge with confidence scoring. Returns ranked results with confidence level.
+
+```bash
+genie brain search "<query>" --brain <id> [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--limit <num>` | Max results to return |
+| `--min-confidence <float>` | Minimum confidence threshold |
+| `--strategy <strategy>` | Search strategy: `rag` (default) or `cag` |
+| `--explain` | Show scoring breakdown |
+
+<Tip>
+Always search before answering domain questions. If confidence is LOW or NONE, say so — don't hallucinate.
+</Tip>
+
+### `genie brain get`
+
+Retrieve a specific document by file path or document ID.
+
+```bash
+genie brain get <path|#docid> --brain <id>
+```
+
+### `genie brain analyze`
+
+Deep reasoning via rlmx. Generates synthesized answers (not snippets) with sources and cost.
+
+```bash
+genie brain analyze "<query>" --brain <id> [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--path <path>` | Brain path |
+| `--thinking <level>` | Reasoning depth: `high`, `medium`, `low` |
+| `--mode <mode>` | Analysis mode: `classify`, `cluster`, `synthesize`, `digest`, `decision`, `profile` |
+
+---
+
+## Knowledge Commands
+
+### `genie brain link`
+
+Discover connections between documents. Generates 10 link types: `tag-overlap`, `semantic`, `wikilink`, `caused`, `superseded`, `contradicts`, `supports`, `updates`, `extends`, `derives`.
+
+```bash
+genie brain link --brain <id> [--semantic] [--dry-run] [--detect-conflicts]
+```
+
+### `genie brain health`
+
+Lint brain and compute a 7-dimension health score (each out of 100): Frontmatter, Structure, Links, Currency, Coverage, Consistency, Orphans.
+
+```bash
+genie brain health [--path <brain-path>] [--fix]
+```
+
+Use `--fix` to auto-repair: adds missing dates, converts tags, generates MOCs.
+
+### `genie brain status`
+
+Brain dashboard — lists all registered brains with file counts, chunk counts, mounts, health, query stats, and last update time.
+
+```bash
+genie brain status
+```
+
+---
+
+## Identity Commands (RBAC)
+
+### `genie brain attach`
+
+Grant an entity access to a brain. Role hierarchy: owner (full control) > writer (update + search) > reader (search only).
+
+```bash
+genie brain attach <brain-id> --entity <type:id> --role owner|writer|reader
+```
+
+Entity format: `agent:genie`, `task:123`, `team:platform`.
+
+### `genie brain detach`
+
+Revoke entity access from a brain.
+
+```bash
+genie brain detach <brain-id> --entity <type:id>
+```
+
+### `genie brain list`
+
+Show all brain-entity attachments.
+
+```bash
+genie brain list [--brain <id>] [--entity <type:id>]
+```
+
+---
+
+## Observability Commands
+
+### `genie brain traces`
+
+Query search history with confidence, latency, cost, and gap detection.
+
+```bash
+genie brain traces --brain <id> [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--limit <num>` | Max traces to show |
+| `--failed` | Show only LOW/NONE confidence queries |
+| `--strategy <name>` | Filter by search strategy |
+| `--purge` | Delete traces older than N days (default: 90) |
+| `--older-than <days>` | Purge threshold |
+
+### `genie brain strategy`
+
+Per-brain search strategy routing. Route queries matching a glob pattern to a specific strategy.
+
+```bash
+genie brain strategy show --brain <id>
+genie brain strategy set "<pattern>" <strategy> --brain <id> [--reason <text>]
+genie brain strategy rm "<pattern>" --brain <id>
+```
+
+```bash
+# Route deployment queries to CAG for full-context answers
+genie brain strategy set "deployment*" cag --reason "needs full document context"
+```
+
+### `genie brain cache`
+
+Estimate CAG cache costs — shows token counts, per-query cost, and break-even query count.
+
+```bash
+genie brain cache --estimate --brain <id>
+```
+
+---
+
+## Search Strategies
+
+### RAG (default)
+
+Retrieval-Augmented Generation. Combines three search backends via Reciprocal Rank Fusion (RRF):
+
+1. **BM25** — full-text search on documents and chunks
+2. **Trigram** — fuzzy matching via PostgreSQL pg_trgm
+3. **Vector** — semantic search via embeddings (Gemini E2)
+
+Best for: factual lookups, specific topics, quick answers.
+
+### CAG
+
+Context-Augmented Generation. Finds top 5 relevant docs via RAG, loads entire documents as LLM context, then runs rlmx with prompt caching for synthesis.
+
+Best for: synthesized answers, complex reasoning, cross-document analysis. Higher per-query cost but cached after first run (90% savings on repeats).
+
+Use `--strategy cag` to force CAG, or configure per-brain routing with `genie brain strategy set`.
+
+## Confidence Scoring
+
+| Level | Top Score | Distribution | Agent Action |
+|-------|-----------|-------------|-------------|
+| **FULL** | >= 0.80 | 3+ results >= 0.60 | Use directly, cite sources |
+| **HIGH** | >= 0.70 | 2+ results >= 0.50 | Use with confidence |
+| **PARTIAL** | >= 0.50 | 1+ results >= 0.40 | Use + supplement if needed |
+| **LOW** | >= 0.30 | any | Go external, mention brain gap |
+| **NONE** | < 0.30 | any | Research externally, don't guess |
+
+Gap detection automatically flags LOW/NONE results and suggests action: `use_brain`, `supplement`, `go_external`, `research_needed`.
+
+## Brain Types
+
+| Type | Use Case | Base Folders |
+|------|----------|-------------|
+| `gtm` | Marketing, competitive intel | Intelligence/, DevRel/, Company/ |
+| `pm` | Product management | Backlog/, Roadmap/, Specs/ |
+| `engineering` | Architecture, code | Architecture/, Decisions/, Runbooks/ |
+| `research` | R&D, papers | Papers/, Notes/, Experiments/ |
+| `personal` | Personal knowledge (PARA) | Projects/, Areas/, Resources/ |
+| `generic` | Auto-decided by content | (autoschema decides) |
+
+## Agent Usage Patterns
+
+### Before answering domain questions
+
+1. `genie brain search "<topic>" --brain <id>`
+2. Check confidence level
+3. FULL/HIGH — cite the results
+4. PARTIAL — use results + note limitations
+5. LOW/NONE — say "brain doesn't cover this" and research externally
+
+### After learning something new
+
+1. Write a `.md` file with YAML frontmatter to `brain/to_process/`
+2. `genie brain process --brain <id>` to classify and index
+3. `genie brain update --brain <id>` to sync to Postgres
+
+### Sharing brains across agents
+
+1. `genie brain attach <brain-id> --entity agent:other --role reader`
+2. The other agent can now search the brain
+3. Use `writer` role if the other agent should also contribute content

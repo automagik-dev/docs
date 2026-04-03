@@ -1,12 +1,12 @@
 ---
 title: "Boards"
 sidebarTitle: "Boards"
-description: "Board and pipeline management — create, configure, and manage kanban-style boards"
+description: "Board and pipeline management — create, configure, and manage Kanban-style boards"
 ---
 
 # Board Commands
 
-The `genie board` command group manages kanban-style boards with configurable column pipelines. For an overview of how boards, columns, and gates work, see [Boards](/genie/concepts/boards). Boards are project-scoped and replace task types as the primary pipeline mechanism. Each column can have its own gate type and associated action skill.
+The `genie board` command group manages Kanban-style boards with configurable column pipelines. For an overview of how boards, columns, and gates work, see [Boards](/genie/concepts/boards). Boards are project-scoped and replace task types as the primary pipeline mechanism. Each column can have its own gate type and associated action skill.
 
 ## `genie board create`
 
@@ -33,7 +33,7 @@ genie board create "Custom Pipeline" --columns "todo,in-progress,review,done"
 List all boards.
 
 ```bash
-genie board list [--project <project>] [--json]
+genie board list [--project <project>] [--all] [--json]
 ```
 
 ## `genie board show`

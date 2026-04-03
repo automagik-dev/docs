@@ -30,6 +30,9 @@ genie task create <title> [options]
 | `--comment <msg>` | Initial comment on the task |
 | `--project <name>` | Create task in a specific project (overrides CWD) |
 | `--board <name>` | Board name to assign task to |
+| `--gh <owner/repo#N>` | Link to a GitHub issue or PR |
+| `--external-id <id>` | External tracker ID |
+| `--external-url <url>` | External tracker URL |
 
 ```bash
 genie task create "Implement auth middleware" --type software --priority high
@@ -55,9 +58,12 @@ genie task list [options]
 | `--mine` | Show only tasks assigned to me |
 | `--project <name>` | Show tasks for a specific project |
 | `--board <name>` | Filter by board name |
-| `--by-column` | Group tasks by board column (kanban view) |
-| `--include-done` | Include done tasks in kanban view (hidden by default) |
+| `--by-column` | Group tasks by board column (Kanban view) |
+| `--include-done` | Include done tasks in Kanban view (hidden by default) |
 | `--all` | Show tasks from ALL projects |
+| `--gh <owner/repo>` | Filter by linked GitHub repo |
+| `--limit <n>` | Max rows returned |
+| `--offset <n>` | Skip first N rows (pagination) |
 | `--json` | Output as JSON |
 
 ```bash
@@ -220,9 +226,15 @@ Link a task to an external tracker (GitHub, Jira, etc.).
 genie task link <id> [options]
 ```
 
+| Option | Description |
+|--------|-------------|
+| `--gh <owner/repo#N>` | Link to a GitHub issue or PR |
+| `--external-id <id>` | External tracker ID |
+| `--external-url <url>` | External tracker URL |
+
 ```bash
-genie task link #42 --url https://github.com/org/repo/issues/123
-genie task link #42 --url https://linear.app/team/ENG-456
+genie task link #42 --gh automagik-dev/genie#123
+genie task link #42 --external-url https://linear.app/team/ENG-456 --external-id ENG-456
 ```
 
 ## `genie task close-merged`
@@ -232,6 +244,12 @@ Auto-close tasks whose wish slugs match recently merged PRs.
 ```bash
 genie task close-merged [options]
 ```
+
+| Option | Description |
+|--------|-------------|
+| `--since <duration>` | Time window for merged PRs (e.g., `24h`, `7d`) |
+| `--dry-run` | Show what would be closed without making changes |
+| `--repo <owner/repo>` | GitHub repo to scan (default: current repo) |
 
 ```bash
 $ genie task close-merged

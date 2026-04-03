@@ -88,13 +88,31 @@ Agent "sofia" updated.
   Roles: engineer,reviewer → engineer
 ```
 
+## `genie dir sync`
+
+Sync directory entries from filesystem agent folders into the PostgreSQL registry.
+
+```bash
+genie dir sync [--global]
+```
+
 ## `genie agent register`
 
 Register an agent locally and auto-register in Omni (if configured).
 
 ```bash
-genie agent register <name>
+genie agent register <name> [options]
 ```
+
+| Option | Description |
+|--------|-------------|
+| `--dir <path>` | Agent folder (CWD + AGENTS.md) |
+| `--repo <path>` | Default git repo |
+| `--prompt-mode <mode>` | Prompt mode: `append` or `system` |
+| `--model <model>` | Default model (sonnet, opus, codex) |
+| `--roles <roles...>` | Built-in roles this agent can orchestrate |
+| `--global` | Write to global directory |
+| `--omni` | Also register in Omni |
 
 ```bash Terminal
 $ genie agent register sofia

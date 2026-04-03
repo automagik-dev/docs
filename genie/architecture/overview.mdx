@@ -30,9 +30,9 @@ The Genie codebase internally uses "worker" in some identifiers (e.g., `workerPr
 ┌─────────────┐ ┌──────────┐  ┌──────────────────┐
 │  Wish State │ │  Agent   │  │  NATS Pub/Sub    │
 │  (PG tasks) │ │ Registry │  │  (observability) │
-└──────┬──────┘ │ (~/.genie│  └────────┬─────────┘
-       │        │ /workers │           │
-       │        │  .json)  │           │
+└──────┬──────┘ │ (PG      │  └────────┬─────────┘
+       │        │ agents   │           │
+       │        │  table)  │           │
        │        └────┬─────┘           │
        │             │                 │
        ▼             ▼                 ▼

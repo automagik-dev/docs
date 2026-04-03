@@ -46,6 +46,18 @@ genie serve [command]
 | `stop` | Stop genie serve and all services |
 | `status` | Show service health |
 
+### `genie serve start` Options
+
+| Flag | Description |
+|------|-------------|
+| `--daemon` | Run as background daemon (redirects to `genie serve --headless`) |
+| `--foreground` | Run in foreground (for systemd `ExecStart`) |
+| `--headless` | Headless mode — no TUI, just services |
+
+<Note>
+`genie daemon start` now redirects to `genie serve --headless`. Use `genie serve start` directly for explicit control.
+</Note>
+
 ```bash
 # Start all services
 genie serve start
@@ -201,64 +213,7 @@ Uninstalling Genie...
 
 ## `genie db`
 
-Database management commands for the embedded PostgreSQL instance.
-
-### `genie db status`
-
-Show pgserve health, port, data directory, and table counts.
-
-```bash
-genie db status
-```
-
-```bash Terminal
-$ genie db status
-PostgreSQL (pgserve):
-  Status:     running
-  Port:       19642
-  Data dir:   ~/.genie/data/pgserve/
-  Tables:     18
-  Migrations: 10/10 applied
-
-Table Counts:
-  tasks           42
-  agents          5
-  boards          3
-  audit_events    1,234
-  sessions        8
-```
-
-### `genie db migrate`
-
-Run pending database migrations.
-
-```bash
-genie db migrate
-```
-
-```bash Terminal
-$ genie db migrate
-Running migrations...
-  ✅ 008_boards.sql (applied)
-  ✅ 009_app_store.sql (applied)
-2 migrations applied.
-```
-
-### `genie db query`
-
-Execute arbitrary SQL and print results.
-
-```bash
-genie db query <sql>
-```
-
-```bash Terminal
-$ genie db query "SELECT count(*) FROM tasks WHERE stage = 'build'"
- count
--------
-     3
-(1 row)
-```
+For full database commands (`db status`, `db migrate`, `db query`, `db backup`, `db restore`, `db url`), see the [Database CLI reference](/genie/cli/database).
 
 ## `genie shortcuts`
 
