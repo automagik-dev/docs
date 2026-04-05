@@ -168,6 +168,70 @@ Get person presence and activity info.
 omni persons presence <id>
 ```
 
+### `omni persons update`
+
+Update person fields.
+
+```bash
+omni persons update <id> [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--name <name>` | Display name |
+| `--phone <phone>` | Primary phone (E.164 format) |
+| `--email <email>` | Primary email |
+| `--avatar <url>` | Avatar URL |
+| `--metadata <json>` | Metadata as JSON string |
+
+```bash
+omni persons update abc123 --name "João Silva" --email "joao@example.com"
+```
+
+### `omni persons merge`
+
+Merge two person records into one. The source person is deleted and all identities transfer to the target. Use this to deduplicate contacts that represent the same person across different instances.
+
+```bash
+omni persons merge [options] <source> <target>
+```
+
+| Option | Description |
+|--------|-------------|
+| `--reason <reason>` | Reason for merge |
+
+```bash
+omni persons merge person-abc person-def --reason "Same WhatsApp user across two instances"
+```
+
+### `omni persons link`
+
+Link two platform identities to the same person. Useful when the same person has accounts on different channels (WhatsApp, Telegram, etc.) that Omni has not auto-matched.
+
+```bash
+omni persons link <identityA> <identityB>
+```
+
+```bash
+omni persons link identity-whatsapp-123 identity-telegram-456
+```
+
+### `omni persons unlink`
+
+Remove a platform identity from its person record.
+
+```bash
+omni persons unlink [options] <identityId>
+```
+
+| Option | Description |
+|--------|-------------|
+| `--reason <reason>` | Reason for unlinking (default: `"Manual unlink"`) |
+
+```bash
+omni persons unlink identity-abc --reason "Incorrectly linked"
+```
+
 ---
 
 ## Auth Commands

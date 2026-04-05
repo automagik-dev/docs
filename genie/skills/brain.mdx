@@ -84,12 +84,12 @@ genie brain migrate
 
 ## Ingest Commands
 
-### `genie brain update`
+### `genie brain upgrade`
 
 Sync filesystem content to Postgres. Walks the brain directory and mounts, chunks text, computes embeddings, and upserts to Postgres. Hash-based skip for unchanged files.
 
 ```bash
-genie brain update --brain <id> [options]
+genie brain upgrade --brain <id> [options]
 ```
 
 | Option | Description |
@@ -344,7 +344,7 @@ Gap detection automatically flags LOW/NONE results and suggests action: `use_bra
 
 1. Write a `.md` file with YAML frontmatter to `brain/to_process/`
 2. `genie brain process --brain <id>` to classify and index
-3. `genie brain update --brain <id>` to sync to Postgres
+3. `genie brain upgrade --brain <id>` to sync to Postgres
 
 ### Sharing brains across agents
 

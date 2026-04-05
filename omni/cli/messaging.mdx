@@ -173,3 +173,166 @@ Browse and download media items.
 omni media list                    # List media with transcriptions/descriptions
 omni media download --id <id>     # Download a media item
 ```
+
+---
+
+## Verb commands
+
+Verb commands are shorthand for common multimodal messaging operations. Each verb infers `--instance` and `--chat` from context (active chat or automation trigger), or you can override them explicitly.
+
+<Note>
+The `imagine`, `film`, `see`, `speak`, and `listen` verbs require provider credentials configured on your Omni server (Gemini, ElevenLabs, or Groq).
+</Note>
+
+### `omni say`
+
+Send a text message to the open chat.
+
+```bash
+omni say <text> [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--reply [message-id]` | Quote-reply to trigger message or a specific message |
+| `--instance <id>` | Override instance |
+| `--chat <id>` | Override chat |
+
+```bash
+omni say "Hello from the CLI"
+omni say "Got it!" --reply
+```
+
+### `omni react`
+
+React to a message with an emoji.
+
+```bash
+omni react <emoji> [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--message <id>` | Message ID to react to (default: trigger message from context) |
+| `--instance <id>` | Override instance |
+| `--chat <id>` | Override chat |
+
+```bash
+omni react "👍"
+omni react "🎉" --message BAE5A47F3F373B35
+```
+
+### `omni speak`
+
+Synthesize text to speech and send as a voice note.
+
+```bash
+omni speak <text> [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--provider <name>` | TTS provider: `gemini`, `elevenlabs` (default: server config) |
+| `--voice <name>` | Voice identifier (e.g., `Kore` for Gemini) |
+| `--style <prompt>` | Style prompt prepended to text (Gemini only) |
+| `--language <code>` | BCP-47 language code (e.g., `en-US`, `pt-BR`) |
+| `--speed <factor>` | Speaking speed multiplier `0.5`–`2.0` |
+| `--format <fmt>` | Audio format: `mp3`, `ogg`, `opus`, `wav`, `pcm`, `flac`, `aac` (default: `ogg`) |
+| `--output <path>` | Save audio to file instead of sending |
+
+```bash
+omni speak "The deployment is complete"
+omni speak "Bom dia!" --voice Kore --language pt-BR
+omni speak "Save this locally" --output greeting.ogg
+```
+
+### `omni listen`
+
+Transcribe an audio file to text.
+
+```bash
+omni listen <file> [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--provider <name>` | STT provider: `gemini`, `groq` (default: server config) |
+| `--language <code>` | BCP-47 language hint (e.g., `en`, `pt-BR`) |
+| `--timestamps` | Include per-segment timestamps |
+| `--format <fmt>` | Output format: `text`, `json` (default: `text`) |
+| `--model <name>` | Model override (provider-specific) |
+| `--reply [message-id]` | Send transcript as a quote-reply |
+
+```bash
+omni listen voice-note.ogg
+omni listen meeting.mp3 --timestamps --format json
+omni listen audio.ogg --reply --language pt-BR
+```
+
+### `omni imagine`
+
+Generate an image from a text prompt using Gemini Nano Banana.
+
+```bash
+omni imagine <prompt> [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--aspect-ratio <ratio>` | Aspect ratio: `1:1`, `3:4`, `4:3`, `9:16`, `16:9`, `3:2`, `2:3` |
+| `--size <size>` | Image size preset: `1K`, `2K`, `4K` |
+| `--model <name>` | Model alias (`nano-banana-2`, `nano-banana-pro`) or raw Gemini model ID |
+| `--count <n>` | Number of images to generate (`1`–`4`, default: `1`) |
+| `--output <path>` | Save locally instead of sending |
+| `--reply [message-id]` | Quote-reply to a message |
+
+```bash
+omni imagine "A sunset over a cyberpunk city"
+omni imagine "Logo for an AI company" --aspect-ratio 1:1 --count 4
+omni imagine "Architecture diagram" --output diagram.png
+```
+
+### `omni film`
+
+Generate a video from a text prompt using Gemini Veo 3.1.
+
+```bash
+omni film <prompt> [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--duration <seconds>` | Clip duration in seconds |
+| `--resolution <res>` | Resolution hint: `720p` or `1080p` |
+| `--aspect-ratio <ratio>` | Aspect ratio: `16:9` or `9:16` (default: `16:9`) |
+| `--seed <number>` | RNG seed for reproducible output |
+| `--no-audio` | Disable audio generation |
+| `-o, --output <path>` | Save video to file locally (does not send) |
+| `--provider <name>` | Video generation provider (default: `gemini`) |
+| `--reply [message-id]` | Quote-reply to a message |
+
+```bash
+omni film "A drone shot flying over a tropical forest"
+omni film "Product demo animation" --resolution 1080p --output demo.mp4
+```
+
+### `omni see`
+
+Describe an image or video using Gemini Vision.
+
+```bash
+omni see <file> [prompt] [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--provider <name>` | Vision provider: `gemini` (default: server config) |
+| `--language <code>` | Response language (e.g., `en`, `pt-BR`) |
+| `--max-tokens <n>` | Maximum output tokens (`1`–`8192`) |
+| `--reply [message-id]` | Send description as a quote-reply |
+
+```bash
+omni see photo.jpg
+omni see screenshot.png "What error is shown?"
+omni see receipt.jpg "Extract the total amount" --reply
+```

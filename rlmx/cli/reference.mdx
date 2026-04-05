@@ -98,30 +98,46 @@ rlmx "Complex analysis" --context ./src/ --thinking high
 
 ## `rlmx init`
 
-Scaffold a new `rlmx.yaml` config file in the current directory.
+Scaffold a `.rlmx/` config directory with templates.
 
 ```bash
-rlmx init [--dir <path>]
+rlmx init [--template <type>] [--dir <path>]
 ```
 
 | Flag | Type | Default | Description |
 |------|------|---------|-------------|
+| `--template <type>` | string | `default` | Template type: `default` or `code` |
 | `--dir <path>` | string | `.` (cwd) | Directory to scaffold in |
 
-Creates a fully commented `rlmx.yaml` with sensible defaults. Idempotent — skips creation if the file already exists.
+Creates a `.rlmx/` directory containing:
 
-<Tip>
-  You can skip `rlmx init` entirely. RLMX auto-scaffolds on first query if no config is found.
-</Tip>
+| File | Purpose |
+|------|---------|
+| `rlmx.yaml` | Main configuration (model, budget, context, storage) |
+| `SYSTEM.md` | System prompt used by the RLM loop |
+| `CRITERIA.md` | Output criteria for quality checks |
+| `TOOLS.md` | Custom Python tools exposed to the RLM |
+
+<Warning>
+  RLMX v0.260331+ uses the `.rlmx/` directory as the only config location. Projects using the old flat-file `rlmx.yaml` in the project root must re-run `rlmx init` to migrate.
+</Warning>
+
+### Templates
+
+- **`default`** — General-purpose RLM usage with balanced system prompt and criteria
+- **`code`** — Code analysis template with code-focused system prompt and tool definitions
 
 ### Example
 
 ```bash
-# Scaffold in current directory
+# Scaffold with default template
 rlmx init
 
+# Scaffold with code analysis template
+rlmx init --template code
+
 # Scaffold in a specific directory
-rlmx init --dir ./my-project
+rlmx init --template default --dir ./my-project
 ```
 
 ---
@@ -199,6 +215,77 @@ rlmx batch questions.txt --context ./src/ --max-cost 1.00
 
 # Low iteration count for quick answers
 rlmx batch questions.txt --context ./docs/ --max-iterations 3
+```
+
+---
+
+## `rlmx stats`
+
+Query run history and cost breakdowns from the observability database.
+
+```bash
+rlmx stats [options]
+```
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--context <path>` | string | — | Path to context (directory or file) |
+| `--output <mode>` | string | `text` | Output mode: `text`, `json`, `stream` |
+| `--verbose` | boolean | `false` | Show iteration progress on stderr |
+
+Displays a table of past runs with columns for timestamp, iterations, tokens used, cost, and session ID. Requires pgserve storage to be configured — stats reads from the observability tables populated by the `ObservabilityRecorder`.
+
+<Note>
+  Stats require pgserve storage. Configure the `storage` section in `.rlmx/rlmx.yaml` or run with a pgserve instance available. See [Configuration](/rlmx/config) for setup.
+</Note>
+
+### Example
+
+```bash
+# View recent run history
+rlmx stats
+
+# Output as JSON for scripting
+rlmx stats --output json
+```
+
+---
+
+## `rlmx benchmark`
+
+Run benchmarks to measure cost efficiency or answer quality.
+
+```bash
+rlmx benchmark <mode> [options]
+```
+
+Two modes are available:
+
+| Mode | Description |
+|------|-------------|
+| `cost` | Measure token usage and USD cost across sample queries |
+| `oolong` | Evaluate answer quality against the Oolong Synth dataset |
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--context <path>` | string | — | Path to context (directory or file) |
+| `--max-cost <n>` | number | — | Maximum USD spend for the benchmark run |
+| `--max-tokens <n>` | number | — | Maximum total tokens |
+| `--max-iterations <n>` | number | `30` | Maximum RLM iterations per question |
+| `--output <mode>` | string | `text` | Output mode: `text`, `json` |
+| `--verbose` | boolean | `false` | Show progress |
+
+### Example
+
+```bash
+# Run a cost benchmark with budget cap
+rlmx benchmark cost --context ./docs/ --max-cost 1.00
+
+# Run Oolong quality evaluation
+rlmx benchmark oolong --context ./docs/ --verbose
+
+# JSON output for CI integration
+rlmx benchmark cost --context ./src/ --output json --max-tokens 50000
 ```
 
 ---
