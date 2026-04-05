@@ -73,7 +73,7 @@ genie serve stop
 
 ## `genie app`
 
-Launch the Genie desktop app (backend sidecar + views).
+Launch the Genie desktop app — a Tauri-based native cockpit that layers 12 views on top of the same PostgreSQL state, NATS event stream, and tmux/SDK executors that power `genie tui` and the raw CLI. The app ships a Bun sidecar for IPC (JSON-RPC over stdin/stdout, proxied through Tauri's `invoke()`), subscribes to `khal.*.genie.*` NATS subjects for live updates, and loads each view lazily from the app manifest.
 
 ```bash
 genie app [options]
@@ -81,20 +81,160 @@ genie app [options]
 
 | Flag | Description |
 |------|-------------|
-| `--backend-only` | Start only the backend sidecar (IPC on stdin/stdout) |
-| `--tui` | Fall back to terminal UI mode |
-| `--dev` | Development mode |
+| `--backend-only` | Start only the backend sidecar (IPC on stdin/stdout, no window) |
+| `--tui` | Fall back to terminal UI mode (useful on headless hosts) |
+| `--dev` | Development mode with hot reload |
+
+<Note>
+The desktop app requires a graphical environment (Linux X11/Wayland, macOS, or Windows). On headless servers use `--tui` to fall back to the OpenTUI interface, `--backend-only` to run just the sidecar for remote frontends, or the plain `genie` CLI.
+</Note>
+
+### Views
+
+The app manifest declares 12 native views. The primary sidebar surfaces nine of them; Terminal, Activity, and Setup are opened from context (per-agent terminals, detail panels, first-run onboarding).
+
+<AccordionGroup>
+  <Accordion title="Command Center (dashboard)">
+    The app shell landing view — live activity feed, team activity rollups, recent cost snapshot, and quick links. Subscribes to `events.runtime` for real-time updates.
+  </Accordion>
+  <Accordion title="Fleet (agents)">
+    Agent roster grouped by team with a detail panel for identity, executor, and activity. Replaces the earlier 5-icon agents strip — one view with sidebar + main list + detail rail.
+  </Accordion>
+  <Accordion title="Sessions">
+    Historical session replay — scroll through completed sessions, re-watch transcripts, and inspect tool-use timelines.
+  </Accordion>
+  <Accordion title="Mission Control (tasks)">
+    Orchestration dashboard for in-flight wishes and task groups. Modal overlays for task detail; backed by the `task` NATS prefix.
+  </Accordion>
+  <Accordion title="Cost Intelligence (costs)">
+    Token spend and cost analytics — per-agent, per-team, and per-model breakdowns with live cost counters streamed from the backend.
+  </Accordion>
+  <Accordion title="Files">
+    Browser for project files, the brain memory store, and scheduled artifacts. Backed by the `fs` NATS prefix for filesystem notifications.
+  </Accordion>
+  <Accordion title="Scheduler">
+    Create, pause, and inspect cron + ad-hoc schedules. Mirrors `genie schedule` from the CLI.
+  </Accordion>
+  <Accordion title="System">
+    Host health — processes, PostgreSQL, tmux, NATS, CPU/memory/disk. Requires the `platform-dev` role.
+  </Accordion>
+  <Accordion title="Settings">
+    Tabbed configuration surface for executor defaults, NATS URL, theme, and per-view permissions. Anchored to the bottom of the sidebar.
+  </Accordion>
+  <Accordion title="Terminal">
+    Embedded xterm.js panes streamed over NATS PTY subjects (`pty.create`, `pty.resize`, `pty.data`, `pty.input`). Opened from the Fleet detail panel when you attach to an agent. Requires the `platform-dev` role.
+  </Accordion>
+  <Accordion title="Activity">
+    Recent events feed surfaced inside the Fleet detail panel (no standalone sidebar entry). Lives on the `event` NATS prefix.
+  </Accordion>
+  <Accordion title="Setup (wizard)">
+    First-run onboarding flow for new workspaces — configures executor, NATS, and default team.
+  </Accordion>
+</AccordionGroup>
+
+### When to use app, TUI, or CLI
+
+<CardGroup cols={3}>
+  <Card title="Desktop app" icon="display">
+    Rich multi-view cockpit on a workstation with a GUI. Best for day-to-day orchestration, cost tracking, and live agent supervision.
+  </Card>
+  <Card title="TUI" icon="terminal">
+    Same visual affordances in a pure terminal. Best over SSH, in tmux, or on hosts without a display.
+  </Card>
+  <Card title="CLI" icon="code">
+    Scripts, CI, heartbeats, and remote automation. Best when you need deterministic, composable commands with JSON output.
+  </Card>
+</CardGroup>
+
+### Examples
 
 ```bash
-# Launch the desktop app
+# Launch the full desktop app
 genie app
 
-# Start only the backend sidecar
+# Dev mode with hot reload (while hacking on the app package)
+genie app --dev
+
+# Start only the Bun sidecar — useful for remote frontends or CI
 genie app --backend-only
 
-# Fall back to TUI mode
+# Headless host: fall back to the OpenTUI interface
 genie app --tui
 ```
+
+---
+
+## `genie omni`
+
+Manage the Omni &harr; Genie NATS bridge. `genie omni` subscribes to `omni.message.>` subjects, routes inbound messages to agent sessions, and streams responses back to Omni. Session state and executor configuration are read from PostgreSQL — there is no in-memory Map, so status queries stay accurate across restarts and multiple bridge processes.
+
+```bash
+genie omni [command] [options]
+```
+
+### Subcommands
+
+| Command | Description |
+|---------|-------------|
+| `start` | Start the NATS bridge and subscribe to `omni.message.>` |
+| `status` | Show bridge status — active sessions, queue depth, idle timers (PG-backed) |
+| `stop` | Stop the running NATS bridge |
+| `help [command]` | Display help for a subcommand |
+
+### `genie omni start` options
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--nats-url <url>` | `localhost:4222` | NATS server URL |
+| `--max-concurrent <n>` | `20` | Maximum concurrent agent sessions |
+| `--idle-timeout <ms>` | `900000` | Idle timeout before a session is suspended (ms) |
+| `--executor <type>` | `tmux` | Executor backend — `tmux` or `sdk` |
+
+### `genie omni status` options
+
+| Flag | Description |
+|------|-------------|
+| `--json` | Emit the status payload as JSON (for scripts and dashboards) |
+
+### Key concepts
+
+<AccordionGroup>
+  <Accordion title="PG-backed status queries">
+    `genie omni status` reads active sessions, queue depth, and idle timers directly from PostgreSQL via the `executors` table and its metadata index. The legacy in-memory session Map is documented but no longer authoritative, so status is consistent across bridge restarts and multiple observer processes. A `safePgCall` helper + `pgAvailable` scaffolding keeps the bridge resilient if PG is briefly unavailable.
+  </Accordion>
+  <Accordion title="Executor config resolver and genie_executor flip switch">
+    The bridge resolves executor configuration (tmux vs SDK, concurrency, idle timeout) through a single resolver that honours the `genie_executor` flip switch. Flipping a single row swaps the backend for new sessions without restarting the bridge; in-flight sessions continue on their original executor.
+  </Accordion>
+  <Accordion title="Lazy resume via the executors table">
+    Suspended sessions are resumed on demand. When a new message arrives for an idle chat, the bridge looks up the session row in `executors`, rehydrates state from its metadata index, and reattaches the executor. The SDK executor additionally captures inline session content so resumed SDK sessions start with their previous turns.
+  </Accordion>
+</AccordionGroup>
+
+### Examples
+
+```bash
+# Start the bridge with defaults (tmux executor, localhost NATS)
+genie omni start
+
+# Start with the SDK executor and tighter concurrency
+genie omni start --executor sdk --max-concurrent 8 --idle-timeout 300000
+
+# Point at a remote NATS cluster
+genie omni start --nats-url nats://nats.internal:4222
+
+# Check bridge health (human-readable)
+genie omni status
+
+# Check bridge health (JSON — for dashboards, alerts, CI)
+genie omni status --json
+
+# Stop the running bridge
+genie omni stop
+```
+
+<Tip>
+The NATS subjects, subscription patterns, and reliability semantics the bridge relies on are documented in [Architecture &rarr; Messaging](/genie/architecture/messaging).
+</Tip>
 
 ---
 
