@@ -105,13 +105,13 @@ genie events scan [options]
 
 | Option | Description |
 |--------|-------------|
-| `--since <duration>` | Time window to scan (e.g., `24h`, `7d`) |
+| `--since <date>` | Start date in `YYYYMMDD` format |
 | `--json` | Output as JSON |
-| `--breakdown` | Show per-session cost breakdown |
+| `--breakdown` | Show per-model breakdown |
 
 ```bash
 genie events scan
-genie events scan --since 7d --breakdown
+genie events scan --since 20260330 --breakdown
 ```
 
 ---
@@ -315,8 +315,10 @@ genie qa run [target] [options]
 
 | Option | Description |
 |--------|-------------|
-| `--json` | Output as JSON |
-| `--verbose` | Show detailed per-spec output |
+| `--timeout <seconds>` | Max seconds per spec (default: `3600`) |
+| `--parallel <n>` | Max specs to run in parallel (default: `5`) |
+| `--verbose` | Show all collected events |
+| `--ndjson` | Machine-readable NDJSON output |
 
 ### `genie qa status`
 
@@ -344,12 +346,13 @@ genie qa check <specFile> [options]
 
 | Option | Description |
 |--------|-------------|
-| `--team <name>` | Team to evaluate against |
-| `--json` | Output as JSON |
+| `--team <name>` | Team name (defaults to `GENIE_TEAM`) |
+| `--since <timestamp>` | Only consider events after this ISO timestamp |
+| `--since-file <path>` | Read the lower-bound timestamp from a file |
 
 ```bash
 genie qa check specs/messaging.yaml
-genie qa check specs/messaging.yaml --team auth-rewrite --json
+genie qa check specs/messaging.yaml --team auth-rewrite --since 2026-03-30T00:00:00Z
 ```
 
 ### `genie qa-report`

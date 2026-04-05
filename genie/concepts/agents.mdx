@@ -124,7 +124,7 @@ genie broadcast 'group 1 is complete'
 genie chat list --team auth  # Read team chat history
 ```
 
-## Worker Registry
+## Agent Registry
 
 All spawned agents are tracked globally in the PostgreSQL `agents` table. This registry maps agent names to their tmux sessions, PIDs, teams, and status. The `genie ls` command reads from this table.
 
