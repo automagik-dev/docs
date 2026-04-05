@@ -1,16 +1,39 @@
 ---
 title: "Configuration"
 sidebarTitle: "Configuration"
-description: "rlmx.yaml format, config commands, fallback files, and settings priority."
+description: ".rlmx/ directory layout, rlmx.yaml format, config commands, and settings priority."
 ---
 
 # Configuration
 
-RLMX uses a layered configuration system. Most users only need `rlmx.yaml` in their project directory.
+RLMX uses a layered configuration system. Configuration lives in the `.rlmx/` directory at your project root.
 
-## rlmx.yaml
+<Warning>
+  **Breaking change (v0.260331+):** RLMX now requires the `.rlmx/` directory layout. Projects using the old flat-file `rlmx.yaml` in the project root must re-run `rlmx init` to migrate.
+</Warning>
 
-The primary config file. Run `rlmx init` to scaffold one with inline comments.
+## `.rlmx/` directory
+
+Run `rlmx init` to scaffold the config directory. Choose a template with `--template default` (general-purpose) or `--template code` (code analysis).
+
+```text
+.rlmx/
+├── rlmx.yaml       # Main configuration (model, budget, context, storage)
+├── SYSTEM.md        # System prompt used by the RLM loop
+├── CRITERIA.md      # Output criteria for quality checks
+└── TOOLS.md         # Custom Python tools exposed to the RLM
+```
+
+| File | Purpose |
+|------|---------|
+| `rlmx.yaml` | Model provider, budget limits, context loading, storage, and session settings |
+| `SYSTEM.md` | Override the default RLM paper system prompt — edit only if you know what you are doing |
+| `CRITERIA.md` | Output criteria appended to the system prompt (e.g., "Be concise", "Cite file paths") |
+| `TOOLS.md` | Custom Python functions injected into the REPL namespace |
+
+## `rlmx.yaml`
+
+The primary config file inside `.rlmx/`. Run `rlmx init` to scaffold one with inline comments.
 
 ```yaml
 # Model configuration
@@ -210,24 +233,17 @@ Settings are resolved highest-priority first:
 
 ---
 
-## Fallback files (v0.1 compatibility)
+## `.rlmx/` companion files
 
-Before `rlmx.yaml` existed, RLMX read configuration from individual Markdown files. These still work as fallbacks when no `rlmx.yaml` is present.
+The `.rlmx/` directory includes companion Markdown files alongside `rlmx.yaml`. These files let you keep long-form content (prompts, tools, criteria) out of the YAML file.
 
-| File | Equivalent `rlmx.yaml` section |
-|------|-------------------------------|
-| `SYSTEM.md` | `system:` |
-| `TOOLS.md` | `tools:` |
-| `CRITERIA.md` | `criteria:` |
-| `MODEL.md` | `model:` |
+| File | Purpose | Overrides `rlmx.yaml` section |
+|------|---------|-------------------------------|
+| `SYSTEM.md` | System prompt for the RLM loop | `system:` |
+| `TOOLS.md` | Custom Python tools | `tools:` |
+| `CRITERIA.md` | Output criteria | `criteria:` |
 
-### MODEL.md format
-
-```markdown
-provider: google
-model: gemini-3.1-flash-lite-preview
-sub-call-model: gemini-3.1-flash-lite-preview
-```
+If both the Markdown file and the corresponding `rlmx.yaml` section are present, the Markdown file takes precedence.
 
 ### TOOLS.md format
 
@@ -245,7 +261,7 @@ def search_docs(keyword):
 ```
 
 <Tip>
-  Migrate to `rlmx.yaml` when convenient. Run `rlmx init` to generate the unified config, then move your custom settings into it. The fallback files will be ignored once `rlmx.yaml` exists.
+  You can inline tools directly in `rlmx.yaml` under the `tools:` section, or keep them in `TOOLS.md` for readability. Same applies to `system:` / `SYSTEM.md` and `criteria:` / `CRITERIA.md`.
 </Tip>
 
 ---
