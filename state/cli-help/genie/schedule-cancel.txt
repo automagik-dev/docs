@@ -1,0 +1,10 @@
+Usage: genie schedule cancel [options] <name>
+
+Cancel a schedule and skip pending triggers
+
+Options:
+  --filter <expr>  Filter expression (e.g., status=pending)
+  -h, --help       display help for command
+
+Global Options:
+  -V, --version    output the version number

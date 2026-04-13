@@ -1,0 +1,11 @@
+Usage: genie board import [options]
+
+Import board from JSON file
+
+Options:
+  --json <file>        JSON file to import
+  --project <project>  Target project
+  -h, --help           display help for command
+
+Global Options:
+  -V, --version        output the version number

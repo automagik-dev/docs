@@ -1,0 +1,22 @@
+Usage: genie events [options] [command]
+
+Audit event log from PG
+
+Options:
+  -h, --help                      display help for command
+
+Global Options:
+  -V, --version                   output the version number
+
+Commands:
+  costs [options]                 Cost breakdown from OTel API request events
+  errors [options]                Show aggregated error patterns
+  help [command]                  display help for command
+  list [options]                  List recent audit events
+  scan [options]                  Full server cost scan via ccusage (all CC
+                                  sessions, not just genie-spawned)
+  summary [options]               High-level stats: agents spawned, tasks
+                                  moved, costs, errors
+  timeline [options] <entity-id>  Full event timeline for a task, agent, wish,
+                                  or traceId
+  tools [options]                 Tool usage analytics from OTel tool events

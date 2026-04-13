@@ -1,0 +1,6 @@
+Usage: omni instances whoami [options] <id>
+
+Show phone number and identity for an instance
+
+Options:
+  -h, --help  display help for command

@@ -1,0 +1,6 @@
+Usage: omni access approve [options] <instanceId> <requestId>
+
+Approve a pairing request (adds user to allowlist)
+
+Options:
+  -h, --help  display help for command

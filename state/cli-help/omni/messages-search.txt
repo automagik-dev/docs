@@ -1,0 +1,12 @@
+Usage: omni messages search [options] <query>
+
+Search messages across chats (includes transcriptions/descriptions in results)
+
+Options:
+  --instance <id>     Instance ID (uses default if not specified) (aliases:
+                      --instance-ids, --instances)
+  --chat <id>         Limit search to specific chat
+  --since <duration>  Time range: 1d, 7d, 30d (default: 7d) (default: "7d")
+  --type <type>       Message type: text, image, audio, document
+  --limit <n>         Max results (default: 20) (default: 20)
+  -h, --help          display help for command

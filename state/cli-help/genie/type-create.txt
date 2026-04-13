@@ -1,0 +1,12 @@
+Usage: genie type create [options] <name>
+
+Create a custom task type
+
+Options:
+  --stages <json>       Stages JSON array
+  --description <text>  Type description
+  --icon <icon>         Type icon
+  -h, --help            display help for command
+
+Global Options:
+  -V, --version         output the version number

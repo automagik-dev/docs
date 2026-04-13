@@ -1,0 +1,10 @@
+Usage: genie agent resume [options] [name]
+
+Resume a suspended/failed agent with its Claude session
+
+Options:
+  --all          Resume all eligible agents
+  -h, --help     display help for command
+
+Global Options:
+  -V, --version  output the version number

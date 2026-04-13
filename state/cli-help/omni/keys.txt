@@ -1,0 +1,15 @@
+Usage: omni keys [options] [command]
+
+Manage API keys
+
+Options:
+  -h, --help             display help for command
+
+Commands:
+  create [options]       Create a new API key
+  list [options]         List API keys
+  get <id>               Get API key details
+  update [options] <id>  Update an API key
+  revoke [options] <id>  Revoke an API key
+  delete <id>            Permanently delete an API key
+  help [command]         display help for command

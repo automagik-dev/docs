@@ -1,0 +1,9 @@
+Usage: genie reset [options] <ref>
+
+Reset an in-progress group back to ready (format: <slug>#<group>)
+
+Options:
+  -h, --help     display help for command
+
+Global Options:
+  -V, --version  output the version number

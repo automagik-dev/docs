@@ -1,0 +1,7 @@
+Usage: omni access deny [options] <instanceId> <requestId>
+
+Deny a pairing request
+
+Options:
+  --reason <text>  Reason for denial
+  -h, --help       display help for command

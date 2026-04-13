@@ -1,0 +1,6 @@
+Usage: omni instances group-revoke-invite [options] <id> <groupJid>
+
+Revoke group invite link and generate new one
+
+Options:
+  -h, --help  display help for command

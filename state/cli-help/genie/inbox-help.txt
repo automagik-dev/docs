@@ -1,0 +1,14 @@
+Usage: genie inbox [options] [command]
+
+Inbox management — list messages or watch for new ones
+
+Options:
+  -h, --help              display help for command
+
+Global Options:
+  -V, --version           output the version number
+
+Commands:
+  help [command]          display help for command
+  list [options] [agent]  List conversations with recent messages (PG-backed)
+  watch                   Run inbox watcher in foreground (Ctrl+C to stop)

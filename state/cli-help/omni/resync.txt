@@ -1,0 +1,25 @@
+Usage: omni resync [options]
+
+Trigger history backfill to recover missed messages
+
+Options:
+  -i, --instance <id>      Instance ID or name to resync (aliases:
+                           --instance-ids, --instances)
+  -a, --all                Resync all connected instances
+  -s, --since <duration>   Start time (duration: 2h, 30m, 1d) or ISO timestamp
+  -u, --until <timestamp>  End time (ISO timestamp, default: now)
+  --dry-run                Show what would be resynced without triggering
+  -h, --help               display help for command
+
+
+  Options:
+    -i, --instance <id>      Instance ID or name to resync
+    -a, --all                Resync all connected instances
+    -s, --since <duration>   Start time (duration: 2h, 30m, 1d) or ISO timestamp
+    -u, --until <timestamp>  End time (ISO timestamp, default: now)
+    --dry-run                Show what would be resynced without triggering
+Examples:
+  omni resync -i wa-main --since 2h                    # Resync last 2 hours for wa-main
+  omni resync -i wa-main --since 2026-02-09T10:00:00Z  # Resync since specific time
+  omni resync --all --since 1h                         # Resync all instances, last hour
+  omni resync -i wa-main --since 30m --dry-run         # Preview what would be resynced

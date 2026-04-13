@@ -1,0 +1,7 @@
+Usage: omni instances pair [options] <id>
+
+Request pairing code (alternative to QR)
+
+Options:
+  --phone <number>  Phone number with country code (e.g., +5511999999999)
+  -h, --help        display help for command

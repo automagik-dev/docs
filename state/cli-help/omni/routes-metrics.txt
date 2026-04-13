@@ -1,0 +1,6 @@
+Usage: omni routes metrics [options]
+
+View route cache metrics
+
+Options:
+  -h, --help  display help for command

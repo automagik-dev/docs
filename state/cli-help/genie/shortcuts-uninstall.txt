@@ -1,0 +1,9 @@
+Usage: genie shortcuts uninstall [options]
+
+Remove shortcuts from config files
+
+Options:
+  -h, --help     display help for command
+
+Global Options:
+  -V, --version  output the version number

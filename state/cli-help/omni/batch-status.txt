@@ -1,0 +1,8 @@
+Usage: omni batch status [options] <jobId>
+
+Get job status
+
+Options:
+  --watch          Watch for updates
+  --interval <ms>  Poll interval in ms (default: 2000)
+  -h, --help       display help for command

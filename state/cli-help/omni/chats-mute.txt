@@ -1,0 +1,8 @@
+Usage: omni chats mute [options] <id>
+
+Mute a chat on the channel
+
+Options:
+  --instance <id>  Instance ID (aliases: --instance-ids, --instances)
+  --duration <ms>  Mute duration in milliseconds (default: 8 hours)
+  -h, --help       display help for command

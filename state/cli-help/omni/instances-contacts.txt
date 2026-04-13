@@ -1,0 +1,11 @@
+Usage: omni instances contacts [options] <id>
+
+List contacts for an instance
+
+Options:
+  --limit <n>        Limit results
+  --cursor <cursor>  Pagination cursor
+  --guild <id>       Guild ID (required for Discord)
+  --search <query>   Filter contacts by name or phone
+  --no-groups        Exclude group contacts
+  -h, --help         display help for command

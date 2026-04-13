@@ -1,0 +1,8 @@
+Usage: omni webhooks list [options]
+
+List webhook sources
+
+Options:
+  --enabled   Show only enabled sources
+  --disabled  Show only disabled sources
+  -h, --help  display help for command

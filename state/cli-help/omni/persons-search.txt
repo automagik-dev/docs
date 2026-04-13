@@ -1,0 +1,7 @@
+Usage: omni persons search [options] <query>
+
+Search for persons
+
+Options:
+  --limit <n>  Limit results (default: 20)
+  -h, --help   display help for command

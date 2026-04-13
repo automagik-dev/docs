@@ -1,0 +1,13 @@
+Usage: omni providers setup [options] [command]
+
+Interactive setup wizards for providers
+
+Options:
+  -h, --help          display help for command
+
+Commands:
+  openclaw [options]  Set up an OpenClaw provider (keypair generation + device
+                      pairing + provider creation)
+  genie               [DEPRECATED] Use `omni connect <instance-id> <agent-name>`
+                      instead
+  help [command]      display help for command

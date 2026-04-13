@@ -1,0 +1,17 @@
+Usage: genie schedule [options] [command]
+
+Manage scheduled triggers
+
+Options:
+  -h, --help                display help for command
+
+Global Options:
+  -V, --version             output the version number
+
+Commands:
+  cancel [options] <name>   Cancel a schedule and skip pending triggers
+  create [options] <name>   Create a new schedule
+  help [command]            display help for command
+  history [options] <name>  Show past executions for a schedule
+  list [options]            List schedules with next due trigger
+  retry <name>              Reset a failed trigger to pending

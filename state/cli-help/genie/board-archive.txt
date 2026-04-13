@@ -1,0 +1,10 @@
+Usage: genie board archive [options] <name...>
+
+Archive a board and its unfinished tasks
+
+Options:
+  --project <project>  Disambiguate by project
+  -h, --help           display help for command
+
+Global Options:
+  -V, --version        output the version number

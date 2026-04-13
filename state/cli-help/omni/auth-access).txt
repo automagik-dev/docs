@@ -1,0 +1,14 @@
+Usage: omni auth [options] [command]
+
+Manage API authentication
+
+Options:
+  -h, --help         display help for command
+
+Commands:
+  login [options]    Save API credentials
+  status             Show current authentication status
+  logout             Clear stored credentials
+  recover [options]  Recover API key when keyValid shows no (requires local PM2
+                     access)
+  help [command]     display help for command

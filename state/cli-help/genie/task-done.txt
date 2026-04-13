@@ -1,0 +1,10 @@
+Usage: genie task done [options] <id>
+
+Mark task as done
+
+Options:
+  --comment <msg>  Comment on completion
+  -h, --help       display help for command
+
+Global Options:
+  -V, --version    output the version number

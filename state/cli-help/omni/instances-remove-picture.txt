@@ -1,0 +1,6 @@
+Usage: omni instances remove-picture [options] <id>
+
+Remove instance profile picture
+
+Options:
+  -h, --help  display help for command

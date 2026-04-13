@@ -1,0 +1,10 @@
+Usage: genie team cleanup [options]
+
+Kill tmux windows for done/archived teams
+
+Options:
+  --dry-run      Show what would be cleaned without doing it
+  -h, --help     display help for command
+
+Global Options:
+  -V, --version  output the version number

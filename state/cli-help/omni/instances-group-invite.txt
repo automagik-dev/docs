@@ -1,0 +1,6 @@
+Usage: omni instances group-invite [options] <id> <groupJid>
+
+Get group invite link
+
+Options:
+  -h, --help  display help for command

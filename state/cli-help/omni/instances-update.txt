@@ -1,0 +1,61 @@
+Usage: omni instances update [options] <id>
+
+Update an instance (supports all API fields)
+
+Options:
+  --name <name>                          Instance name
+  --is-default                           Set as default instance for channel
+  --no-is-default                        Unset as default instance for channel
+  --agent-fk-id <uuid>                   Agent FK UUID (references agents table, use "null" to clear)
+  --agent-provider <id>                  Agent provider ID (use "null" to clear)
+  --agent <id>                           Agent ID (use "null" to clear)
+  --agent-type <type>                    Agent type: agent, team, or workflow
+  --agent-timeout <seconds>              Agent timeout in seconds
+  --agent-stream-mode                    Enable streaming responses
+  --no-agent-stream-mode                 Disable streaming responses
+  --agent-session-strategy <strategy>    Session strategy: per_user, per_chat, per_user_per_chat
+  --agent-prefix-sender-name             Prefix messages with sender name
+  --no-agent-prefix-sender-name          Disable sender name prefix
+  --agent-wait-for-media                 Wait for media processing before dispatch
+  --no-agent-wait-for-media              Dispatch immediately without waiting for media
+  --agent-send-media-path                Include file path in formatted media text
+  --no-agent-send-media-path             Exclude file path from formatted media text
+  --agent-send-media-path-types <types>  Content types that receive file path (comma-separated: image,video,document)
+  --reply-filter-mode <mode>             Reply filter: all or filtered
+  --reply-on-dm                          Reply to DMs (requires --reply-filter-mode filtered)
+  --no-reply-on-dm                       Ignore DMs
+  --reply-on-mention                     Reply when @mentioned
+  --no-reply-on-mention                  Ignore @mentions
+  --reply-on-reply                       Reply when message is reply to bot
+  --no-reply-on-reply                    Ignore replies
+  --reply-on-name                        Reply when bot name appears in text
+  --no-reply-on-name                     Ignore name matches
+  --reply-name-patterns <patterns>       Custom name patterns (comma-separated)
+  --clear-reply-filter                   Remove reply filter (set to null)
+  --enable-auto-split                    Split responses on double newlines
+  --no-enable-auto-split                 Disable auto-split
+  --message-format-mode <mode>           Format mode: convert or passthrough
+  --debounce-mode <mode>                 Debounce mode: disabled, fixed, or randomized
+  --debounce-min <ms>                    Minimum debounce delay in ms
+  --debounce-max <ms>                    Maximum debounce delay in ms
+  --debounce-restart-on-typing           Restart debounce timer on typing
+  --no-debounce-restart-on-typing        Do not restart debounce on typing
+  --debounce-group <ms>                  Group chat debounce in ms (use "null" to inherit)
+  --agent-gate                           Enable LLM response gate
+  --no-agent-gate                        Disable LLM response gate
+  --agent-gate-model <model>             Model for response gate (use "null" for default)
+  --agent-gate-prompt <prompt>           Custom gate prompt (use "null" for default)
+  --tts-voice <id>                       ElevenLabs voice ID (use "null" to clear)
+  --tts-model <id>                       ElevenLabs model ID (use "null" to clear)
+  --access-mode <mode>                   Access mode: disabled, blocklist, or allowlist
+  --reaction-ack <mode>                  Reaction ack mode (on|off)
+  --reaction-ack-emoji <json>            Per-channel emoji map as JSON
+  --ack-timeout <ms>                     Ack timeout in milliseconds
+  --token <token>                        Generic bot token (auto-resolves to channel-specific field)
+  --telegram-token <token>               Telegram bot token (use "null" to clear)
+  --discord-token <token>                Discord bot token (use "null" to clear)
+  --slack-bot-token <token>              Slack bot token (use "null" to clear)
+  --slack-app-token <token>              Slack app token (use "null" to clear)
+  --trigger-events <events>              Trigger events (comma-separated, use "null" to clear)
+  --profile-name <name>                  Update WhatsApp display name (push name)
+  -h, --help                             display help for command

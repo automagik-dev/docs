@@ -1,0 +1,9 @@
+Usage: omni automations update [options] <id>
+
+Update an automation
+
+Options:
+  --name <name>         New name
+  --description <desc>  New description
+  --priority <n>        New priority
+  -h, --help            display help for command

@@ -1,0 +1,6 @@
+Usage: omni close [options]
+
+Clear active conversation context
+
+Options:
+  -h, --help  display help for command

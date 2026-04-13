@@ -1,0 +1,6 @@
+Usage: omni access pending [options] <instanceId>
+
+List pending pairing requests for an instance
+
+Options:
+  -h, --help  display help for command

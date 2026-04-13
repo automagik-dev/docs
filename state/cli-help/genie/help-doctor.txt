@@ -1,0 +1,11 @@
+Usage: genie doctor [options]
+
+Run diagnostic checks on genie installation
+
+Options:
+  --fix          Auto-fix: kill zombie postgres, clean shared memory, restart
+                 daemon
+  -h, --help     display help for command
+
+Global Options:
+  -V, --version  output the version number

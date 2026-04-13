@@ -1,0 +1,9 @@
+Usage: genie daemon install [options]
+
+Generate systemd service unit and enable it
+
+Options:
+  -h, --help     display help for command
+
+Global Options:
+  -V, --version  output the version number

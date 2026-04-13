@@ -1,0 +1,9 @@
+Usage: genie schedule retry [options] <name>
+
+Reset a failed trigger to pending
+
+Options:
+  -h, --help     display help for command
+
+Global Options:
+  -V, --version  output the version number

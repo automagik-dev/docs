@@ -1,0 +1,6 @@
+Usage: omni journey show [options] <correlationId>
+
+Display journey timeline with timing bars
+
+Options:
+  -h, --help  display help for command

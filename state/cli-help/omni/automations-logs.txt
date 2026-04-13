@@ -1,0 +1,8 @@
+Usage: omni automations logs [options] <id>
+
+Get automation execution logs
+
+Options:
+  --limit <n>        Limit results (default: 20)
+  --cursor <cursor>  Pagination cursor
+  -h, --help         display help for command

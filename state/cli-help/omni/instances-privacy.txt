@@ -1,0 +1,6 @@
+Usage: omni instances privacy [options] <id>
+
+Fetch privacy settings
+
+Options:
+  -h, --help  display help for command

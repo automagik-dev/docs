@@ -1,0 +1,78 @@
+Usage: genie [options] [command]
+
+Genie CLI - AI-assisted development
+
+Options:
+  -V, --version               output the version number
+  -h, --help                  display help for command
+
+Commands:
+  agent                       Agent lifecycle management
+  answer <name> <choice>      Answer a question for an agent (use "text:..."
+                              for text input)
+  app [options]               Launch Genie desktop app (backend sidecar +
+                              views)
+  board                       Board and pipeline management
+  brain                       Knowledge graph engine (enterprise)
+  brainstorm <agent> <slug>   Spawn agent with brainstorm DRAFT.md context
+  brief [options]             Show startup brief — aggregated context since
+                              last session
+  broadcast [options] <body>  Send a message to your team conversation
+                              (PG-backed)
+  chat                        Conversation management (PG-backed)
+  daemon                      Manage scheduler daemon lifecycle (redirects to
+                              genie serve --headless)
+  db                          Database management (pgserve)
+  dir                         Agent directory management
+  doctor [options]            Run diagnostic checks on genie installation
+  done <ref>                  Mark a wish group as done (format:
+                              <slug>#<group>)
+  events                      Audit event log from PG
+  export [options]            Export genie data as JSON
+  help [command]              display help for command
+  history [options] <name>    Show compressed session history for an agent
+  hook                        Hook middleware for Claude Code integration
+  import [options] <file>     Import genie data from JSON export
+  inbox                       Inbox management — list messages or watch for new
+                              ones
+  init                        Initialize a genie workspace
+  kill <name>                 Force kill an agent by name
+  log [options] [agent]       Unified observability feed — aggregates
+                              transcript, DMs, team chat
+  ls [options]                List registered agents with runtime status
+  metrics                     Machine metrics — snapshots, heartbeats, agents
+  notify                      Notification preference management
+  omni                        Manage the Omni ↔ Genie NATS bridge
+  project                     Project management — named task boards
+  qa                          QA — self-testing system for genie CLI
+  qa-report <json>            Publish QA result to the PG event log (called by
+                              QA team-lead)
+  read [options] <name>       Read terminal output from an agent pane
+  release                     Release management
+  reset <ref>                 Reset an in-progress group back to ready (format:
+                              <slug>#<group>)
+  resume [options] [name]     Resume a suspended/failed agent with its Claude
+                              session
+  review <agent> <ref>        Spawn agent with review scope for a wish group
+                              (format: <slug>#<group>)
+  schedule                    Manage scheduled triggers
+  send [options] <body>       Send a direct message to an agent (PG-backed)
+  serve                       Start all genie infrastructure (pgserve, tmux,
+                              scheduler)
+  sessions                    Session history — list, replay, search
+  setup [options]             Configure genie settings
+  shortcuts                   Manage tmux keyboard shortcuts
+  spawn [options] <name>      Spawn a new agent by name (resolves from
+                              directory or built-ins)
+  status <slug>               Show wish state overview for all groups
+  stop <name>                 Stop an agent (preserves session for resume)
+  tag                         Tag management
+  task                        Task lifecycle management
+  team                        Team lifecycle management
+  template                    Board template management
+  type                        Task type management
+  uninstall                   Remove Genie CLI and clean up hooks
+  update [options]            Update Genie CLI to the latest version
+  wish <agent> <slug>         Spawn agent with wish DESIGN.md context
+  work <ref> [agent]          Auto-orchestrate a wish, or dispatch work on a
+                              specific group

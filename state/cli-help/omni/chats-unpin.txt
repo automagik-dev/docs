@@ -1,0 +1,7 @@
+Usage: omni chats unpin [options] <id>
+
+Unpin a chat on the channel
+
+Options:
+  --instance <id>  Instance ID (aliases: --instance-ids, --instances)
+  -h, --help       display help for command

@@ -1,0 +1,8 @@
+Usage: omni instances group-create [options] <id>
+
+Create a new WhatsApp group
+
+Options:
+  --subject <name>            Group name/subject
+  --participants <phones...>  Phone numbers or JIDs to add (space-separated)
+  -h, --help                  display help for command

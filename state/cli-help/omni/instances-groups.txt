@@ -1,0 +1,9 @@
+Usage: omni instances groups [options] <id>
+
+List groups for an instance
+
+Options:
+  --limit <n>        Limit results
+  --cursor <cursor>  Pagination cursor
+  --search <query>   Filter groups by name
+  -h, --help         display help for command

@@ -1,0 +1,12 @@
+Usage: omni chats participants [options] <id>
+
+List or manage chat participants
+
+Options:
+  --add <user-id>      Add participant by platform user ID
+  --remove <user-id>   Remove participant by platform user ID
+  --name <name>        Display name for new participant
+  --role <role>        Role for new participant
+  --promote <user-id>  Promote participant to admin
+  --demote <user-id>   Demote participant to member
+  -h, --help           display help for command

@@ -1,0 +1,14 @@
+Usage: omni keys create [options]
+
+Create a new API key
+
+Options:
+  --name <name>         Key name
+  --scopes <scopes>     Comma-separated scopes (e.g.
+                        messages:read,instances:write)
+  --instances <ids>     Comma-separated instance IDs to restrict access (alias:
+                        --instance-ids)
+  --description <desc>  Key description
+  --rate-limit <n>      Rate limit (requests/minute)
+  --expires <date>      Expiration date (ISO 8601)
+  -h, --help            display help for command

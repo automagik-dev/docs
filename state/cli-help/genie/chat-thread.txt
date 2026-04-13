@@ -1,0 +1,11 @@
+Usage: genie chat thread [options] <messageId>
+
+Create a threaded sub-conversation from a message
+
+Options:
+  --name <name>    Thread name
+  --from <sender>  Sender ID (auto-detected)
+  -h, --help       display help for command
+
+Global Options:
+  -V, --version    output the version number

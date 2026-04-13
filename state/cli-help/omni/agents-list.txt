@@ -1,0 +1,10 @@
+Usage: omni agents list [options]
+
+List all agents
+
+Options:
+  --provider <provider>  Filter by provider (claude, agno, openai, gemini,
+                         custom, omni-internal)
+  --inactive-only        Show only inactive agents
+  --limit <n>            Max results (default: 50)
+  -h, --help             display help for command

@@ -1,0 +1,11 @@
+Usage: genie daemon logs [options]
+
+Tail structured JSON scheduler log
+
+Options:
+  --follow, -f   Follow log output
+  --lines <n>    Number of lines to show (default: 20)
+  -h, --help     display help for command
+
+Global Options:
+  -V, --version  output the version number

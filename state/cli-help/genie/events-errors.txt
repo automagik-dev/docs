@@ -1,0 +1,11 @@
+Usage: genie events errors [options]
+
+Show aggregated error patterns
+
+Options:
+  --since <duration>  Time window (e.g., 1h, 24h, 7d)
+  --json              Output as JSON
+  -h, --help          display help for command
+
+Global Options:
+  -V, --version       output the version number

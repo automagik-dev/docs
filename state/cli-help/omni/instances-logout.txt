@@ -1,0 +1,6 @@
+Usage: omni instances logout [options] <id>
+
+Logout and clear session data
+
+Options:
+  -h, --help  display help for command

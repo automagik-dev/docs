@@ -1,0 +1,20 @@
+Usage: omni chats list [options]
+
+List chats
+
+Options:
+  --instance <id>   Filter by instance ID (aliases: --instance-ids, --instances)
+  --channel <type>  Filter by channel type
+  --search <query>  Search by name
+  --archived        Include archived chats
+  --limit <n>       Limit results
+  --unread          Only show chats with unread messages
+  --sort <field>    Sort by: activity (default), unread, name
+  --type <type>     Filter by chat type: dm, group, channel
+  --verbose         Show full details (ID, channel, archived)
+  --all             Include newsletters and broadcasts
+  --pending         Only show chats pending a reply
+  --attention       Show chats needing attention (unread + pending + follow-up)
+  --label <name>    Filter by label
+  --hidden          Include hidden chats
+  -h, --help        display help for command

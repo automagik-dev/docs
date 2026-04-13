@@ -1,0 +1,6 @@
+Usage: omni config list [options]
+
+List all configuration values
+
+Options:
+  -h, --help  display help for command

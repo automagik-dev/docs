@@ -1,0 +1,7 @@
+Usage: omni providers delete [options] <id>
+
+Delete a provider
+
+Options:
+  --force     Skip confirmation
+  -h, --help  display help for command

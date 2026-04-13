@@ -1,0 +1,8 @@
+Usage: omni events search [options] <query>
+
+Search events by content
+
+Options:
+  --since <time>  Events since (e.g., 24h, 7d)
+  --limit <n>     Limit results (default: 50)
+  -h, --help      display help for command

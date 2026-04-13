@@ -1,0 +1,18 @@
+Usage: omni see [options] <file> [prompt]
+
+Describe an image or video (prints to stdout); optionally quote-reply
+
+Arguments:
+  file                  Path to image or video file
+  prompt                Guided prompt (e.g. "what color is the cat?")
+
+Options:
+  --provider <name>     Vision provider (gemini). Default: server config.
+  --language <code>     Response language (e.g. en, pt-BR)
+  --max-tokens <n>      Maximum output tokens (1-8192)
+  --reply [message-id]  Quote-reply trigger (or specific message ID) with the
+                        description
+  --instance <id>       Override instance (default: from context) (aliases:
+                        --instance-ids, --instances)
+  --chat <id>           Override chat (default: from context)
+  -h, --help            display help for command

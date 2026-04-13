@@ -1,0 +1,11 @@
+Usage: genie update [options]
+
+Update Genie CLI to the latest version
+
+Options:
+  --next         Switch to dev builds (npm @next tag)
+  --stable       Switch to stable releases (npm @latest tag)
+  -h, --help     display help for command
+
+Global Options:
+  -V, --version  output the version number

@@ -1,0 +1,9 @@
+Usage: genie project unarchive [options] <name>
+
+Restore an archived project and its boards (tasks stay as-is)
+
+Options:
+  -h, --help     display help for command
+
+Global Options:
+  -V, --version  output the version number

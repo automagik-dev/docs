@@ -1,0 +1,7 @@
+Usage: omni providers list [options]
+
+List available providers
+
+Options:
+  --active    Show only active providers
+  -h, --help  display help for command

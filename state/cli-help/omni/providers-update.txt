@@ -1,0 +1,25 @@
+Usage: omni providers update [options] <id>
+
+Update a provider
+
+Options:
+  --name <name>             Provider name
+  --base-url <url>          API base URL
+  --api-key <key>           API key
+  --description <desc>      Provider description
+  --timeout <seconds>       Default timeout in seconds
+  --stream                  Enable streaming by default
+  --no-stream               Disable streaming by default
+  --active                  Set provider active
+  --no-active               Set provider inactive
+  --agent-name <name>       Agent identity (genie)
+  --target-agent <name>     Target agent inbox (genie)
+  --team-name <template>    Team name template (genie)
+  --project-path <path>     Project directory path (claude-code)
+  --max-turns <number>      Max conversation turns (claude-code)
+  --permission-mode <mode>  Permission mode (claude-code)
+  --model <model>           Model override (claude-code)
+  --system-prompt <prompt>  System prompt (claude-code)
+  --schema-config <json>    Raw schemaConfig as JSON (overrides individual
+                            schema flags)
+  -h, --help                display help for command

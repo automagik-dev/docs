@@ -1,0 +1,6 @@
+Usage: omni providers agents [options] <id>
+
+List agents from provider (Agno)
+
+Options:
+  -h, --help  display help for command

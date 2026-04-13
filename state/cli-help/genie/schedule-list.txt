@@ -1,0 +1,11 @@
+Usage: genie schedule list [options]
+
+List schedules with next due trigger
+
+Options:
+  --json         Output as JSON
+  --watch        Refresh every 2s
+  -h, --help     display help for command
+
+Global Options:
+  -V, --version  output the version number

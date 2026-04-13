@@ -1,0 +1,23 @@
+Usage: omni film [options] <prompt>
+
+Generate a video from a text prompt (Gemini Veo 3.1)
+
+Arguments:
+  prompt                  Text prompt describing the video
+
+Options:
+  --duration <seconds>    Clip duration in seconds (provider-dependent max)
+  --resolution <res>      Resolution hint (720p or 1080p)
+  --aspect-ratio <ratio>  Aspect ratio (16:9 or 9:16) (default: "16:9")
+  --reference <path>      Reference image path (reserved for future use)
+  --extend <operationId>  Extend an existing video operation (reserved for
+                          future use)
+  --seed <number>         RNG seed for reproducible output
+  --no-audio              Disable audio generation
+  -o, --output <path>     Save video to file locally (does not send)
+  --reply [message-id]    Quote-reply to trigger message or specific message ID
+  --provider <name>       Video generation provider (default: gemini)
+  --instance <id>         Override instance (default: from context) (aliases:
+                          --instance-ids, --instances)
+  --chat <id>             Override chat (default: from context)
+  -h, --help              display help for command

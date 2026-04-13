@@ -1,0 +1,14 @@
+Usage: omni prompts [options] [command]
+
+Manage LLM prompt overrides
+
+Options:
+  -h, --help                    display help for command
+
+Commands:
+  list                          List all prompt settings with override status
+  get <name>                    Show current prompt (image|video|document|gate)
+  set [options] <name> [value]  Set prompt override (reads stdin if no value,
+                                for multiline)
+  reset <name>                  Clear prompt override (reverts to code default)
+  help [command]                display help for command

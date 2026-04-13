@@ -1,0 +1,9 @@
+Usage: genie task release [options] <id>
+
+Release task checkout claim
+
+Options:
+  -h, --help     display help for command
+
+Global Options:
+  -V, --version  output the version number

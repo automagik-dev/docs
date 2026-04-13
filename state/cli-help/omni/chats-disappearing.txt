@@ -1,0 +1,9 @@
+Usage: omni chats disappearing [options] <id>
+
+Toggle disappearing messages for a chat
+
+Options:
+  --instance <id>        Instance ID (aliases: --instance-ids, --instances)
+  --duration <duration>  Duration: off, 24h, 7d, 90d (default: 24h) (default:
+                         "24h")
+  -h, --help             display help for command

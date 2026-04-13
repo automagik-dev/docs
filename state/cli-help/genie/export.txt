@@ -1,0 +1,23 @@
+Usage: genie export [options] [command]
+
+Export genie data as JSON
+
+Options:
+  --output <file>             Write to file instead of stdout
+  -o <file>                   Alias for --output
+  --pretty                    Pretty-print JSON
+  -h, --help                  display help for command
+
+Global Options:
+  -V, --version               output the version number
+
+Commands:
+  agents [options]            Export agents, templates, and checkpoints
+  all [options]               Full backup (all present tables)
+  boards [options] [name]     Export boards, templates, and task types
+  comms [options]             Export conversations, messages, mailbox
+  config [options]            Export OS config (graceful skip if missing)
+  projects [options]          Export projects
+  schedules [options] [name]  Export schedules with run_spec
+  tags [options]              Export tags
+  tasks [options]             Export tasks with deps, actors, and stage log

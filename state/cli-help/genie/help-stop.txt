@@ -1,0 +1,9 @@
+Usage: genie stop [options] <name>
+
+Stop an agent (preserves session for resume)
+
+Options:
+  -h, --help     display help for command
+
+Global Options:
+  -V, --version  output the version number

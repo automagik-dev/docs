@@ -1,0 +1,10 @@
+Usage: genie release create [options] <name>
+
+Create a release and assign tasks to it
+
+Options:
+  --tasks <ids...>  Task IDs or #seqs to include
+  -h, --help        display help for command
+
+Global Options:
+  -V, --version     output the version number

@@ -1,0 +1,6 @@
+Usage: omni instances group-join [options] <id> <code>
+
+Join a group via invite code
+
+Options:
+  -h, --help  display help for command

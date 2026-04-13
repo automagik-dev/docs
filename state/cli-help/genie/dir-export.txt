@@ -1,0 +1,10 @@
+Usage: genie dir export [options] <name>
+
+Print full AGENTS.md frontmatter for an agent from PG state
+
+Options:
+  --stdout       Print to stdout as raw YAML (default)
+  -h, --help     display help for command
+
+Global Options:
+  -V, --version  output the version number

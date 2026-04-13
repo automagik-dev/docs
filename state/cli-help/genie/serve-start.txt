@@ -1,0 +1,13 @@
+Usage: genie serve start [options]
+
+Start genie serve
+
+Options:
+  --daemon       Run in background
+  --foreground   Run in foreground (default)
+  --headless     Run without TUI (services only: pgserve, scheduler,
+                 inbox-watcher)
+  -h, --help     display help for command
+
+Global Options:
+  -V, --version  output the version number

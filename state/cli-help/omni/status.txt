@@ -1,0 +1,6 @@
+Usage: omni status [options]
+
+Show API health and connection info
+
+Options:
+  -h, --help  display help for command

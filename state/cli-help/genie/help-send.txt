@@ -1,0 +1,18 @@
+Usage: genie send [options] <body>
+
+Send a direct message to an agent (PG-backed)
+
+Options:
+  --to <agent>     Recipient agent name (default: team leader) (default:
+                   "team-lead")
+  --from <sender>  Sender ID (auto-detected from context)
+  --team <name>    Explicit team context for sender/recipient resolution
+  -h, --help       display help for command
+
+Global Options:
+  -V, --version    output the version number
+
+Examples:
+  genie send 'start task #3' --to engineer         # Message a specific agent
+  genie send 'status update' --to team-lead         # Report to team lead
+  genie send 'deploy ready' --team my-feature       # Message within team context

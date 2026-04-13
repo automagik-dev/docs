@@ -1,0 +1,6 @@
+Usage: omni auth logout [options]
+
+Clear stored credentials
+
+Options:
+  -h, --help  display help for command

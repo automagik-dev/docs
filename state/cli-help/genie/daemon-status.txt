@@ -1,0 +1,9 @@
+Usage: genie daemon status [options]
+
+Show daemon state, PID, uptime, and trigger stats
+
+Options:
+  -h, --help     display help for command
+
+Global Options:
+  -V, --version  output the version number

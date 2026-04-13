@@ -1,0 +1,8 @@
+Usage: omni messages delete [options] <messageId>
+
+Delete a message for everyone (WhatsApp)
+
+Options:
+  --instance <id>   Instance ID (aliases: --instance-ids, --instances)
+  --chat <chatJid>  Chat JID (e.g., 5551997285829@s.whatsapp.net)
+  -h, --help        display help for command

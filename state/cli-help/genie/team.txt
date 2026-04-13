@@ -1,0 +1,24 @@
+Usage: genie team [options] [command]
+
+Team lifecycle management
+
+Options:
+  -h, --help                display help for command
+
+Global Options:
+  -V, --version             output the version number
+
+Commands:
+  archive <name>            Archive a team (preserves all data, kills members)
+  blocked <name>            Mark a team as blocked and kill all members
+  cleanup [options]         Kill tmux windows for done/archived teams
+  create [options] <name>   Create a new team with a git worktree
+  disband <name>            Disband a team (archives — preserves data). Use
+                            `genie team archive` directly.
+  done <name>               Mark a team as done and kill all members
+  fire [options] <agent>    Remove an agent from a team
+  help [command]            display help for command
+  hire [options] <agent>    Add an agent to a team ("council" hires all 10
+                            council members)
+  ls|list [options] [name]  List teams or members of a team
+  unarchive <name>          Restore an archived team

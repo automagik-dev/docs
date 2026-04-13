@@ -1,0 +1,17 @@
+Usage: genie board edit [options] <name...>
+
+Edit board or column properties
+
+Options:
+  --project <project>   Disambiguate by project
+  --column <col>        Column name to edit
+  --gate <gate>         New gate value (human|agent|human+agent)
+  --action <action>     New action skill
+  --color <color>       New color hex
+  --rename <new>        Rename the column
+  --name <new>          Rename the board itself
+  --description <text>  Update description
+  -h, --help            display help for command
+
+Global Options:
+  -V, --version         output the version number

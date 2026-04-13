@@ -1,0 +1,6 @@
+Usage: omni restart [options]
+
+Restart omni PM2 processes and wait for health check
+
+Options:
+  -h, --help  display help for command

@@ -1,0 +1,12 @@
+Usage: omni settings [options] [command]
+
+Manage API settings
+
+Options:
+  -h, --help                   display help for command
+
+Commands:
+  list [options]               List all settings
+  get <key>                    Get a setting value
+  set [options] <key> <value>  Update a setting value
+  help [command]               display help for command

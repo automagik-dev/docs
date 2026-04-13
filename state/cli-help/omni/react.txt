@@ -1,0 +1,14 @@
+Usage: omni react [options] <emoji>
+
+React to a message with an emoji
+
+Arguments:
+  emoji            Emoji to react with
+
+Options:
+  --message <id>   Message ID to react to (default: trigger message from
+                   context)
+  --instance <id>  Override instance (default: from context) (aliases:
+                   --instance-ids, --instances)
+  --chat <id>      Override chat (default: from context)
+  -h, --help       display help for command

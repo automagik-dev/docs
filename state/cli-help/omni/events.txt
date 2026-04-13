@@ -1,0 +1,15 @@
+Usage: omni events [options] [command]
+
+Query events
+
+Options:
+  -h, --help                     display help for command
+
+Commands:
+  list [options]                 List events
+  search [options] <query>       Search events by content
+  timeline [options] <personId>  Show event timeline for a person
+  metrics                        Get event processing metrics
+  analytics [options]            Show event analytics summary
+  replay [options]               Start, list, or manage replay sessions
+  help [command]                 display help for command

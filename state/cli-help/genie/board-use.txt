@@ -1,0 +1,10 @@
+Usage: genie board use [options] <name...>
+
+Set active board for current repo
+
+Options:
+  --project <project>  Disambiguate by project
+  -h, --help           display help for command
+
+Global Options:
+  -V, --version        output the version number

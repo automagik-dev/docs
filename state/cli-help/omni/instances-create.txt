@@ -1,0 +1,59 @@
+Usage: omni instances create [options]
+
+Create a new instance (supports all API fields)
+
+Options:
+  --name <name>                           Instance name
+  --channel <type>                        Channel type (whatsapp-baileys, whatsapp-cloud, discord, slack, telegram, gupshup)
+  --agent-fk-id <uuid>                    Agent FK UUID (references agents table, use "null" to clear)
+  --agent-provider <id>                   Agent provider ID
+  --agent <id>                            Agent ID
+  --agent-type <type>                     Agent type: agent, team, or workflow
+  --agent-timeout <seconds>               Agent timeout in seconds
+  --agent-stream-mode                     Enable streaming responses
+  --agent-session-strategy <strategy>     Session strategy: per_user, per_chat, per_user_per_chat
+  --agent-prefix-sender-name              Prefix messages with sender name
+  --no-agent-prefix-sender-name           Disable sender name prefix
+  --agent-wait-for-media                  Wait for media processing before dispatch
+  --no-agent-wait-for-media               Dispatch immediately without waiting for media
+  --agent-send-media-path                 Include file path in formatted media text
+  --no-agent-send-media-path              Exclude file path from formatted media text
+  --agent-send-media-path-types <types>   Content types that receive file path (comma-separated: image,video,document)
+  --reply-filter-mode <mode>              Reply filter: all or filtered
+  --reply-on-dm                           Reply to DMs
+  --no-reply-on-dm                        Ignore DMs
+  --reply-on-mention                      Reply when @mentioned
+  --no-reply-on-mention                   Ignore @mentions
+  --reply-on-reply                        Reply when message is reply to bot
+  --no-reply-on-reply                     Ignore replies
+  --reply-on-name                         Reply when bot name appears in text
+  --no-reply-on-name                      Ignore name matches
+  --reply-name-patterns <patterns>        Custom name patterns (comma-separated)
+  --enable-auto-split                     Split responses on double newlines
+  --no-enable-auto-split                  Disable auto-split
+  --message-format-mode <mode>            Format mode: convert or passthrough
+  --debounce-mode <mode>                  Debounce mode: disabled, fixed, or randomized
+  --debounce-min <ms>                     Minimum debounce delay in ms
+  --debounce-max <ms>                     Maximum debounce delay in ms
+  --debounce-restart-on-typing            Restart debounce timer on typing
+  --debounce-group <ms>                   Group chat debounce in ms
+  --agent-gate                            Enable LLM response gate
+  --agent-gate-model <model>              Model for response gate
+  --agent-gate-prompt <prompt>            Custom gate prompt
+  --tts-voice <id>                        ElevenLabs voice ID
+  --tts-model <id>                        ElevenLabs model ID
+  --access-mode <mode>                    Access mode: disabled, blocklist, or allowlist
+  --reaction-ack <mode>                   Reaction ack mode (on|off)
+  --reaction-ack-emoji <json>             Per-channel emoji map as JSON
+  --ack-timeout <ms>                      Ack timeout in milliseconds
+  --token <token>                         Generic bot token (auto-resolves to channel-specific field)
+  --telegram-token <token>                Telegram bot token
+  --discord-token <token>                 Discord bot token
+  --slack-bot-token <token>               Slack bot token
+  --slack-app-token <token>               Slack app token
+  --gupshup-api-key <key>                 Gupshup API key
+  --gupshup-app-name <name>               Gupshup app name
+  --gupshup-source-phone <phone>          Gupshup source phone (E.164)
+  --gupshup-webhook-verify-token <token>  Gupshup webhook verify token
+  --is-default                            Set as default instance for channel
+  -h, --help                              display help for command

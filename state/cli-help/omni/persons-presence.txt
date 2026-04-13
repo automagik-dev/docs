@@ -1,0 +1,6 @@
+Usage: omni persons presence [options] <id>
+
+Get person presence and activity info
+
+Options:
+  -h, --help  display help for command

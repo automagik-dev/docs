@@ -1,0 +1,6 @@
+Usage: omni stop [options]
+
+Stop all omni PM2 processes
+
+Options:
+  -h, --help  display help for command

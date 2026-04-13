@@ -1,0 +1,7 @@
+Usage: omni settings list [options]
+
+List all settings
+
+Options:
+  --category <category>  Filter by category
+  -h, --help             display help for command

@@ -1,0 +1,7 @@
+Usage: omni instances restart [options] <id>
+
+Restart an instance
+
+Options:
+  --force-new-qr  Force generation of new QR code after restart
+  -h, --help      display help for command

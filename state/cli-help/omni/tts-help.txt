@@ -1,0 +1,10 @@
+Usage: omni tts [options] [command]
+
+Text-to-speech operations
+
+Options:
+  -h, --help      display help for command
+
+Commands:
+  voices          List available TTS voices
+  help [command]  display help for command

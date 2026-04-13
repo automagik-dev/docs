@@ -1,0 +1,6 @@
+Usage: omni providers get [options] <id>
+
+Get provider details
+
+Options:
+  -h, --help  display help for command

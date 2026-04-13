@@ -1,0 +1,15 @@
+Usage: genie metrics [options] [command]
+
+Machine metrics — snapshots, heartbeats, agents
+
+Options:
+  -h, --help         display help for command
+
+Global Options:
+  -V, --version      output the version number
+
+Commands:
+  agents [options]   Per-agent heartbeat summary
+  help [command]     display help for command
+  history [options]  Machine snapshot history
+  now [options]      Current machine state

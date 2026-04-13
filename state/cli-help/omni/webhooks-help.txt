@@ -1,0 +1,15 @@
+Usage: omni webhooks [options] [command]
+
+Manage webhook sources
+
+Options:
+  -h, --help             display help for command
+
+Commands:
+  list [options]         List webhook sources
+  get <id>               Get webhook source details
+  create [options]       Create a webhook source
+  update [options] <id>  Update a webhook source
+  delete <id>            Delete a webhook source
+  trigger [options]      Trigger a custom event
+  help [command]         display help for command

@@ -1,0 +1,6 @@
+Usage: omni instances unblock [options] <id> <contactId>
+
+Unblock a contact on WhatsApp
+
+Options:
+  -h, --help  display help for command

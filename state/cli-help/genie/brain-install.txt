@@ -1,0 +1,9 @@
+Usage: genie brain install [options]
+
+Install genie-brain from GitHub
+
+Options:
+  -h, --help     display help for command
+
+Global Options:
+  -V, --version  output the version number

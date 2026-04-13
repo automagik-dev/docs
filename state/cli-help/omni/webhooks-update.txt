@@ -1,0 +1,10 @@
+Usage: omni webhooks update [options] <id>
+
+Update a webhook source
+
+Options:
+  --name <name>         New name
+  --description <desc>  New description
+  --enable              Enable the webhook
+  --disable             Disable the webhook
+  -h, --help            display help for command

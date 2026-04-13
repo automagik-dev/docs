@@ -1,0 +1,8 @@
+Usage: omni instances qr [options] <id>
+
+Get QR code for WhatsApp instances
+
+Options:
+  --base64    Output raw base64 instead of ASCII
+  --no-watch  Show QR once without auto-refreshing
+  -h, --help  display help for command

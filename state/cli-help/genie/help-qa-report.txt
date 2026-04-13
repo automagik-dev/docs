@@ -1,0 +1,9 @@
+Usage: genie qa-report [options] <json>
+
+Publish QA result to the PG event log (called by QA team-lead)
+
+Options:
+  -h, --help     display help for command
+
+Global Options:
+  -V, --version  output the version number

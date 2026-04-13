@@ -1,0 +1,7 @@
+Usage: omni persons unlink [options] <identityId>
+
+Unlink a platform identity from its person
+
+Options:
+  --reason <reason>  Reason for unlinking (default: "Manual unlink")
+  -h, --help         display help for command

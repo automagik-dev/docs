@@ -1,0 +1,11 @@
+Usage: genie broadcast [options] <body>
+
+Send a message to your team conversation (PG-backed)
+
+Options:
+  --from <sender>  Sender ID (auto-detected from context)
+  --team <name>    Team name (auto-detected from context)
+  -h, --help       display help for command
+
+Global Options:
+  -V, --version    output the version number

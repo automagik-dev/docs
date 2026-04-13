@@ -1,0 +1,12 @@
+Usage: genie qa check [options] <specFile>
+
+Evaluate a QA spec against current team logs and publish qa-report
+
+Options:
+  --team <name>        Team name (defaults to GENIE_TEAM)
+  --since <timestamp>  Only consider events after this ISO timestamp
+  --since-file <path>  Read the lower-bound timestamp from a file
+  -h, --help           display help for command
+
+Global Options:
+  -V, --version        output the version number

@@ -1,0 +1,28 @@
+Usage: omni routes update [options] <routeId>
+
+Update an existing agent route
+
+Options:
+  --instance <id>             Instance ID (aliases: --instance-ids, --instances)
+  --agent <agentId>           Agent UUID (FK to agents table)
+  --timeout <seconds>         Agent timeout in seconds
+  --stream                    Enable streaming responses
+  --no-stream                 Disable streaming responses (set to null)
+  --prefix-sender             Prefix messages with sender name
+  --no-prefix-sender          Do not prefix messages with sender name (set to
+                              null)
+  --wait-media                Wait for media processing
+  --no-wait-media             Do not wait for media processing (set to null)
+  --send-media-path           Include file path in media text
+  --no-send-media-path        Do not include file path in media text (set to
+                              null)
+  --gate                      Enable LLM response gate
+  --no-gate                   Disable LLM response gate (set to null)
+  --gate-model <model>        Response gate model
+  --gate-prompt <prompt>      Response gate prompt
+  --reply-filter-mode <mode>  Reply filter: all or filtered
+  --label <label>             Human-readable label for this route
+  --priority <number>         Priority (higher = higher priority)
+  --active                    Activate route
+  --inactive                  Deactivate route
+  -h, --help                  display help for command

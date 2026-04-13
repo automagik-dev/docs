@@ -1,0 +1,6 @@
+Usage: omni config unset [options] <key>
+
+Remove a configuration value
+
+Options:
+  -h, --help  display help for command

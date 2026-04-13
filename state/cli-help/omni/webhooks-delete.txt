@@ -1,0 +1,6 @@
+Usage: omni webhooks delete [options] <id>
+
+Delete a webhook source
+
+Options:
+  -h, --help  display help for command

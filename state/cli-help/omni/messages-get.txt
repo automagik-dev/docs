@@ -1,0 +1,6 @@
+Usage: omni messages get [options] <messageId>
+
+Get full message details including transcription/description fields
+
+Options:
+  -h, --help  display help for command

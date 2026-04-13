@@ -1,0 +1,17 @@
+Usage: omni routes [options] [command]
+
+Manage agent routing configuration
+
+Options:
+  -h, --help                  display help for command
+
+Commands:
+  list [options]              List agent routes for an instance
+  get [options] <routeId>     Get agent route details
+  create [options]            Create a new agent route
+  update [options] <routeId>  Update an existing agent route
+  delete [options] <routeId>  Delete an agent route
+  test [options]              Test route resolution for a given instance, chat,
+                              and/or person
+  metrics                     View route cache metrics
+  help [command]              display help for command

@@ -1,0 +1,21 @@
+Usage: omni automations create [options]
+
+Create an automation
+
+Options:
+  --name <name>              Automation name
+  --trigger <event>          Trigger event type (e.g., message.received)
+  --action <type>            Action type (webhook, send_message, emit_event,
+                             log, call_agent)
+  --action-config <json>     Action config as JSON
+  --condition <json>         Trigger conditions as JSON array
+  --condition-logic <logic>  Condition logic: "and" (all must match) or "or"
+                             (any must match)
+  --description <desc>       Automation description
+  --priority <n>             Priority (higher = runs first)
+  --disabled                 Create in disabled state
+  --agent-id <id>            Agent ID (for call_agent action)
+  --provider-id <id>         Provider ID (for call_agent action)
+  --response-as <var>        Store agent response as variable (for call_agent
+                             action)
+  -h, --help                 display help for command

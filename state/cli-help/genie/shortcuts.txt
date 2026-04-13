@@ -1,0 +1,14 @@
+Usage: genie shortcuts [options] [command]
+
+Manage tmux keyboard shortcuts
+
+Options:
+  -h, --help     display help for command
+
+Global Options:
+  -V, --version  output the version number
+
+Commands:
+  install        Install shortcuts to config files (~/.tmux.conf, shell rc)
+  show           Show available shortcuts and installation status
+  uninstall      Remove shortcuts from config files

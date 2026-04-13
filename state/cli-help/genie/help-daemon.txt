@@ -1,0 +1,18 @@
+Usage: genie daemon [options] [command]
+
+Manage scheduler daemon lifecycle (redirects to genie serve --headless)
+
+Options:
+  -h, --help       display help for command
+
+Global Options:
+  -V, --version    output the version number
+
+Commands:
+  help [command]   display help for command
+  install          Generate systemd service unit and enable it
+  logs [options]   Tail structured JSON scheduler log
+  start [options]  Start the scheduler daemon (alias for genie serve
+                   --headless)
+  status           Show daemon state, PID, uptime, and trigger stats
+  stop             Stop genie serve gracefully

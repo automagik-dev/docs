@@ -1,0 +1,7 @@
+Usage: omni events timeline [options] <personId>
+
+Show event timeline for a person
+
+Options:
+  --limit <n>  Limit results (default: 50)
+  -h, --help   display help for command

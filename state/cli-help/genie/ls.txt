@@ -1,0 +1,10 @@
+Usage: genie ls [options]
+
+List registered agents with runtime status
+
+Options:
+  --json         Output as JSON
+  -h, --help     display help for command
+
+Global Options:
+  -V, --version  output the version number

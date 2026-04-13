@@ -1,0 +1,30 @@
+Usage: omni providers create [options]
+
+Create a new AI provider
+
+Options:
+  --name <name>                 Provider name (unique)
+  --schema <schema>             Provider schema (agno, webhook, openclaw, ag-ui,
+                                claude-code, a2a, nats-genie)
+  --base-url <url>              API base URL (ws:// or wss:// for openclaw)
+  --api-key <key>               API key (optional for claude-code if using env
+                                ANTHROPIC_API_KEY)
+  --description <desc>          Provider description
+  --timeout <seconds>           Default timeout in seconds (default: 60)
+  --stream                      Enable streaming by default
+  --default-agent-id <agentId>  Default agent ID (required for openclaw)
+  --project-path <path>         Project directory path (required for
+                                claude-code)
+  --max-turns <number>          Max conversation turns (claude-code)
+  --permission-mode <mode>      Permission mode: default, acceptEdits,
+                                bypassPermissions, plan (claude-code)
+  --model <model>               Model override (claude-code)
+  --system-prompt <prompt>      System prompt prepended to agent (claude-code)
+  --agent-name <name>           Agent identity / "from" field (required for
+                                genie)
+  --target-agent <name>         Target agent inbox to deliver to (required for
+                                genie)
+  --team-name <template>        Team name template, supports {chat_id},
+                                {thread_id}, {sender_id} (genie, default:
+                                omni-{chat_id})
+  -h, --help                    display help for command

@@ -1,0 +1,14 @@
+Usage: omni batch [options] [command]
+
+Manage batch media processing jobs
+
+Options:
+  -h, --help                display help for command
+
+Commands:
+  list [options]            List batch jobs
+  create [options]          Create a batch processing job
+  status [options] <jobId>  Get job status
+  cancel <jobId>            Cancel a running job
+  estimate [options]        Estimate job scope and cost without creating
+  help [command]            display help for command

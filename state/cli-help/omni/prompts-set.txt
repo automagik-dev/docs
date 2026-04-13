@@ -1,0 +1,7 @@
+Usage: omni prompts set [options] <name> [value]
+
+Set prompt override (reads stdin if no value, for multiline)
+
+Options:
+  --reason <reason>  Reason for change
+  -h, --help         display help for command

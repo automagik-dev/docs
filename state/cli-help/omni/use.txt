@@ -1,0 +1,9 @@
+Usage: omni use [options] <instance>
+
+Set active instance for verb commands
+
+Arguments:
+  instance    Instance name, ID, or prefix
+
+Options:
+  -h, --help  display help for command

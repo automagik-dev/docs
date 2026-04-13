@@ -1,0 +1,9 @@
+Usage: genie brainstorm [options] <agent> <slug>
+
+Spawn agent with brainstorm DRAFT.md context
+
+Options:
+  -h, --help     display help for command
+
+Global Options:
+  -V, --version  output the version number

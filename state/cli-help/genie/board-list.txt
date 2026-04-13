@@ -1,0 +1,12 @@
+Usage: genie board list [options]
+
+List all boards
+
+Options:
+  --project <project>  Filter by project
+  --all                Include archived boards
+  --json               Output as JSON
+  -h, --help           display help for command
+
+Global Options:
+  -V, --version        output the version number

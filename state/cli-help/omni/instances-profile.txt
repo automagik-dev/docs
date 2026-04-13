@@ -1,0 +1,6 @@
+Usage: omni instances profile [options] <id> <userId>
+
+Get user profile from the channel
+
+Options:
+  -h, --help  display help for command

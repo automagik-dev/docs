@@ -1,0 +1,35 @@
+Usage: genie agent [options] [command]
+
+Agent lifecycle management
+
+Options:
+  -h, --help                      display help for command
+
+Global Options:
+  -V, --version                   output the version number
+
+Commands:
+  answer <name> <choice>          Answer a question for an agent (use
+                                  "text:..." for text input)
+  brief [options]                 Show startup brief — aggregated context since
+                                  last session
+  directory|dir [options] [name]  List all agents or show single entry details
+                                  from directory
+  help [command]                  display help for command
+  inbox                           Inbox management — list messages or watch for
+                                  new ones
+  kill <name>                     Force kill an agent by name
+  list|ls [options]               List registered agents with runtime status
+  log [options] [agent]           Unified observability feed — aggregates
+                                  transcript, DMs, team chat
+  register [options] <name>       Register an agent locally and auto-register
+                                  in Omni when configured
+  resume [options] [name]         Resume a suspended/failed agent with its
+                                  Claude session
+  send [options] <body>           Send a direct message to an agent
+                                  (hierarchy-enforced)
+  show [options] <name>           Show agent identity and current executor
+                                  detail
+  spawn [options] <name>          Spawn a new agent by name (resolves from
+                                  directory or built-ins)
+  stop <name>                     Stop an agent (preserves session for resume)

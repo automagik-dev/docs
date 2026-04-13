@@ -1,0 +1,17 @@
+Usage: omni messages [options] [command]
+
+Manage messages (use "get" for transcriptions/descriptions)
+
+Options:
+  -h, --help                             display help for command
+
+Commands:
+  get <messageId>                        Get full message details including transcription/description fields
+  search [options] <query>               Search messages across chats (includes transcriptions/descriptions in results)
+  read [options] [messageId]             Mark message(s) as read
+  delete [options] <messageId>           Delete a message for everyone (WhatsApp)
+  star [options] <messageId>             Star a message
+  unstar [options] <messageId>           Unstar a message
+  remove-reaction [options] <messageId>  Remove a reaction from a message
+  edit [options] <messageId>             Edit a previously sent message
+  help [command]                         display help for command

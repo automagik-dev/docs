@@ -1,0 +1,13 @@
+Usage: omni agents [options] [command]
+
+Manage AI agent entities
+
+Options:
+  -h, --help        display help for command
+
+Commands:
+  list [options]    List all agents
+  get <id>          Get agent details
+  create [options]  Create a new agent
+  delete <id>       Delete an agent (soft-delete, sets inactive)
+  help [command]    display help for command

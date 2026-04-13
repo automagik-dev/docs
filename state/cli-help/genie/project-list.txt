@@ -1,0 +1,11 @@
+Usage: genie project list [options]
+
+List all projects
+
+Options:
+  --all          Include archived projects
+  --json         Output as JSON
+  -h, --help     display help for command
+
+Global Options:
+  -V, --version  output the version number

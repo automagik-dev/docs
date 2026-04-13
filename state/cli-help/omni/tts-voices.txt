@@ -1,0 +1,6 @@
+Usage: omni tts voices [options]
+
+List available TTS voices
+
+Options:
+  -h, --help  display help for command

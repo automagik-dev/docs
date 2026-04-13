@@ -1,0 +1,15 @@
+Usage: genie serve [options] [command]
+
+Start all genie infrastructure (pgserve, tmux, scheduler)
+
+Options:
+  -h, --help       display help for command
+
+Global Options:
+  -V, --version    output the version number
+
+Commands:
+  help [command]   display help for command
+  start [options]  Start genie serve
+  status           Show service health
+  stop             Stop genie serve and all services

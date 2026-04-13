@@ -1,0 +1,6 @@
+Usage: omni chats hide [options] <id>
+
+Hide a chat
+
+Options:
+  -h, --help  display help for command

@@ -1,0 +1,9 @@
+Usage: omni messages edit [options] <messageId>
+
+Edit a previously sent message
+
+Options:
+  --instance <id>   Instance ID (aliases: --instance-ids, --instances)
+  --chat <chatJid>  Chat JID where the message was sent
+  --text <text>     New text content
+  -h, --help        display help for command

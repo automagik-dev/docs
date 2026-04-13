@@ -1,0 +1,15 @@
+Usage: genie brain [options] [command]
+
+Knowledge graph engine (enterprise)
+
+Options:
+  -h, --help     display help for command
+
+Global Options:
+  -V, --version  output the version number
+
+Commands:
+  install        Install genie-brain from GitHub
+  uninstall      Remove genie-brain installation
+  update         Update genie-brain to latest version
+  version        Show installed brain version

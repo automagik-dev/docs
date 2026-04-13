@@ -1,0 +1,8 @@
+Usage: omni channels add [options] <type>
+
+Add a new channel instance (interactive setup)
+
+Options:
+  --token <token>  Bot token (for Telegram, Discord, Slack)
+  --name <name>    Instance name (auto-generated if not provided)
+  -h, --help       display help for command

@@ -1,0 +1,11 @@
+Usage: genie metrics history [options]
+
+Machine snapshot history
+
+Options:
+  --since <duration>  Time window (e.g., 1h, 6h, 1d) (default: "1h")
+  --json              Output as JSON
+  -h, --help          display help for command
+
+Global Options:
+  -V, --version       output the version number

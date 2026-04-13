@@ -1,0 +1,16 @@
+Usage: genie agent register [options] <name>
+
+Register an agent locally and auto-register in Omni when configured
+
+Options:
+  --dir <path>          Agent folder (CWD + AGENTS.md)
+  --repo <path>         Default git repo (overridden by team)
+  --prompt-mode <mode>  Prompt mode: append or system (default: "append")
+  --model <model>       Default model (sonnet, opus, codex)
+  --roles <roles...>    Built-in roles this agent can orchestrate
+  --global              Write to global directory instead of project
+  --skip-omni           Skip Omni auto-registration
+  -h, --help            display help for command
+
+Global Options:
+  -V, --version         output the version number

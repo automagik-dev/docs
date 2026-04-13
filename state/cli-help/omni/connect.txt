@@ -1,0 +1,11 @@
+Usage: omni connect [options] <instance-id> <agent-name>
+
+Connect an Omni instance to a Genie agent via NATS
+
+Arguments:
+  instance-id       Omni instance ID
+  agent-name        Genie agent name (from genie directory)
+
+Options:
+  --nats-url <url>  NATS server URL (default: "localhost:4222")
+  -h, --help        display help for command

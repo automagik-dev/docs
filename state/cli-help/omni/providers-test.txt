@@ -1,0 +1,6 @@
+Usage: omni providers test [options] <id>
+
+Test provider health
+
+Options:
+  -h, --help  display help for command

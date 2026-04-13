@@ -1,0 +1,6 @@
+Usage: omni start [options]
+
+Start API and NATS via PM2
+
+Options:
+  -h, --help  display help for command

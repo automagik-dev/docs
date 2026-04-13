@@ -1,0 +1,9 @@
+Usage: omni instances list [options]
+
+List all instances
+
+Options:
+  --channel <type>   Filter by channel type
+  --status <status>  Filter by status
+  --limit <n>        Limit results
+  -h, --help         display help for command

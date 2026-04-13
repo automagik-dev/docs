@@ -1,0 +1,15 @@
+Usage: genie template [options] [command]
+
+Board template management
+
+Options:
+  -h, --help             display help for command
+
+Global Options:
+  -V, --version          output the version number
+
+Commands:
+  delete <name>          Delete a template
+  help [command]         display help for command
+  list [options]         List available templates
+  show [options] <name>  Show template details

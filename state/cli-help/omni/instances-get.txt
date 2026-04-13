@@ -1,0 +1,6 @@
+Usage: omni instances get [options] <id>
+
+Get instance details
+
+Options:
+  -h, --help  display help for command

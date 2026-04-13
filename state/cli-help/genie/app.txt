@@ -1,0 +1,12 @@
+Usage: genie app [options]
+
+Launch Genie desktop app (backend sidecar + views)
+
+Options:
+  --backend-only  Start only the backend sidecar (IPC on stdin/stdout)
+  --tui           Fall back to terminal UI mode
+  --dev           Development mode
+  -h, --help      display help for command
+
+Global Options:
+  -V, --version   output the version number

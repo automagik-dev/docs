@@ -1,0 +1,25 @@
+Usage: genie task create [options] <title>
+
+Create a new task
+
+Options:
+  --type <type>          Task type (default: "software")
+  --priority <priority>  Priority: urgent, high, normal, low (default:
+                         "normal")
+  --due <date>           Due date (YYYY-MM-DD)
+  --start <date>         Start date (YYYY-MM-DD)
+  --tags <tags>          Comma-separated tag IDs
+  --parent <id>          Parent task ID or #seq
+  --assign <name>        Assign to local actor
+  --description <text>   Task description
+  --effort <effort>      Estimated effort (e.g., "2h", "3 points")
+  --comment <msg>        Initial comment on the task
+  --project <name>       Create task in a specific project (overrides CWD)
+  --board <name>         Board name to assign task to
+  --gh <owner/repo#N>    Link to GitHub issue (sets external_id + external_url)
+  --external-id <id>     External tracker ID (e.g., JIRA-123)
+  --external-url <url>   External tracker URL
+  -h, --help             display help for command
+
+Global Options:
+  -V, --version          output the version number

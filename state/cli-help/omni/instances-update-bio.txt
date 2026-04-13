@@ -1,0 +1,6 @@
+Usage: omni instances update-bio [options] <id> <status>
+
+Update own profile bio/status on WhatsApp
+
+Options:
+  -h, --help  display help for command

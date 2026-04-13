@@ -1,0 +1,6 @@
+Usage: omni config set [options] <key> [value]
+
+Set or unset a configuration value
+
+Options:
+  -h, --help  display help for command

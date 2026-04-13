@@ -1,0 +1,11 @@
+Usage: omni persons update [options] <id>
+
+Update person fields
+
+Options:
+  --name <name>      Display name
+  --phone <phone>    Primary phone (E.164 format)
+  --email <email>    Primary email
+  --avatar <url>     Avatar URL
+  --metadata <json>  Metadata as JSON string
+  -h, --help         display help for command

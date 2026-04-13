@@ -1,0 +1,10 @@
+Usage: genie dir rm [options] <name>
+
+Remove an agent from the directory
+
+Options:
+  --global       Remove from global directory instead of project
+  -h, --help     display help for command
+
+Global Options:
+  -V, --version  output the version number

@@ -1,0 +1,6 @@
+Usage: omni where [options]
+
+Show current conversation context (instance, chat, message)
+
+Options:
+  -h, --help  display help for command

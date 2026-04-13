@@ -1,0 +1,15 @@
+Usage: genie events costs [options]
+
+Cost breakdown from OTel API request events
+
+Options:
+  --today             Show costs from the last 24h
+  --since <duration>  Time window (e.g., 1h, 7d) (default: "24h")
+  --by-agent          Group by agent
+  --by-wish           Group by wish
+  --by-model          Group by model
+  --json              Output as JSON
+  -h, --help          display help for command
+
+Global Options:
+  -V, --version       output the version number

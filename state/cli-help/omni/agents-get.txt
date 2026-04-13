@@ -1,0 +1,6 @@
+Usage: omni agents get [options] <id>
+
+Get agent details
+
+Options:
+  -h, --help  display help for command

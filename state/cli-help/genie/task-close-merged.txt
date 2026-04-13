@@ -1,0 +1,13 @@
+Usage: genie task close-merged [options]
+
+Auto-close tasks whose wish slugs match recently merged PRs
+
+Options:
+  --since <duration>   Time window for merged PRs (e.g., "24h", "7d") (default:
+                       "24h")
+  --dry-run            Show what would be closed without acting
+  --repo <owner/repo>  Override GitHub remote detection
+  -h, --help           display help for command
+
+Global Options:
+  -V, --version        output the version number

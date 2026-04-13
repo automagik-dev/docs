@@ -1,0 +1,9 @@
+Usage: genie answer [options] <name> <choice>
+
+Answer a question for an agent (use "text:..." for text input)
+
+Options:
+  -h, --help     display help for command
+
+Global Options:
+  -V, --version  output the version number

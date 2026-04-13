@@ -1,0 +1,6 @@
+Usage: omni agents delete [options] <id>
+
+Delete an agent (soft-delete, sets inactive)
+
+Options:
+  -h, --help  display help for command

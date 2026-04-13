@@ -1,0 +1,8 @@
+Usage: omni auth login [options]
+
+Save API credentials
+
+Options:
+  --api-key <key>  API key for authentication
+  --api-url <url>  API base URL (default: http://localhost:8882)
+  -h, --help       display help for command

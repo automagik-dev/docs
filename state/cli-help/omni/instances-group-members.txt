@@ -1,0 +1,6 @@
+Usage: omni instances group-members [options] <id> <jid>
+
+List members of a group
+
+Options:
+  -h, --help  display help for command

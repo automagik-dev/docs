@@ -1,0 +1,10 @@
+Usage: omni messages read [options] [messageId]
+
+Mark message(s) as read
+
+Options:
+  --instance <id>  Instance ID (aliases: --instance-ids, --instances)
+  --batch          Batch mode for multiple messages
+  --chat <id>      Chat ID (required with --batch)
+  --ids <ids>      Comma-separated message IDs (required with --batch)
+  -h, --help       display help for command

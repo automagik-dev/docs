@@ -1,0 +1,33 @@
+Usage: genie agent spawn [options] <name>
+
+Spawn a new agent by name (resolves from directory or built-ins)
+
+Options:
+  --provider <provider>     Provider: claude, codex, or claude-sdk
+  --team <team>             Team name (default: "genie")
+  --model <model>           Model override (e.g., sonnet, opus)
+  --skill <skill>           Skill to load (optional)
+  --layout <layout>         Layout mode: mosaic (default) or vertical
+  --color <color>           Teammate pane border color
+  --plan-mode               Start teammate in plan mode
+  --permission-mode <mode>  Permission mode (e.g., acceptEdits)
+  --extra-args <args...>    Extra CLI args forwarded to provider
+  --cwd <path>              Working directory for the agent (overrides
+                            directory entry)
+  --session <session>       Tmux session name to spawn into
+  --role <role>             Override role name for registration (avoids
+                            duplicate guard)
+  --new-window              Create a new tmux window instead of splitting
+  --window <target>         Tmux window to split into (e.g., genie:3)
+  --no-auto-resume          Disable auto-resume on pane death
+  --prompt <prompt>         Initial prompt (first user message)
+  --sdk-max-turns <n>       SDK: max conversation turns
+  --sdk-max-budget <usd>    SDK: max budget in USD
+  --sdk-stream              SDK: enable streaming output (shortcut for
+                            --stream)
+  --sdk-effort <level>      SDK: reasoning effort level (low, medium, high,
+                            max)
+  -h, --help                display help for command
+
+Global Options:
+  -V, --version             output the version number

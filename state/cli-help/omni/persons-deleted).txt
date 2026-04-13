@@ -1,0 +1,18 @@
+Usage: omni persons [options] [command]
+
+Search and manage persons
+
+Options:
+  -h, --help                         display help for command
+
+Commands:
+  search [options] <query>           Search for persons
+  get <id>                           Get person details
+  presence <id>                      Get person presence and activity info
+  update [options] <id>              Update person fields
+  merge [options] <source> <target>  Merge source person into target (source is
+                                     deleted)
+  link <identityA> <identityB>       Link two platform identities to the same
+                                     person
+  unlink [options] <identityId>      Unlink a platform identity from its person
+  help [command]                     display help for command

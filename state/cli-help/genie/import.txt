@@ -1,0 +1,13 @@
+Usage: genie import [options] <file>
+
+Import genie data from JSON export
+
+Options:
+  --fail           Abort on any conflict (default)
+  --merge          Skip existing rows, import new ones
+  --overwrite      Replace existing rows with imported data
+  --groups <list>  Comma-separated groups to import (e.g., boards,tags)
+  -h, --help       display help for command
+
+Global Options:
+  -V, --version    output the version number

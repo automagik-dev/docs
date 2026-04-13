@@ -1,0 +1,6 @@
+Usage: omni access delete [options] <id>
+
+Delete an access rule
+
+Options:
+  -h, --help  display help for command

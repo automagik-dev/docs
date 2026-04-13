@@ -1,0 +1,12 @@
+Usage: genie agent brief [options]
+
+Show startup brief — aggregated context since last session
+
+Options:
+  --team <name>   Team name (default: GENIE_TEAM)
+  --agent <name>  Agent name (default: GENIE_AGENT_NAME)
+  --since <iso>   Start timestamp (default: last executor end)
+  -h, --help      display help for command
+
+Global Options:
+  -V, --version   output the version number

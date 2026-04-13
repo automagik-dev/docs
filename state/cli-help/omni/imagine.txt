@@ -1,0 +1,23 @@
+Usage: omni imagine [options] <prompt...>
+
+Generate an image from a text prompt (Gemini Nano Banana) and send or save it
+
+Arguments:
+  prompt                  Prompt describing the image to generate
+
+Options:
+  --aspect-ratio <ratio>  Aspect ratio (1:1, 3:4, 4:3, 9:16, 16:9, 3:2, 2:3)
+  --size <size>           Image size preset (1K, 2K, 4K — not all models support
+                          all sizes)
+  --model <name>          Model alias (nano-banana-2, nano-banana-pro) or raw
+                          Gemini model ID
+  --provider <name>       Provider override (default: config imagegen.provider)
+  --count <n>             Number of images to generate (1-4) (default: "1")
+  --output <path>         Save locally instead of sending (appends -N for count
+                          > 1)
+  --reply [message-id]    Quote-reply to the trigger message or a specific
+                          message ID
+  --instance <id>         Override instance (default: from context) (aliases:
+                          --instance-ids, --instances)
+  --chat <id>             Override chat (default: from context)
+  -h, --help              display help for command

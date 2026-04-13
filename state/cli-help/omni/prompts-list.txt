@@ -1,0 +1,6 @@
+Usage: omni prompts list [options]
+
+List all prompt settings with override status
+
+Options:
+  -h, --help  display help for command

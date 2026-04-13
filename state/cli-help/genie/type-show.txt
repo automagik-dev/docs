@@ -1,0 +1,10 @@
+Usage: genie type show [options] <id>
+
+Show task type detail with stage pipeline
+
+Options:
+  --json         Output as JSON
+  -h, --help     display help for command
+
+Global Options:
+  -V, --version  output the version number

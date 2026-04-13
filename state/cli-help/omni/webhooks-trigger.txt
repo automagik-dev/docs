@@ -1,0 +1,10 @@
+Usage: omni webhooks trigger [options]
+
+Trigger a custom event
+
+Options:
+  --type <type>          Event type
+  --payload <json>       Event payload as JSON
+  --instance <id>        Instance ID (aliases: --instance-ids, --instances)
+  --correlation-id <id>  Correlation ID
+  -h, --help             display help for command

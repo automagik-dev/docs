@@ -1,0 +1,13 @@
+Usage: genie events tools [options]
+
+Tool usage analytics from OTel tool events
+
+Options:
+  --since <duration>  Time window (e.g., 1h, 7d) (default: "24h")
+  --by-tool           Group by tool name (default)
+  --by-agent          Group by agent
+  --json              Output as JSON
+  -h, --help          display help for command
+
+Global Options:
+  -V, --version       output the version number

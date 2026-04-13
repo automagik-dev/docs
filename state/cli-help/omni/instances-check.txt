@@ -1,0 +1,6 @@
+Usage: omni instances check [options] <id> <phone>
+
+Check if phone number is registered on WhatsApp
+
+Options:
+  -h, --help  display help for command

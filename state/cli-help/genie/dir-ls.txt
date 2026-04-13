@@ -1,0 +1,12 @@
+Usage: genie dir ls [options] [name]
+
+List all agents or show single entry details
+
+Options:
+  --json         Output as JSON
+  --builtins     Include built-in roles and council members
+  --all          Include archived agents
+  -h, --help     display help for command
+
+Global Options:
+  -V, --version  output the version number

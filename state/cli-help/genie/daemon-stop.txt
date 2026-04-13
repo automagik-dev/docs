@@ -1,0 +1,9 @@
+Usage: genie daemon stop [options]
+
+Stop genie serve gracefully
+
+Options:
+  -h, --help     display help for command
+
+Global Options:
+  -V, --version  output the version number

@@ -1,0 +1,9 @@
+Usage: genie team done [options] <name>
+
+Mark a team as done and kill all members
+
+Options:
+  -h, --help     display help for command
+
+Global Options:
+  -V, --version  output the version number

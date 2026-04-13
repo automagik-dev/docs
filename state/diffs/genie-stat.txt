@@ -1,0 +1,411 @@
+ .claude-plugin/marketplace.json                    |    2 +-
+ .claude/commands/level-up.md                       |    4 +-
+ .genie/agents/metrics-updater/AGENT.md             |  202 +-
+ .genie/agents/metrics-updater/runs.jsonl           |    7 +
+ .genie/agents/metrics-updater/state.json           |   11 +-
+ .genie/snapshot.sql.gz                             |  Bin 0 -> 44406295 bytes
+ .genie/wishes/agent-flexibility-guide/WISH.md      |    2 +-
+ .genie/wishes/fix-tmux-session-explosion/WISH.md   |  245 +-
+ .genie/wishes/genie-app-v2-ui/WISH.md              |  936 ++++
+ .genie/wishes/genie-omni-marriage/WISH.md          |    4 +
+ .genie/wishes/messaging-refresh/WISH.md            |    4 +-
+ .genie/wishes/task-external-linking/WISH.md        |    2 +-
+ .genie/wishes/test-pg-ram-isolation/TRACE.md       |   66 +
+ .genie/wishes/test-pg-ram-isolation/WISH.md        |  225 +
+ .genie/wishes/unified-executor-layer/AUDIT.md      |  322 ++
+ .genie/wishes/unified-executor-layer/WISH.md       |  782 +++
+ .genie/wishes/unique-leader-names/WISH.md          |  349 ++
+ .github/workflows/ci.yml                           |   18 +-
+ .github/workflows/release.yml                      |    6 +-
+ .github/workflows/version.yml                      |    4 +-
+ .gitignore                                         |    4 +-
+ .rlmx/CRITERIA.md                                  |   15 +
+ .rlmx/SYSTEM.md                                    |   89 +
+ .rlmx/TOOLS.md                                     |   27 +
+ .rlmx/rlmx.yaml                                    |   99 +
+ CLAUDE.md                                          |   36 +-
+ README.md                                          |  193 +-
+ biome.json                                         |    6 +
+ bun.lock                                           |  444 +-
+ bunfig.toml                                        |    2 +
+ docs/AGENT-FRONTMATTER.md                          |  174 +
+ docs/ARCHITECTURE.md                               |  337 ++
+ docs/CLI-REFERENCE.md                              | 1570 ++++++
+ docs/CO-ORCHESTRATION-GUIDE.md                     |   59 +-
+ docs/RETENTION.md                                  |   51 +
+ docs/SPAWN-AUTO-RESUME.md                          |  129 +
+ docs/sdk-executor-guide.md                         |  843 ++++
+ knip.json                                          |   20 +-
+ openclaw.plugin.json                               |   12 -
+ package.json                                       |   20 +-
+ packages/genie-app/bun.lock                        |  260 +
+ packages/genie-app/components.ts                   |    8 +
+ packages/genie-app/index.html                      |   28 +
+ packages/genie-app/khal-app.json                   |  144 +
+ packages/genie-app/lib/ipc.ts                      |  112 +-
+ packages/genie-app/lib/subjects.ts                 |  121 +
+ packages/genie-app/manifest.ts                     |  116 +-
+ packages/genie-app/package.json                    |   24 +-
+ packages/genie-app/src-backend/index.ts            |  819 +++-
+ packages/genie-app/src-backend/pg-bridge.ts        |  121 +-
+ packages/genie-app/src-backend/pty.ts              |   52 +-
+ packages/genie-app/src-tauri/Cargo.lock            | 5111 ++++++++++++++++++++
+ packages/genie-app/src-tauri/Cargo.toml            |    1 +
+ packages/genie-app/src-tauri/build.rs              |    3 +
+ packages/genie-app/src-tauri/icons/128x128.png     |  Bin 0 -> 7745 bytes
+ packages/genie-app/src-tauri/icons/128x128@2x.png  |  Bin 0 -> 15806 bytes
+ packages/genie-app/src-tauri/icons/32x32.png       |  Bin 0 -> 1432 bytes
+ packages/genie-app/src-tauri/icons/64x64.png       |  Bin 0 -> 3384 bytes
+ .../src-tauri/icons/Square107x107Logo.png          |  Bin 0 -> 6455 bytes
+ .../src-tauri/icons/Square142x142Logo.png          |  Bin 0 -> 8766 bytes
+ .../src-tauri/icons/Square150x150Logo.png          |  Bin 0 -> 9258 bytes
+ .../src-tauri/icons/Square284x284Logo.png          |  Bin 0 -> 17465 bytes
+ .../genie-app/src-tauri/icons/Square30x30Logo.png  |  Bin 0 -> 1352 bytes
+ .../src-tauri/icons/Square310x310Logo.png          |  Bin 0 -> 19255 bytes
+ .../genie-app/src-tauri/icons/Square44x44Logo.png  |  Bin 0 -> 2139 bytes
+ .../genie-app/src-tauri/icons/Square71x71Logo.png  |  Bin 0 -> 3833 bytes
+ .../genie-app/src-tauri/icons/Square89x89Logo.png  |  Bin 0 -> 5140 bytes
+ packages/genie-app/src-tauri/icons/StoreLogo.png   |  Bin 0 -> 2503 bytes
+ .../android/mipmap-anydpi-v26/ic_launcher.xml      |    5 +
+ .../icons/android/mipmap-hdpi/ic_launcher.png      |  Bin 0 -> 2257 bytes
+ .../android/mipmap-hdpi/ic_launcher_foreground.png |  Bin 0 -> 10001 bytes
+ .../android/mipmap-hdpi/ic_launcher_round.png      |  Bin 0 -> 2569 bytes
+ .../icons/android/mipmap-mdpi/ic_launcher.png      |  Bin 0 -> 2179 bytes
+ .../android/mipmap-mdpi/ic_launcher_foreground.png |  Bin 0 -> 6333 bytes
+ .../android/mipmap-mdpi/ic_launcher_round.png      |  Bin 0 -> 2455 bytes
+ .../icons/android/mipmap-xhdpi/ic_launcher.png     |  Bin 0 -> 5102 bytes
+ .../mipmap-xhdpi/ic_launcher_foreground.png        |  Bin 0 -> 13520 bytes
+ .../android/mipmap-xhdpi/ic_launcher_round.png     |  Bin 0 -> 6075 bytes
+ .../icons/android/mipmap-xxhdpi/ic_launcher.png    |  Bin 0 -> 8450 bytes
+ .../mipmap-xxhdpi/ic_launcher_foreground.png       |  Bin 0 -> 20285 bytes
+ .../android/mipmap-xxhdpi/ic_launcher_round.png    |  Bin 0 -> 9894 bytes
+ .../icons/android/mipmap-xxxhdpi/ic_launcher.png   |  Bin 0 -> 11940 bytes
+ .../mipmap-xxxhdpi/ic_launcher_foreground.png      |  Bin 0 -> 27061 bytes
+ .../android/mipmap-xxxhdpi/ic_launcher_round.png   |  Bin 0 -> 13565 bytes
+ .../android/values/ic_launcher_background.xml      |    4 +
+ packages/genie-app/src-tauri/icons/icon.icns       |  Bin 0 -> 123381 bytes
+ packages/genie-app/src-tauri/icons/icon.ico        |  Bin 0 -> 26220 bytes
+ packages/genie-app/src-tauri/icons/icon.png        |  Bin 0 -> 29723 bytes
+ .../src-tauri/icons/ios/AppIcon-20x20@1x.png       |  Bin 0 -> 826 bytes
+ .../src-tauri/icons/ios/AppIcon-20x20@2x-1.png     |  Bin 0 -> 1885 bytes
+ .../src-tauri/icons/ios/AppIcon-20x20@2x.png       |  Bin 0 -> 1885 bytes
+ .../src-tauri/icons/ios/AppIcon-20x20@3x.png       |  Bin 0 -> 3173 bytes
+ .../src-tauri/icons/ios/AppIcon-29x29@1x.png       |  Bin 0 -> 1252 bytes
+ .../src-tauri/icons/ios/AppIcon-29x29@2x-1.png     |  Bin 0 -> 2976 bytes
+ .../src-tauri/icons/ios/AppIcon-29x29@2x.png       |  Bin 0 -> 2976 bytes
+ .../src-tauri/icons/ios/AppIcon-29x29@3x.png       |  Bin 0 -> 4991 bytes
+ .../src-tauri/icons/ios/AppIcon-40x40@1x.png       |  Bin 0 -> 1885 bytes
+ .../src-tauri/icons/ios/AppIcon-40x40@2x-1.png     |  Bin 0 -> 4585 bytes
+ .../src-tauri/icons/ios/AppIcon-40x40@2x.png       |  Bin 0 -> 4585 bytes
+ .../src-tauri/icons/ios/AppIcon-40x40@3x.png       |  Bin 0 -> 7170 bytes
+ .../src-tauri/icons/ios/AppIcon-512@2x.png         |  Bin 0 -> 16218 bytes
+ .../src-tauri/icons/ios/AppIcon-60x60@2x.png       |  Bin 0 -> 7170 bytes
+ .../src-tauri/icons/ios/AppIcon-60x60@3x.png       |  Bin 0 -> 11040 bytes
+ .../src-tauri/icons/ios/AppIcon-76x76@1x.png       |  Bin 0 -> 4130 bytes
+ .../src-tauri/icons/ios/AppIcon-76x76@2x.png       |  Bin 0 -> 9328 bytes
+ .../src-tauri/icons/ios/AppIcon-83.5x83.5@2x.png   |  Bin 0 -> 10341 bytes
+ packages/genie-app/src-tauri/src/main.rs           |  163 +-
+ packages/genie-app/src-tauri/tauri.conf.json       |    2 +
+ packages/genie-app/src/App.tsx                     |  280 ++
+ packages/genie-app/src/main.tsx                    |   11 +
+ packages/genie-app/tauri.conf.json                 |   30 -
+ packages/genie-app/tsconfig.json                   |    2 +-
+ packages/genie-app/types/khal-os.d.ts              |  101 +
+ packages/genie-app/types/xterm.d.ts                |   59 +
+ packages/genie-app/views/agents/ui/AgentDetail.tsx |  402 ++
+ packages/genie-app/views/agents/ui/AgentsView.tsx  |  802 +--
+ .../genie-app/views/costs/ui/CostIntelligence.tsx  |  730 +++
+ .../genie-app/views/dashboard/ui/DashboardView.tsx |  846 ++--
+ packages/genie-app/views/files/ui/FilesView.tsx    |    3 +
+ packages/genie-app/views/genie/ui/Files.tsx        |  639 +++
+ packages/genie-app/views/genie/ui/Settings.tsx     |  422 ++
+ .../views/genie/ui/components/AgentSelector.tsx    |  141 +
+ .../views/genie/ui/components/FileDialogs.tsx      |  204 +
+ .../views/genie/ui/components/FileListView.tsx     |  428 ++
+ .../views/genie/ui/components/FileTree.tsx         |  356 ++
+ .../genie-app/views/genie/ui/tabs/AgentsTab.tsx    |  413 ++
+ .../views/genie/ui/tabs/CouncilPresetsTab.tsx      |  275 ++
+ .../genie-app/views/genie/ui/tabs/GeneralTab.tsx   |  436 ++
+ packages/genie-app/views/genie/ui/tabs/OmniTab.tsx |  228 +
+ .../genie-app/views/genie/ui/tabs/RulesTab.tsx     |  183 +
+ .../genie-app/views/genie/ui/tabs/SkillsTab.tsx    |  119 +
+ .../views/genie/ui/tabs/WorkerProfilesTab.tsx      |  273 ++
+ .../genie-app/views/genie/ui/tabs/WorkspaceTab.tsx |  297 ++
+ .../genie-app/views/scheduler/ui/SchedulerView.tsx |  551 +++
+ .../genie-app/views/sessions/ui/SessionsView.tsx   | 1055 ++++
+ .../genie-app/views/settings/ui/SettingsView.tsx   |    5 +
+ packages/genie-app/views/shared/ChatBubble.tsx     |  158 +
+ packages/genie-app/views/shared/EmptyState.tsx     |   46 +-
+ packages/genie-app/views/shared/ErrorState.tsx     |  102 +
+ packages/genie-app/views/shared/KpiCard.tsx        |  156 +
+ packages/genie-app/views/shared/LiveFeed.tsx       |  181 +
+ packages/genie-app/views/shared/SearchBar.tsx      |  194 +
+ .../genie-app/views/shared/TimelineDensity.tsx     |  128 +
+ packages/genie-app/views/shared/ToolCallCard.tsx   |  190 +
+ packages/genie-app/views/system/ui/SystemView.tsx  |  747 +++
+ packages/genie-app/views/tasks/ui/TaskDetail.tsx   |  664 +++
+ packages/genie-app/views/tasks/ui/TasksView.tsx    |  935 +++-
+ .../genie-app/views/terminal/ui/TerminalPane.tsx   |  282 +-
+ .../genie-app/views/terminal/ui/TerminalView.tsx   |  343 +-
+ packages/genie-app/vite.config.ts                  |   14 +
+ plugins/genie/.claude-plugin/plugin.json           |    2 +-
+ plugins/genie/README.md                            |    4 +-
+ plugins/genie/agents/council--architect.md         |   78 -
+ plugins/genie/agents/council--architect/AGENTS.md  |   36 +-
+ plugins/genie/agents/council--benchmarker.md       |  101 -
+ .../genie/agents/council--benchmarker/AGENTS.md    |   35 +-
+ plugins/genie/agents/council--deployer.md          |   78 -
+ plugins/genie/agents/council--deployer/AGENTS.md   |   38 +-
+ plugins/genie/agents/council--ergonomist.md        |   77 -
+ plugins/genie/agents/council--ergonomist/AGENTS.md |   36 +-
+ plugins/genie/agents/council--measurer.md          |   89 -
+ plugins/genie/agents/council--measurer/AGENTS.md   |   36 +-
+ plugins/genie/agents/council--operator.md          |   77 -
+ plugins/genie/agents/council--operator/AGENTS.md   |   36 +-
+ plugins/genie/agents/council--questioner.md        |   79 -
+ plugins/genie/agents/council--questioner/AGENTS.md |   37 +-
+ plugins/genie/agents/council--sentinel.md          |   81 -
+ plugins/genie/agents/council--sentinel/AGENTS.md   |   36 +-
+ plugins/genie/agents/council--simplifier.md        |   77 -
+ plugins/genie/agents/council--simplifier/AGENTS.md |   38 +-
+ plugins/genie/agents/council--tracer.md            |  157 -
+ plugins/genie/agents/council--tracer/AGENTS.md     |   58 +-
+ plugins/genie/agents/council.md                    |   81 -
+ plugins/genie/agents/council/AGENTS.md             |  103 +-
+ plugins/genie/agents/council/SOUL.md               |    6 +
+ plugins/genie/agents/docs.md                       |   83 -
+ plugins/genie/agents/engineer.md                   |   92 -
+ plugins/genie/agents/engineer/AGENTS.md            |   84 +-
+ plugins/genie/agents/fix.md                        |   80 -
+ plugins/genie/agents/fix/AGENTS.md                 |   14 +-
+ plugins/genie/agents/pm.md                         |  142 -
+ plugins/genie/agents/qa.md                         |  118 -
+ plugins/genie/agents/refactor.md                   |   96 -
+ plugins/genie/agents/reviewer.md                   |  103 -
+ plugins/genie/agents/reviewer/AGENTS.md            |   56 +-
+ plugins/genie/agents/team-lead.md                  |   71 -
+ plugins/genie/agents/team-lead/AGENTS.md           |    1 +
+ plugins/genie/agents/trace.md                      |   81 -
+ plugins/genie/genie.ts                             |    5 +-
+ plugins/genie/index.ts                             |    2 +-
+ plugins/genie/package.json                         |    2 +-
+ plugins/genie/references/dispatch-contract.md      |   23 -
+ plugins/genie/rules/genie-orchestration.md         |   14 +
+ rlmx.yaml                                          |  144 -
+ scripts/postinstall-tmux.js                        |  123 +
+ scripts/smart-install.js                           |  102 +-
+ scripts/tmux/genie.tmux.conf                       |   22 +-
+ scripts/tmux/osc52-copy.sh                         |   16 +
+ scripts/tmux/tui-tmux.conf                         |   42 +
+ scripts/version.ts                                 |    8 +-
+ skills/brain-init/SKILL.md                         |  200 -
+ skills/brain/SKILL.md                              |  190 -
+ skills/brain/scripts/install-notesmd.sh            |  194 -
+ skills/brain/templates/daily.md                    |   29 -
+ skills/brain/templates/domain.md                   |   45 -
+ skills/brain/templates/intel.md                    |   46 -
+ skills/brain/templates/playbook.md                 |   52 -
+ skills/brainstorm/SKILL.md                         |   51 +-
+ skills/council/SKILL.md                            |  298 +-
+ skills/council/members/config.md                   |   44 +
+ skills/council/members/routing.md                  |   32 +
+ skills/council/templates/report.md                 |   71 +
+ skills/genie/SKILL.md                              |  304 +-
+ skills/genie/reference/lifecycle.md                |   65 +
+ skills/work/SKILL.md                               |   36 +
+ src/__tests__/resume.test.ts                       |    1 +
+ src/__tests__/sdk-integration.test.ts              |  894 ++++
+ src/__tests__/tmux-config.test.ts                  |   60 +-
+ src/db/migrations/015_agent_archived_state.sql     |   40 +
+ src/db/migrations/015_archive_lifecycle.sql        |   37 +
+ src/db/migrations/016_team_spawner.sql             |    5 +
+ src/db/migrations/017_wishes_table.sql             |   18 +
+ src/db/migrations/018_drop_app_store.sql           |    4 +
+ src/db/migrations/019_retention.sql                |   15 +
+ src/db/migrations/020_agent_metadata.sql           |    8 +
+ src/db/migrations/025_sdk_metadata_index.sql       |    7 +
+ src/db/migrations/026_events_trace_id.sql          |    5 +
+ .../026_executors_omni_metadata_index.sql          |   11 +
+ src/genie-commands/__tests__/session.test.ts       |    8 +-
+ src/genie-commands/doctor.ts                       |   41 +-
+ src/genie-commands/session.ts                      |  183 +-
+ src/genie-commands/setup.ts                        |   16 +-
+ src/genie-commands/update.ts                       |  108 +-
+ src/genie.ts                                       |  163 +-
+ src/hooks/__tests__/branch-guard.test.ts           |   24 +-
+ src/hooks/__tests__/dispatch.test.ts               |   48 +-
+ src/hooks/handlers/__tests__/audit-context.test.ts |   99 +
+ src/hooks/handlers/__tests__/auto-spawn.test.ts    |   73 +
+ src/hooks/handlers/__tests__/brain-inject.test.ts  |   81 +
+ src/hooks/handlers/__tests__/freshness.test.ts     |  153 +
+ src/hooks/handlers/audit-context.ts                |   54 +
+ src/hooks/handlers/auto-spawn.ts                   |   27 +-
+ src/hooks/handlers/brain-inject.ts                 |   93 +
+ src/hooks/handlers/branch-guard.ts                 |   11 +-
+ src/hooks/handlers/freshness.ts                    |  121 +
+ src/hooks/handlers/runtime-emit.ts                 |   37 +-
+ src/hooks/index.ts                                 |  134 +-
+ src/hooks/inject.ts                                |    2 +-
+ src/hooks/resolve-agent-name.ts                    |   58 +
+ src/lib/__tests__/edge-cases-stability.test.ts     |  530 ++
+ src/lib/__tests__/executor-config.test.ts          |   67 +
+ src/lib/__tests__/zombie-spawns.test.ts            |  177 +
+ src/lib/agent-cache.ts                             |  282 --
+ src/lib/agent-directory.test.ts                    |  223 +
+ src/lib/agent-directory.ts                         |  216 +-
+ src/lib/agent-identity-sync.test.ts                |  288 ++
+ src/lib/agent-registry.test.ts                     |   86 +
+ src/lib/agent-registry.ts                          |  104 +-
+ src/lib/agent-sync.ts                              |  369 ++
+ src/lib/audit-events.ts                            |   64 +
+ src/lib/board-service.ts                           |   21 +-
+ src/lib/builtin-agents.ts                          |   30 +-
+ src/lib/claude-native-teams.ts                     |  185 +-
+ src/lib/claude-settings.ts                         |   43 +-
+ src/lib/context-enrichment.test.ts                 |    2 +-
+ src/lib/db-backup.test.ts                          |  105 +
+ src/lib/db-backup.ts                               |  162 +
+ src/lib/db-migrations.ts                           |    5 +-
+ src/lib/db.test.ts                                 |   75 +
+ src/lib/db.ts                                      |  128 +-
+ src/lib/ensure-tmux.ts                             |  179 +
+ src/lib/event-router.ts                            |   81 +-
+ src/lib/executor-config.ts                         |   40 +
+ src/lib/executor-registry.test.ts                  |  163 +
+ src/lib/executor-registry.ts                       |   92 +-
+ src/lib/export-format.ts                           |   13 +-
+ src/lib/frontmatter-writer.test.ts                 |  247 +
+ src/lib/frontmatter-writer.ts                      |  128 +
+ src/lib/frontmatter.test.ts                        |  404 ++
+ src/lib/frontmatter.ts                             |  109 +
+ src/lib/import-order.ts                            |   12 +-
+ src/lib/mailbox.ts                                 |   17 +-
+ src/lib/manifest.ts                                |  342 --
+ src/lib/otel-receiver.test.ts                      |    5 +-
+ src/lib/pg-seed.test.ts                            |   17 +-
+ src/lib/protocol-router-spawn.test.ts              |  137 +
+ src/lib/protocol-router-spawn.ts                   |  147 +-
+ src/lib/protocol-router.test.ts                    |  531 +-
+ src/lib/protocol-router.ts                         |  140 +-
+ src/lib/provider-adapters.ts                       |   40 +-
+ .../providers/__tests__/claude-sdk-events.test.ts  |  519 ++
+ .../__tests__/claude-sdk-permissions.test.ts       |  251 +
+ .../providers/__tests__/claude-sdk-stream.test.ts  |  256 +
+ src/lib/providers/__tests__/claude-sdk.test.ts     |  356 ++
+ src/lib/providers/claude-sdk-events.ts             |  269 ++
+ src/lib/providers/claude-sdk-permissions.ts        |  160 +
+ src/lib/providers/claude-sdk-stream.ts             |  113 +
+ src/lib/providers/claude-sdk.ts                    |  273 ++
+ src/lib/providers/registry.ts                      |    3 +
+ src/lib/qa-runner.ts                               |   39 +-
+ src/lib/runtime-events.ts                          |  141 +-
+ src/lib/safe-pg-call.ts                            |   23 +
+ src/lib/scheduler-daemon.test.ts                   |  148 +
+ src/lib/scheduler-daemon.ts                        |  229 +-
+ src/lib/sdk-directory-types.ts                     |  327 ++
+ src/lib/service-registry.test.ts                   |   89 +
+ src/lib/service-registry.ts                        |  107 +
+ src/lib/session-backfill.ts                        |  193 +-
+ src/lib/session-capture.ts                         |  451 +-
+ src/lib/spawn-command.test.ts                      |   18 +-
+ src/lib/task-close-merged.ts                       |   14 +-
+ src/lib/task-service.test.ts                       |   33 +
+ src/lib/task-service.ts                            |  307 +-
+ src/lib/team-auto-spawn.ts                         |   49 +-
+ src/lib/team-lead-command.ts                       |   14 +-
+ src/lib/team-manager.test.ts                       |  100 +-
+ src/lib/team-manager.ts                            |  247 +-
+ src/lib/test-db.ts                                 |   71 +-
+ src/lib/test-setup.test.ts                         |   45 +
+ src/lib/test-setup.ts                              |  389 ++
+ src/lib/tmux-alive.test.ts                         |   59 +
+ src/lib/tmux-resolve.test.ts                       |  144 +
+ src/lib/tmux-wrapper.ts                            |    5 +-
+ src/lib/tmux.test.ts                               |  135 +
+ src/lib/tmux.ts                                    |  183 +-
+ src/lib/transcript-normalizer.ts                   |  418 +-
+ src/lib/unified-log.ts                             |    6 +-
+ src/lib/wish-resolve.test.ts                       |  108 +
+ src/lib/wish-resolve.ts                            |  124 +
+ src/lib/wish-sync.test.ts                          |  141 +
+ src/lib/wish-sync.ts                               |  182 +
+ src/lib/workspace.test.ts                          |   84 +-
+ src/lib/workspace.ts                               |  122 +-
+ src/services/__tests__/omni-bridge.test.ts         |  356 ++
+ src/services/executor.ts                           |   42 +
+ .../executors/__tests__/claude-sdk-resume.test.ts  |  474 ++
+ .../executors/__tests__/claude-sdk.test.ts         |  554 +++
+ .../__tests__/sdk-session-capture.test.ts          |  313 ++
+ src/services/executors/claude-code.test.ts         |   48 +
+ src/services/executors/claude-code.ts              |  388 ++
+ src/services/executors/claude-sdk.ts               |  493 ++
+ src/services/executors/sdk-session-capture.ts      |  116 +
+ src/services/omni-bridge.ts                        |  711 +++
+ src/services/omni-reply.ts                         |   70 +
+ src/templates/index.ts                             |    6 +-
+ src/term-commands/__tests__/dispatch-slug.test.ts  |   86 +
+ src/term-commands/agent/directory.ts               |  144 +-
+ src/term-commands/agent/inbox.ts                   |   27 +-
+ src/term-commands/agent/index.ts                   |    6 +
+ src/term-commands/agent/list.ts                    |    3 +-
+ src/term-commands/agent/register.ts                |    2 +
+ src/term-commands/agent/send.ts                    |   19 +-
+ src/term-commands/agent/show.ts                    |  106 +-
+ src/term-commands/agent/spawn.ts                   |   20 +-
+ src/term-commands/agents.test.ts                   |   29 +-
+ src/term-commands/agents.ts                        |  450 +-
+ src/term-commands/app.ts                           |   70 +-
+ src/term-commands/board.ts                         |   24 +-
+ src/term-commands/brain.test.ts                    |  120 +
+ src/term-commands/brain.ts                         |  391 ++
+ src/term-commands/daemon.test.ts                   |    6 +-
+ src/term-commands/daemon.ts                        |  186 +-
+ src/term-commands/db-prune.test.ts                 |  122 +
+ src/term-commands/db.ts                            |  136 +
+ src/term-commands/dir.test.ts                      |  208 +
+ src/term-commands/dir.ts                           |  646 ++-
+ src/term-commands/dispatch.ts                      |   72 +-
+ src/term-commands/exec/index.ts                    |  148 +-
+ src/term-commands/export.ts                        |   13 -
+ src/term-commands/import.test.ts                   |   91 +
+ src/term-commands/import.ts                        |   35 +-
+ src/term-commands/init-bootstrap.test.ts           |  102 +
+ src/term-commands/init-flow.test.ts                |   81 +
+ src/term-commands/init.test.ts                     |   38 +
+ src/term-commands/init.ts                          |  173 +-
+ src/term-commands/install.ts                       |  372 --
+ src/term-commands/item-uninstall.ts                |  118 -
+ src/term-commands/item-update.ts                   |  205 -
+ src/term-commands/log.ts                           |   14 +-
+ src/term-commands/metrics.ts                       |   11 +
+ src/term-commands/msg.test.ts                      |   30 +-
+ src/term-commands/msg.ts                           |   68 +-
+ src/term-commands/omni.ts                          |  117 +
+ src/term-commands/project.ts                       |   35 +-
+ src/term-commands/publish.ts                       |  187 -
+ src/term-commands/serve.test.ts                    |   35 +
+ src/term-commands/serve.ts                         |  809 ++++
+ src/term-commands/sessions.ts                      |   21 +-
+ src/term-commands/state.ts                         |  139 +-
+ src/term-commands/task.ts                          |  132 +-
+ src/term-commands/task/status.ts                   |   64 +-
+ src/term-commands/team.ts                          |  273 +-
+ src/tui/app.tsx                                    |   49 +-
+ src/tui/components/ContextMenu.tsx                 |  133 +
+ src/tui/components/Nav.tsx                         |  458 +-
+ src/tui/components/QuitDialog.tsx                  |   56 +
+ src/tui/components/SystemStats.tsx                 |  166 +
+ src/tui/components/TreeNode.tsx                    |   21 +-
+ src/tui/context-menu-items.ts                      |   65 +
+ src/tui/diagnostics.ts                             |    3 +-
+ src/tui/index.ts                                   |   74 +-
+ src/tui/initial-agent.test.ts                      |   76 +
+ src/tui/initial-agent.ts                           |   22 +
+ src/tui/render.tsx                                 |    6 +
+ src/tui/session-tree.test.ts                       |  583 +++
+ src/tui/session-tree.ts                            |  183 +-
+ src/tui/theme.ts                                   |   10 -
+ src/tui/tmux.ts                                    |  289 +-
+ src/tui/types.ts                                   |   13 +
+ src/types/genie-config.ts                          |    2 +
+ 410 files changed, 50886 insertions(+), 9171 deletions(-)

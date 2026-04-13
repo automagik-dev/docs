@@ -1,0 +1,9 @@
+Usage: omni install [options]
+
+Interactive setup wizard — bootstraps Omni server from zero
+
+Options:
+  --non-interactive  Use all defaults, skip prompts (for CI/scripted installs)
+  --systemd          Write systemd unit instead of using PM2 (requires sudo)
+  --port <port>      API port to use (default: 8882)
+  -h, --help         display help for command

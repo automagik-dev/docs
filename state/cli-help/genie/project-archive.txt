@@ -1,0 +1,9 @@
+Usage: genie project archive [options] <name>
+
+Archive a project (cascades to boards and unfinished tasks)
+
+Options:
+  -h, --help     display help for command
+
+Global Options:
+  -V, --version  output the version number

@@ -1,0 +1,20 @@
+Usage: omni automations [options] [command]
+
+Manage automations
+
+Options:
+  -h, --help              display help for command
+
+Commands:
+  list [options]          List all automations
+  get <id>                Get automation details
+  create [options]        Create an automation
+  update [options] <id>   Update an automation
+  delete <id>             Delete an automation
+  enable <id>             Enable an automation
+  disable <id>            Disable an automation
+  test [options] <id>     Test an automation with a mock event
+  execute [options] <id>  Execute an automation with a provided event (actually
+                          runs actions)
+  logs [options] <id>     Get automation execution logs
+  help [command]          display help for command

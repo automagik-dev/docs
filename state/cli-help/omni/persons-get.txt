@@ -1,0 +1,6 @@
+Usage: omni persons get [options] <id>
+
+Get person details
+
+Options:
+  -h, --help  display help for command

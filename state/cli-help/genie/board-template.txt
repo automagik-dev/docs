@@ -1,0 +1,18 @@
+Usage: genie board template [options] [command]
+
+Board template management
+
+Options:
+  -h, --help               display help for command
+
+Global Options:
+  -V, --version            output the version number
+
+Commands:
+  create [options] <name>  Create a board template
+  delete <name>            Delete a template
+  edit [options] <name>    Edit a template column
+  help [command]           display help for command
+  list [options]           List all board templates
+  rename <old> <new>       Rename a template
+  show [options] <name>    Show template detail with pipeline view

@@ -1,0 +1,7 @@
+Usage: omni keys revoke [options] <id>
+
+Revoke an API key
+
+Options:
+  --reason <reason>  Reason for revocation
+  -h, --help         display help for command

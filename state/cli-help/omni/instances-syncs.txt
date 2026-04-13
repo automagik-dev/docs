@@ -1,0 +1,8 @@
+Usage: omni instances syncs [options] <id> [jobId]
+
+List sync jobs or get job status
+
+Options:
+  --status <status>  Filter by status
+  --limit <n>        Limit results
+  -h, --help         display help for command

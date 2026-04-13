@@ -1,0 +1,8 @@
+Usage: omni access list [options]
+
+List access rules
+
+Options:
+  --instance <id>  Filter by instance ID (aliases: --instance-ids, --instances)
+  --type <type>    Filter by rule type (allow, deny)
+  -h, --help       display help for command

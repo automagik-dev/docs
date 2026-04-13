@@ -1,0 +1,60 @@
+rlmx — RLM algorithm CLI for coding agents
+
+Usage:
+  rlmx "query" [options]          Run an RLM query
+  rlmx init [--template default|code] [--dir <path>]  Scaffold .rlmx/ config
+  rlmx cache [options]           Pre-warm cache or estimate context size
+  rlmx batch <file> [options]    Bulk interrogation from questions file
+  rlmx benchmark <mode> [options]  Run benchmarks (cost or oolong)
+  rlmx stats [options]           Query run history and cost breakdowns
+
+Options:
+  --context <path>        Path to context (directory or file)
+  --output <mode>         Output mode: text (default), json, stream
+  --verbose               Show iteration progress on stderr
+  --max-iterations <n>    Maximum RLM iterations (default: 30)
+  --timeout <ms>          Timeout in milliseconds (default: 300000)
+  --dir <path>            Directory for init command (default: cwd)
+  --help, -h              Show this help message
+  --version, -v           Show version
+
+  --stats                 Emit JSON stats to stderr (or include in --output json)
+  --log <path>            Write structured JSONL log to file
+  --tools <level>         Tool level: core (default), standard, full
+  --max-cost <n>          Maximum USD spend per run
+  --max-tokens <n>        Maximum total tokens per run
+  --max-depth <n>         Maximum recursive rlm_query depth
+  --ext <list>            File extensions for context dirs (comma-separated)
+  --thinking <level>      Thinking level: minimal, low, medium, high (Gemini 3)
+  --cache                 Enable cache mode (full context in system prompt for provider caching)
+  --no-session            Disable auto-save of session data
+  --estimate              Show context size and cost estimate without caching (cache command)
+  --parallel <n>          Concurrent questions for batch command (default: 1)
+  --batch-api             Use Gemini Batch API for 50% cost reduction (batch command)
+
+Config:
+  .rlmx/                   Config directory (run "rlmx init" to create)
+    rlmx.yaml              Config (model, budget, context, storage, etc.)
+    SYSTEM.md              System prompt
+    CRITERIA.md            Output criteria
+    TOOLS.md               Custom Python tools
+
+Examples:
+  rlmx "How does IPC work?" --context ./docs/
+  rlmx "Summarize this" --context paper.md --output json --stats
+  rlmx "Analyze code" --context ./src/ --tools full --ext .ts,.js
+  rlmx "Quick question" --max-cost 0.10 --max-tokens 5000
+  rlmx init --template code --dir ./my-project
+  echo "data" | rlmx "Analyze this" --log run.jsonl
+  rlmx cache --context ./docs/ --estimate
+  rlmx cache --context ./docs/
+  rlmx batch questions.txt --context ./docs/ --cache --max-cost 1.00
+  rlmx batch questions.txt --context ./src/ --max-iterations 3
+
+  rlmx config set GEMINI_API_KEY <key>   Set API key
+  rlmx config set model.provider google  Set default provider
+  rlmx config get model.provider         Get a setting
+  rlmx config list                       Show all settings
+  rlmx config delete <key>               Remove a setting
+  rlmx config path                       Show settings file path
+

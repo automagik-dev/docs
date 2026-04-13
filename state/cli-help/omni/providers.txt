@@ -1,0 +1,19 @@
+Usage: omni providers [options] [command]
+
+Manage AI/agent providers
+
+Options:
+  -h, --help             display help for command
+
+Commands:
+  setup                  Interactive setup wizards for providers
+  list [options]         List available providers
+  get <id>               Get provider details
+  create [options]       Create a new AI provider
+  test <id>              Test provider health
+  agents <id>            List agents from provider (Agno)
+  teams <id>             List teams from provider (Agno)
+  workflows <id>         List workflows from provider (Agno)
+  update [options] <id>  Update a provider
+  delete [options] <id>  Delete a provider
+  help [command]         display help for command

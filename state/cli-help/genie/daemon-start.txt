@@ -1,0 +1,10 @@
+Usage: genie daemon start [options]
+
+Start the scheduler daemon (alias for genie serve --headless)
+
+Options:
+  --foreground   Run in foreground (for systemd ExecStart)
+  -h, --help     display help for command
+
+Global Options:
+  -V, --version  output the version number

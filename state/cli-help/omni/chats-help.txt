@@ -1,0 +1,29 @@
+Usage: omni chats [options] [command]
+
+Manage chats
+
+Options:
+  -h, --help                   display help for command
+
+Commands:
+  list [options]               List chats
+  get <id>                     Get chat details
+  create [options]             Create a chat record
+  update [options] <id>        Update a chat
+  delete <id>                  Delete a chat
+  archive [options] <id>       Archive a chat (optionally on the channel too)
+  unarchive [options] <id>     Unarchive a chat (optionally on the channel too)
+  hide <id>                    Hide a chat
+  unhide <id>                  Unhide a chat
+  label <id> <label>           Add a label to a chat
+  unlabel <id> <label>         Remove a label from a chat
+  pin [options] <id>           Pin a chat on the channel
+  unpin [options] <id>         Unpin a chat on the channel
+  mute [options] <id>          Mute a chat on the channel
+  unmute [options] <id>        Unmute a chat on the channel
+  messages [options] <id>      List chat messages (use "omni messages get <id>"
+                               for full single message)
+  participants [options] <id>  List or manage chat participants
+  read [options] <id>          Mark entire chat as read
+  disappearing [options] <id>  Toggle disappearing messages for a chat
+  help [command]               display help for command

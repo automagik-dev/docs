@@ -1,0 +1,8 @@
+Usage: omni instances reject-call [options] <id>
+
+Reject an incoming call
+
+Options:
+  --call-id <callId>  Call ID from the call event
+  --from <jid>        Caller JID
+  -h, --help          display help for command

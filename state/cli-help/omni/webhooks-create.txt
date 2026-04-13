@@ -1,0 +1,10 @@
+Usage: omni webhooks create [options]
+
+Create a webhook source
+
+Options:
+  --name <name>         Webhook source name
+  --description <desc>  Description
+  --disabled            Create in disabled state
+  --headers <json>      Expected headers as JSON (e.g., '{"X-Secret": true}')
+  -h, --help            display help for command

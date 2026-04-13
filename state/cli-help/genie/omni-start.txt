@@ -1,0 +1,13 @@
+Usage: genie omni start [options]
+
+Start the NATS bridge (subscribe to omni.message.>)
+
+Options:
+  --nats-url <url>      NATS server URL (default: "localhost:4222")
+  --max-concurrent <n>  Max concurrent agent sessions (default: "20")
+  --idle-timeout <ms>   Idle timeout in ms (default: "900000")
+  --executor <type>     Executor type: tmux (default) or sdk (default: "tmux")
+  -h, --help            display help for command
+
+Global Options:
+  -V, --version         output the version number

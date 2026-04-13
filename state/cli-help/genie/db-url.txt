@@ -1,0 +1,10 @@
+Usage: genie db url [options]
+
+Print postgres connection URL for direct access
+
+Options:
+  --quiet        Print URL only, no trailing newline (for scripts)
+  -h, --help     display help for command
+
+Global Options:
+  -V, --version  output the version number

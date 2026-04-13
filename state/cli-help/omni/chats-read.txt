@@ -1,0 +1,7 @@
+Usage: omni chats read [options] <id>
+
+Mark entire chat as read
+
+Options:
+  --instance <id>  Instance ID (aliases: --instance-ids, --instances)
+  -h, --help       display help for command

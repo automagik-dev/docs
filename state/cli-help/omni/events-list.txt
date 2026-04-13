@@ -1,0 +1,13 @@
+Usage: omni events list [options]
+
+List events
+
+Options:
+  --instance <id>   Filter by instance ID (aliases: --instance-ids, --instances)
+  --channel <type>  Filter by channel type
+  --type <type>     Filter by event type
+  --chat-id <id>    Filter by chat ID
+  --since <time>    Events since (e.g., 24h, 7d, or ISO timestamp)
+  --until <time>    Events until (ISO timestamp)
+  --limit <n>       Limit results (default: 50)
+  -h, --help        display help for command

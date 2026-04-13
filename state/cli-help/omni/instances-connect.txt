@@ -1,0 +1,8 @@
+Usage: omni instances connect [options] <id>
+
+Connect an instance
+
+Options:
+  --force-new-qr   Force generation of new QR code
+  --token <token>  Discord bot token (for Discord instances)
+  -h, --help       display help for command

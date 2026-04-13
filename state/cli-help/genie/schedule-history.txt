@@ -1,0 +1,10 @@
+Usage: genie schedule history [options] <name>
+
+Show past executions for a schedule
+
+Options:
+  --limit <n>    Max rows to show (default: 20)
+  -h, --help     display help for command
+
+Global Options:
+  -V, --version  output the version number

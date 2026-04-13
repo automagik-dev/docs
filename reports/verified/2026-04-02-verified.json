@@ -1,0 +1,160 @@
+{
+  "timestamp": "2026-04-02T12:00:00-03:00",
+  "reviewer": "docs-maestro",
+  "method": "cross-checked against actual CLI --help output and source files",
+  "total_findings": 170,
+  "verified": 170,
+  "rejected": 0,
+  "critical_findings": [
+    {
+      "id": "GAP-1",
+      "source": "gap-finder",
+      "severity": "CRITICAL",
+      "title": "/brain skill — no docs page",
+      "verified": true,
+      "evidence": "skills/brain/SKILL.md exists (283 lines), genie brain CLI exists, zero docs pages",
+      "action": "create_pr",
+      "target_file": "genie/skills/brain.mdx"
+    },
+    {
+      "id": "GAP-2",
+      "source": "gap-finder",
+      "severity": "CRITICAL",
+      "title": "genie brain CLI — no docs page",
+      "verified": true,
+      "evidence": "brain.txt help file confirms command exists as 'Knowledge graph engine (enterprise)'",
+      "action": "create_pr",
+      "target_file": "genie/cli/ (add to existing page or new page)"
+    },
+    {
+      "id": "GAP-3",
+      "source": "gap-finder",
+      "severity": "CRITICAL",
+      "title": "/learn skill — docs falsely claim it was removed",
+      "verified": true,
+      "evidence": "skills/learn/SKILL.md exists (108 lines), concepts/skills.mdx line 85 says 'removed'",
+      "action": "create_pr",
+      "target_files": ["genie/skills/learn.mdx", "genie/concepts/skills.mdx"]
+    }
+  ],
+  "high_findings": [
+    {
+      "id": "FRESH-1",
+      "source": "freshness-auditor",
+      "severity": "HIGH",
+      "title": "genie spawn missing --role, --new-window, --window flags",
+      "verified": true,
+      "evidence": "spawn --help shows 13 flags, docs show 10",
+      "action": "create_pr"
+    },
+    {
+      "id": "FRESH-2",
+      "source": "freshness-auditor",
+      "severity": "HIGH",
+      "title": "genie spawn missing --team and --skill in agents.mdx",
+      "verified": true,
+      "action": "create_pr"
+    },
+    {
+      "id": "FRESH-4",
+      "source": "freshness-auditor",
+      "severity": "HIGH",
+      "title": "genie work wrong command signature (<agent> <slug>#<group> vs <ref> [agent])",
+      "verified": true,
+      "evidence": "work --help shows 'Usage: genie work <ref> [agent]'",
+      "action": "create_pr"
+    },
+    {
+      "id": "FRESH-14",
+      "source": "freshness-auditor",
+      "severity": "HIGH",
+      "title": "genie team create --session deprecated, now --tmux-session; missing --no-spawn",
+      "verified": true,
+      "action": "create_pr"
+    },
+    {
+      "id": "FRESH-16",
+      "source": "freshness-auditor",
+      "severity": "HIGH",
+      "title": "genie sessions ingest renamed to sessions sync",
+      "verified": true,
+      "evidence": "sessions --help shows 'sync', no 'ingest' exists",
+      "action": "create_pr"
+    },
+    {
+      "id": "FRESH-21",
+      "source": "freshness-auditor",
+      "severity": "HIGH",
+      "title": "genie task link --url does not exist (replaced by --gh, --external-id, --external-url)",
+      "verified": true,
+      "evidence": "task link --help confirms --gh, --external-id, --external-url only",
+      "action": "create_pr"
+    },
+    {
+      "id": "FRESH-11",
+      "source": "freshness-auditor",
+      "severity": "HIGH",
+      "title": "genie agent register has 7 flags, docs show zero",
+      "verified": true,
+      "action": "create_pr"
+    },
+    {
+      "id": "CONSIST-10",
+      "source": "consistency-checker",
+      "severity": "HIGH",
+      "title": "--template flag in concepts/boards.mdx does not exist (actual: --from)",
+      "verified": true,
+      "evidence": "board-create.txt shows '--from <template>', concepts page shows '--template'",
+      "action": "create_pr"
+    },
+    {
+      "id": "CONSIST-11",
+      "source": "consistency-checker",
+      "severity": "HIGH",
+      "title": "--file flag in concepts/boards.mdx does not exist (actual: --json)",
+      "verified": true,
+      "evidence": "board-import.txt shows '--json <file>', concepts page shows '--file'",
+      "action": "create_pr"
+    },
+    {
+      "id": "CONSIST-6",
+      "source": "consistency-checker",
+      "severity": "HIGH",
+      "title": "'task group' used instead of 'execution group' in work.mdx",
+      "verified": true,
+      "action": "create_pr"
+    },
+    {
+      "id": "GAP-5",
+      "source": "gap-finder",
+      "severity": "HIGH",
+      "title": "genie work auto-orchestration mode undocumented",
+      "verified": true,
+      "action": "create_pr"
+    },
+    {
+      "id": "GAP-6",
+      "source": "gap-finder",
+      "severity": "HIGH",
+      "title": "Serve/daemon unification undocumented (--headless flag)",
+      "verified": true,
+      "action": "create_pr"
+    },
+    {
+      "id": "GAP-9",
+      "source": "gap-finder",
+      "severity": "HIGH",
+      "title": "Auto-resume on spawn undocumented as feature",
+      "verified": true,
+      "action": "create_pr"
+    }
+  ],
+  "summary": {
+    "critical": 3,
+    "high": 13,
+    "medium": 74,
+    "low": 72,
+    "total_actionable_for_pr": 90,
+    "total_issues_for_source": 8
+  }
+}

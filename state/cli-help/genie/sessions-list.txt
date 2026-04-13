@@ -1,0 +1,14 @@
+Usage: genie sessions list [options]
+
+List Claude Code sessions
+
+Options:
+  --active        Show only active sessions
+  --orphaned      Show only orphaned sessions
+  --agent <name>  Filter by agent
+  --limit <n>     Max number of sessions to return (default: 50)
+  --json          Output as JSON
+  -h, --help      display help for command
+
+Global Options:
+  -V, --version   output the version number

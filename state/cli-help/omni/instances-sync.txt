@@ -1,0 +1,10 @@
+Usage: omni instances sync [options] <id>
+
+Start a sync operation
+
+Options:
+  --type <type>     Sync type (profile, messages, contacts, groups, all)
+  --depth <depth>   Sync depth (7d, 30d, 90d, 1y, all)
+  --download-media  Download media files
+  --chat <jid>      Specific chat JID for per-chat active sync (WhatsApp only)
+  -h, --help        display help for command

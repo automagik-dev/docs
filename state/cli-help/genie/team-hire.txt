@@ -1,0 +1,10 @@
+Usage: genie team hire [options] <agent>
+
+Add an agent to a team ("council" hires all 10 council members)
+
+Options:
+  --team <name>  Team name (auto-detects from leader context if omitted)
+  -h, --help     display help for command
+
+Global Options:
+  -V, --version  output the version number

@@ -1,0 +1,13 @@
+Usage: omni batch list [options]
+
+List batch jobs
+
+Options:
+  --instance <id>    Filter by instance ID (aliases: --instance-ids,
+                     --instances)
+  --status <status>  Filter by status (comma-separated:
+                     pending,running,completed,failed,cancelled)
+  --type <type>      Filter by job type
+                     (targeted_chat_sync,time_based_batch,media_redownload)
+  --limit <n>        Max results
+  -h, --help         display help for command

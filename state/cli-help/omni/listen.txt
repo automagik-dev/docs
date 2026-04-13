@@ -1,0 +1,19 @@
+Usage: omni listen [options] <file>
+
+Transcribe an audio file to text and print (or send as reply)
+
+Arguments:
+  file                  Path to the audio file to transcribe
+
+Options:
+  --provider <name>     STT provider (gemini, groq). Default: server config.
+  --language <code>     BCP-47 language hint (e.g. en, pt-BR)
+  --timestamps          Include per-segment timestamps
+  --format <fmt>        Output format: text, json (default: text)
+  --model <name>        Model override (provider-specific)
+  --reply [message-id]  Send transcript as a quote-reply to the trigger or a
+                        specific message
+  --instance <id>       Override instance (default: from context, only with
+                        --reply) (aliases: --instance-ids, --instances)
+  --chat <id>           Override chat (default: from context, only with --reply)
+  -h, --help            display help for command

@@ -1,0 +1,19 @@
+Usage: genie read [options] <name>
+
+Read terminal output from an agent pane
+
+Options:
+  -n, --lines <number>  Number of lines to read
+  --from <line>         Start line
+  --to <line>           End line
+  --range <range>       Line range (e.g., "10-20")
+  --search <text>       Search for text
+  --grep <pattern>      Grep for pattern
+  -f, --follow          Follow mode (like tail -f)
+  --all                 Show all output
+  -r, --reverse         Reverse order
+  --json                Output as JSON
+  -h, --help            display help for command
+
+Global Options:
+  -V, --version         output the version number

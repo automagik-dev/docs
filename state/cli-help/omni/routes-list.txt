@@ -1,0 +1,9 @@
+Usage: omni routes list [options]
+
+List agent routes for an instance
+
+Options:
+  --instance <id>  Instance ID (aliases: --instance-ids, --instances)
+  --scope <scope>  Filter by scope (chat or user)
+  --active         Show only active routes
+  -h, --help       display help for command

@@ -1,0 +1,6 @@
+Usage: omni chats unlabel [options] <id> <label>
+
+Remove a label from a chat
+
+Options:
+  -h, --help  display help for command

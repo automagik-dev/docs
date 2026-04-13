@@ -1,0 +1,12 @@
+Usage: genie init [options] [command]
+
+Initialize a genie workspace
+
+Options:
+  -h, --help     display help for command
+
+Global Options:
+  -V, --version  output the version number
+
+Commands:
+  agent <name>   Scaffold a new agent in the workspace

@@ -1,0 +1,15 @@
+Usage: genie export tasks [options]
+
+Export tasks with deps, actors, and stage log
+
+Options:
+  --project <name>  Filter by project name
+  --output <file>   Write to file instead of stdout
+  --pretty          Pretty-print JSON
+  -h, --help        display help for command
+
+Global Options:
+  --output <file>   Write to file instead of stdout
+  -o <file>         Alias for --output
+  --pretty          Pretty-print JSON
+  -V, --version     output the version number

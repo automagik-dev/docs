@@ -1,0 +1,18 @@
+Usage: genie history [options] <name>
+
+Show compressed session history for an agent
+
+Options:
+  --full               Show full conversation without compression
+  --since <n>          Show last N user/assistant exchanges
+  --last <n>           Show last N transcript entries
+  --type <role>        Filter by role (user, assistant, tool_call)
+  --after <timestamp>  Only entries after ISO timestamp
+  --json               Output as JSON
+  --ndjson             Output as newline-delimited JSON (pipeable to jq)
+  --raw                Output raw JSONL entries
+  --log-file <path>    Direct path to log file (for testing)
+  -h, --help           display help for command
+
+Global Options:
+  -V, --version        output the version number

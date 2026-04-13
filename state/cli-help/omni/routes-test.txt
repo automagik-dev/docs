@@ -1,0 +1,9 @@
+Usage: omni routes test [options]
+
+Test route resolution for a given instance, chat, and/or person
+
+Options:
+  --instance <id>      Instance ID (aliases: --instance-ids, --instances)
+  --chat <chatId>      Chat UUID to test
+  --person <personId>  Person UUID to test
+  -h, --help           display help for command

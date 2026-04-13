@@ -1,0 +1,22 @@
+Usage: genie agent log [options] [agent]
+
+Unified observability feed — aggregates transcript, DMs, team chat
+
+Options:
+  --team <name>         Show interleaved feed for all agents in a team
+  --type <kind>         Filter by event kind (transcript, message, tool_call,
+                        state, system)
+  --since <timestamp>   Only events after ISO timestamp
+  --last <n>            Show last N events
+  --ndjson              Output as newline-delimited JSON (pipeable to jq)
+  --json                Output as pretty JSON
+  -f, --follow          Follow mode — real-time streaming
+  --raw                 Show raw pane capture (was `genie read`)
+  --transcript          Show compressed transcript (was `genie history`)
+  --full                Show full conversation (with --transcript)
+  --search <query>      Search across sessions (was `genie sessions search`)
+  -n, --lines <number>  Number of lines to read (with --raw)
+  -h, --help            display help for command
+
+Global Options:
+  -V, --version         output the version number

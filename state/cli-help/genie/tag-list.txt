@@ -1,0 +1,11 @@
+Usage: genie tag list [options]
+
+List all tags
+
+Options:
+  --type <typeId>  Filter by task type
+  --json           Output as JSON
+  -h, --help       display help for command
+
+Global Options:
+  -V, --version    output the version number

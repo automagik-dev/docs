@@ -1,0 +1,6 @@
+Usage: omni channels list [options]
+
+Show available channel types and instance counts
+
+Options:
+  -h, --help  display help for command

@@ -1,0 +1,12 @@
+Usage: genie events summary [options]
+
+High-level stats: agents spawned, tasks moved, costs, errors
+
+Options:
+  --today             Show summary for the last 24h
+  --since <duration>  Time window (e.g., 1h, 7d) (default: "24h")
+  --json              Output as JSON
+  -h, --help          display help for command
+
+Global Options:
+  -V, --version       output the version number

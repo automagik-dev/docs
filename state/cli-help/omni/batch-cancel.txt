@@ -1,0 +1,6 @@
+Usage: omni batch cancel [options] <jobId>
+
+Cancel a running job
+
+Options:
+  -h, --help  display help for command

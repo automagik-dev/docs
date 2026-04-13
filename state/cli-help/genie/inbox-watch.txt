@@ -1,0 +1,9 @@
+Usage: genie inbox watch [options]
+
+Run inbox watcher in foreground (Ctrl+C to stop)
+
+Options:
+  -h, --help     display help for command
+
+Global Options:
+  -V, --version  output the version number

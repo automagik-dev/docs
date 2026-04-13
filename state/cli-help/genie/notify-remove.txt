@@ -1,0 +1,10 @@
+Usage: genie notify remove [options]
+
+Remove a notification preference
+
+Options:
+  --channel <channel>  Channel to remove
+  -h, --help           display help for command
+
+Global Options:
+  -V, --version        output the version number

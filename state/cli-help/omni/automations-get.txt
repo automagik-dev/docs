@@ -1,0 +1,6 @@
+Usage: omni automations get [options] <id>
+
+Get automation details
+
+Options:
+  -h, --help  display help for command

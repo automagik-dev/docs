@@ -1,0 +1,6 @@
+Usage: omni keys delete [options] <id>
+
+Permanently delete an API key
+
+Options:
+  -h, --help  display help for command

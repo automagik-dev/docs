@@ -1,0 +1,8 @@
+Usage: omni automations list [options]
+
+List all automations
+
+Options:
+  --enabled   Show only enabled automations
+  --disabled  Show only disabled automations
+  -h, --help  display help for command

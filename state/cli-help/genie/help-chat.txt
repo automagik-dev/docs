@@ -1,0 +1,16 @@
+Usage: genie chat [options] [command]
+
+Conversation management (PG-backed)
+
+Options:
+  -h, --help                                 display help for command
+
+Global Options:
+  -V, --version                              output the version number
+
+Commands:
+  help [command]                             display help for command
+  list [options]                             List conversations with filters
+  read [options] <conversationId>            Read messages in a conversation
+  send [options] <conversationId> <message>  Send a message to a specific conversation
+  thread [options] <messageId>               Create a threaded sub-conversation from a message

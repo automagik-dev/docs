@@ -1,0 +1,9 @@
+Usage: genie wish [options] <agent> <slug>
+
+Spawn agent with wish DESIGN.md context
+
+Options:
+  -h, --help     display help for command
+
+Global Options:
+  -V, --version  output the version number

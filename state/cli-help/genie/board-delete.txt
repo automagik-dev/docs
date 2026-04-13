@@ -1,0 +1,11 @@
+Usage: genie board delete [options] <name...>
+
+Delete a board
+
+Options:
+  --project <project>  Disambiguate by project
+  --force              Skip confirmation
+  -h, --help           display help for command
+
+Global Options:
+  -V, --version        output the version number

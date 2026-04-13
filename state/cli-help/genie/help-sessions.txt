@@ -1,0 +1,16 @@
+Usage: genie sessions [options] [command]
+
+Session history — list, replay, search
+
+Options:
+  -h, --help                     display help for command
+
+Global Options:
+  -V, --version                  output the version number
+
+Commands:
+  help [command]                 display help for command
+  list [options]                 List Claude Code sessions
+  replay [options] <session-id>  Replay a session — interleave content + events
+  search [options] <query>       Full-text search across session content
+  sync                           Check session backfill progress

@@ -1,0 +1,6 @@
+Usage: omni prompts reset [options] <name>
+
+Clear prompt override (reverts to code default)
+
+Options:
+  -h, --help  display help for command

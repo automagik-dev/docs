@@ -1,0 +1,6 @@
+Usage: omni instances status [options] <id>
+
+Get instance connection status
+
+Options:
+  -h, --help  display help for command

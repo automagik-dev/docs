@@ -1,0 +1,11 @@
+Usage: genie board show [options] <name...>
+
+Show board detail
+
+Options:
+  --project <project>  Disambiguate by project
+  --json               Output as JSON
+  -h, --help           display help for command
+
+Global Options:
+  -V, --version        output the version number

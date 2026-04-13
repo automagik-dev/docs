@@ -1,0 +1,13 @@
+Usage: genie chat list [options]
+
+List conversations with filters
+
+Options:
+  --type <type>      Filter by type: dm, group
+  --linked <entity>  Filter by linked entity: task, team
+  --json             Output as JSON
+  --from <sender>    Actor ID (auto-detected)
+  -h, --help         display help for command
+
+Global Options:
+  -V, --version      output the version number

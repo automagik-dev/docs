@@ -1,0 +1,10 @@
+Usage: genie task comment [options] <id> <message>
+
+Add a comment to a task
+
+Options:
+  --reply-to <msgId>  Reply to a specific message ID
+  -h, --help          display help for command
+
+Global Options:
+  -V, --version       output the version number

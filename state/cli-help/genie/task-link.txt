@@ -1,0 +1,12 @@
+Usage: genie task link [options] <id>
+
+Link task to an external tracker (GitHub, Jira, etc.)
+
+Options:
+  --gh <owner/repo#N>   Link to GitHub issue
+  --external-id <id>    External tracker ID
+  --external-url <url>  External tracker URL
+  -h, --help            display help for command
+
+Global Options:
+  -V, --version         output the version number

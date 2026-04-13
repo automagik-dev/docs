@@ -1,0 +1,6 @@
+Usage: omni events metrics [options]
+
+Get event processing metrics
+
+Options:
+  -h, --help  display help for command

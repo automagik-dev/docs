@@ -1,0 +1,10 @@
+Usage: genie events timeline [options] <entity-id>
+
+Full event timeline for a task, agent, wish, or traceId
+
+Options:
+  --json         Output as JSON
+  -h, --help     display help for command
+
+Global Options:
+  -V, --version  output the version number

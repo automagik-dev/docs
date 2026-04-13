@@ -1,0 +1,12 @@
+Usage: genie chat read [options] <conversationId>
+
+Read messages in a conversation
+
+Options:
+  --since <timestamp>  Show messages since timestamp
+  --limit <n>          Limit number of messages (default: "50")
+  --json               Output as JSON
+  -h, --help           display help for command
+
+Global Options:
+  -V, --version        output the version number

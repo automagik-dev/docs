@@ -1,0 +1,10 @@
+Usage: genie metrics agents [options]
+
+Per-agent heartbeat summary
+
+Options:
+  --json         Output as JSON
+  -h, --help     display help for command
+
+Global Options:
+  -V, --version  output the version number

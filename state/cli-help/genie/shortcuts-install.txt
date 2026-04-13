@@ -1,0 +1,9 @@
+Usage: genie shortcuts install [options]
+
+Install shortcuts to config files (~/.tmux.conf, shell rc)
+
+Options:
+  -h, --help     display help for command
+
+Global Options:
+  -V, --version  output the version number

@@ -1,0 +1,13 @@
+Usage: omni say [options] <text>
+
+Send a text message to the open chat
+
+Arguments:
+  text                  Text message to send
+
+Options:
+  --reply [message-id]  Quote-reply to trigger message or specific message ID
+  --instance <id>       Override instance (default: from context) (aliases:
+                        --instance-ids, --instances)
+  --chat <id>           Override chat (default: from context)
+  -h, --help            display help for command

@@ -1,0 +1,13 @@
+Usage: genie board create [options] <name>
+
+Create a new board
+
+Options:
+  --project <project>   Project name
+  --from <template>     Create from template name
+  --columns <columns>   Comma-separated column names
+  --description <text>  Board description
+  -h, --help            display help for command
+
+Global Options:
+  -V, --version         output the version number

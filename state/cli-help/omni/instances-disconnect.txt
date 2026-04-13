@@ -1,0 +1,6 @@
+Usage: omni instances disconnect [options] <id>
+
+Disconnect an instance
+
+Options:
+  -h, --help  display help for command

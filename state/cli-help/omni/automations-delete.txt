@@ -1,0 +1,6 @@
+Usage: omni automations delete [options] <id>
+
+Delete an automation
+
+Options:
+  -h, --help  display help for command

@@ -1,0 +1,9 @@
+Usage: genie task unarchive [options] <id>
+
+Restore an archived task to its previous status
+
+Options:
+  -h, --help     display help for command
+
+Global Options:
+  -V, --version  output the version number

@@ -1,0 +1,15 @@
+Usage: genie notify [options] [command]
+
+Notification preference management
+
+Options:
+  -h, --help        display help for command
+
+Global Options:
+  -V, --version     output the version number
+
+Commands:
+  help [command]    display help for command
+  list [options]    List notification preferences
+  remove [options]  Remove a notification preference
+  set [options]     Set notification preference for a channel

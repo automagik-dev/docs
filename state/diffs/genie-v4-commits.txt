@@ -1,0 +1,168 @@
+6f18de80 fix: preserve model field on agent resume
+b597c87d chore(version): bump to 4.260402.18 [skip ci]
+7c21301a fix: ensure teammateMode=bypassPermissions on native team setup
+a212db4a chore(version): bump to 4.260402.17 [skip ci]
+88431fa0 chore(version): bump to 4.260402.16 [skip ci]
+02075666 docs: update /brain skill to cover full genie-brain v0.1.0 API
+28bcc46e chore(version): bump to 4.260402.15 [skip ci]
+22aa5515 fix(tmux): enable OSC 52 clipboard passthrough in nested tmux layers
+419e4b19 fix(task): resolve JSON truncation at 8KB + honor --project with --all
+9945108f chore(version): bump to 4.260402.14 [skip ci]
+83fafb96 fix: use optional chain instead of non-null assertion for claudeSessionId
+bfea41ec refactor: extract findDeadResumable helper to reduce cognitive complexity
+ed925681 fix: auto-resume Claude session on genie spawn instead of creating new
+11dff850 chore(version): bump to 4.260402.13 [skip ci]
+604b26f9 refactor: unify serve + daemon under single process ownership
+2d6845e4 fix(tui): v3 system stats — fix garbled rendering and wrong metrics
+99b96a08 fix(security): sanitize column names in import prepareRow()
+047a4584 chore(version): bump to 4.260402.12 [skip ci]
+8e7c4b8f fix(tui): rewrite system stats with systeminformation for accurate hw metrics
+be2b48bb chore(version): bump to 4.260402.11 [skip ci]
+44a153a3 feat(mailbox): wire PG LISTEN/NOTIFY for instant message delivery
+389a9423 fix(tui): rename context menu labels — Start and Clone
+9caf4e42 feat(tui): add system stats panel to left menu bottom
+5c827255 chore(version): bump to 4.260402.10 [skip ci]
+82915442 fix: resume prior CC sessions in 3 broken launch paths
+53ac5271 fix: resume prior CC sessions in 3 broken launch paths
+bdf2e884 chore: remove all OpenClaw references from codebase
+388e9ca8 fix: restore agent identity on resume + fix skills symlink depth
+5fe5c667 chore(version): bump to 4.260402.9 [skip ci]
+21fba626 chore: metrics-updater run 2026-04-02 — failed (no gh CLI)
+fcc4fca3 chore(version): bump to 4.260402.8 [skip ci]
+45222d95 feat: new /brain skill — knowledge graph with confidence scoring
+fe3d021a chore(version): bump to 4.260402.7 [skip ci]
+271ea531 fix: use gh repo clone instead of token-in-URL (P1 security + P2 uninstall)
+dc5ff22f fix: genie brain install uses git clone (private repo support)
+d93d400e chore(version): bump to 4.260402.6 [skip ci]
+3fd9bedf fix: add @automagik/genie-brain as build external (dynamic import, not bundled)
+3e11c04a chore(version): bump to 4.260402.5 [skip ci]
+c760d8c3 fix: remove hardcoded 60s timeout from brain install (codex review)
+85e1cade fix: brain install from GitHub repo instead of npm registry
+9789098f chore(version): bump to 4.260402.4 [skip ci]
+13a1bb3b fix: brain wiring review — add genie brain install, gate task hook
+212f1e4a feat: genie brain wiring — command delegation, auto-brain hooks, pgvector
+6e9f1630 chore(version): bump to 4.260402.3 [skip ci]
+2a82f2ee fix(tui): sub-agent session matching + selection stability + env restore
+6ee7bc6a chore(version): bump to 4.260402.2 [skip ci]
+15b67f92 fix(test): replace mock.module with spyOn for workspace.js in init tests
+9f7add83 feat(tui): context menu with per-node actions and pane rename support
+badef105 feat(spawn): add --role, --new-window, --window flags
+6d90b368 refactor(hooks): extract resolve-agent-name, fix log unfiltered scope
+b489790e fix(test): add missing getWorkspaceConfig to workspace mock modules
+7c1acc69 chore(version): bump to 4.260402.1 [skip ci]
+f57d0bca style: fix lint errors in edge-cases-stability test
+4a558d12 fix(agent-directory): resolve workspace agents shadowed by built-ins
+e979ec6c test(tui): add workspace sub-agent nesting and orphan session tests
+04026bd5 test(protocol-router): add QA tests for spawn failure logging and delivery error surfacing
+aef5c4ad fix(tui): prevent TUI env leak causing double nav sidebar
+f861da21 fix(tui): clear stale right pane content on serve restart
+6def368d chore(version): bump to 4.260401.6 [skip ci]
+5bb25fa0 chore: trigger publish for v4.260401.5
+3bfbd72c chore(version): bump to 4.260401.5 [skip ci]
+1480a545 fix(spawn): always set --permission-mode for native team workers
+09b5431f chore(version): bump to 4.260401.4 [skip ci]
+addba87c refactor(tui): ctrl+T spawns parallel worker via genie spawn
+36d5ed7a feat(tui): ctrl+T creates new claude window for selected agent
+07a84be3 chore(version): bump to 4.260401.3 [skip ci]
+3ad88c67 chore: re-trigger CI after test fixes
+e90e3ce0 chore: trigger CI
+798811db fix(test): mock tmux-wrapper instead of tmux.js to prevent module poisoning
+3f4ecc70 fix(test): mock tmux-wrapper instead of tmux.js to prevent module poisoning
+213f8588 fix(hooks): skip auto-spawn for team-lead alias without PG lookup
+843b9510 fix(hooks): skip auto-spawn for team-lead alias without PG lookup
+66575891 fix(spawn): detect recycled tmux pane IDs in duplicate role guard
+fbe8984b fix(tui): isPaneAlive returns true for non-existent panes on tmux 3.5+
+3dca39a4 fix(tui): reconcile stale executors before spawn on Enter
+4b7de1c9 chore: fix missing newline in plugin package.json
+0204a2a0 fix(tui): quit dialog and agent spawn from TUI
+c0836eff chore: metrics-updater run 2026-04-01 (no fresh data)
+9f5e4c0a chore: fix biome format errors in JSON files
+a4c29fc4 fix(router): use _deps injection in spawn tests to prevent mock leaking
+056ed436 fix(router): surface errors in inbox writes and resume context injection
+8c346733 fix(router): use _deps injection instead of mock.module to avoid test leaking
+2e1900e7 test(init-bootstrap): fix test isolation for workspace detection
+5202e1c7 fix(router): v4 stability — advisory locks for spawn guard (#963)
+b2d1bbbf fix(team): v4 stability — safe worktree removal + transactional cleanup (#962)
+01fd1561 fix(engineer): gate genie done on success status + complete done_report fields
+1efee3ae fix(team): remove duplicate kickoff prompt — was sent via CLI arg AND mailbox
+b830de13 feat(skills): add behavioral quality patterns to brainstorm and work
+6c6af9d8 fix(spawn): v4 stability — spawn watchdog + dynamic leader identity (#958)
+7b57db00 fix(hooks): v4 stability — blocking handlers deny on crash + slug validation (#957)
+46ca5eae fix(session): v4 stability — executor lifecycle + tmux race conditions (#956)
+029a1d1c feat(dir): display all frontmatter fields in dir ls + integration tests
+7fc1c4d3 feat(sync): wire frontmatter into agent sync + provider resolution chain
+1de13f2b feat(frontmatter): extract shared parser with Zod validation
+b623cf06 feat(directory): add metadata JSONB column + fix edit() persistence
+6e83ee94 chore(version): bump to 4.260401.2 [skip ci]
+a1c6c6a2 fix(lint): extract runRetention helper to reduce getConnection complexity
+252beaca fix(security): eliminate SQL injection in import + db-backup
+7559c952 wip: v4-database-layer#2
+6d6de2d8 fix(db): add retention policies, fix pool recovery, deterministic migrations
+f624fa30 chore(version): bump to 4.260401.1 [skip ci]
+9134d24c fix(ci): bump bun 1.3.11 + increase db-backup test timeouts
+0bcb971e fix(ci): bump bun to 1.3.11 — fixes loadGenieConfigSync export resolution
+f30334d4 refactor: remove all app_store references from agent-directory
+06b7df05 fix(test): remove app_store test — table dropped in migration 018
+5252baa6 chore(version): bump to 4.260331.20 [skip ci]
+1e65f6a1 chore: move rlmx.yaml into .rlmx/ directory
+d9e7ce99 feat: global workspace + agent auto-spawn + collapsible agent tree
+9d5c5036 feat(tui): recursive sub-agent scanning in workspace tree
+ad4093d2 fix: preserve tui quit binding
+b9e25392 chore(version): bump to 4.260331.19 [skip ci]
+e87365a1 Fix init bootstrap and first-agent TUI auto-open (#942)
+5838dc92 feat(tui): quit confirmation popup + swap Ctrl+Q/Ctrl+D (#931)
+3d1704d6 chore(version): bump to 4.260331.18 [skip ci]
+cba646bf fix: address review — await race, shell injection, plugin build
+ccc701d1 chore(version): bump to 4.260331.17 [skip ci]
+b4ed1459 feat: auto-download tmux at install time (postinstall + smart-install)
+e1f16eb2 fix(review): address PR #940 feedback — scope sub-agent names, fix test skip
+002d1d46 fix(test): eliminate PG test flakiness — skip migrations in test connections
+27c86f0d chore(version): bump to 4.260331.16 [skip ci]
+1f0b4f25 fix(test): skip PG tests when schema setup fails under concurrent load
+57dc4a73 fix(test): handle PG ECONNREFUSED in setupTestSchema under concurrent load
+2523ad75 fix: auto-download tmux binary when not installed
+03536446 feat(dir): recursive sub-agent discovery in .genie/agents/
+1c18bf64 chore(version): bump to 4.260331.15 [skip ci]
+a5921736 chore(version): bump to 4.260331.14 [skip ci]
+9dd931a5 refactor(council): replace dispatch script with agentic orchestration
+8b411ff4 fix(team): leader name = team name, not project agent name
+382a7e49 fix(team): use team-lead template for leader spawn, wish slug for identity
+dc60dfe9 fix(council): remove residual voting language from questioner related_agents
+8d76b05c chore(version): bump to 4.260331.13 [skip ci]
+e9cd0c01 fix(tests): resolve flaky hook dispatch timeouts and otel port collision
+bd19d3f4 test(db): add unit tests for db-backup module
+2fb72eec chore(version): bump to 4.260331.12 [skip ci]
+d7a04c67 fix(team): leader name = team name, not project agent name
+ab28fce3 chore(version): bump to 4.260331.11 [skip ci]
+f4675cf4 fix(team): use team-lead template for leader spawn, wish slug for identity
+3573f50c feat(council): update member definitions + add supporting files
+9bf2f05e feat(council): rewrite SKILL.md with real multi-agent deliberation protocol
+f1919eec chore(version): bump to 4.260331.10 [skip ci]
+3956a0b1 chore(version): bump to 4.260331.9 [skip ci]
+1b867b3a chore: mark 3 wishes SHIPPED (unique-leader-names, tmux-fix, task-ext-link)
+f04db765 chore: remove 20 duplicate agent .md files
+60f0effa chore(version): bump to 4.260331.8 [skip ci]
+7095edbb fix(team): resolve leader from project's leader_agent, not wish slug
+a4b774d4 chore(version): bump to 4.260331.7 [skip ci]
+8a537ddf refactor: rip out app_store item registry — belongs in genie-os
+d1681478 chore(version): bump to 4.260331.6 [skip ci]
+8c97c999 fix(cli): address PR review — argv slice + agent.error()
+eb2c5228 feat(cli): wire agent namespace + auto-router skill rewrite
+c83843f2 chore(version): bump to 4.260331.5 [skip ci]
+d0ff2185 refactor: extract helpers to reduce complexity in leader resolution
+ad679d87 feat(leader): backward compat cleanup — dynamic leader in all paths
+3a3c96bf feat(wish): add wish-sync filesystem to PG indexing
+a67724f2 fix(msg): resolve lint warnings in messaging paths
+a650570b feat(msg): dynamic leader routing in all messaging paths
+15fb9721 refactor(native-teams): extract scanTeamInbox to reduce complexity
+81c6016c fix(lint): use optional chain instead of non-null assertion
+178d1678 feat(wish): wire genie work to wish-resolve and dynamic leadAgentId
+cb2747bb chore(wish): un-export internal interfaces to satisfy knip
+bf2a52fa feat(wish): add wish resolution and leader identity tracking
+71b180bd chore(version): bump to 4.260331.4 [skip ci]
+85bc6f3f feat(wish): rewrite unique-leader-names — automatic context resolution
+9b4e5799 chore(version): bump to 4.260331.3 [skip ci]
+0227957c chore(version): bump to 4.260331.2 [skip ci]
+7c56e45b chore: update live metrics (5/day, 0.3h avg, 85% SHIP)
+aabeb397 chore(version): bump to 4.260331.1 [skip ci]
+66ba0e65 feat(wish): unique-leader-names — kill generic team-lead naming

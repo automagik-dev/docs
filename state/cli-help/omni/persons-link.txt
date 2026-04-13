@@ -1,0 +1,6 @@
+Usage: omni persons link [options] <identityA> <identityB>
+
+Link two platform identities to the same person
+
+Options:
+  -h, --help  display help for command

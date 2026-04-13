@@ -1,0 +1,11 @@
+Usage: genie task move [options] <id>
+
+Move task to a new stage
+
+Options:
+  --to <stage>     Target stage
+  --comment <msg>  Comment on the move
+  -h, --help       display help for command
+
+Global Options:
+  -V, --version    output the version number

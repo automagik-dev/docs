@@ -1,0 +1,6 @@
+Usage: omni channels status [options]
+
+Overview of all channels and their connection states
+
+Options:
+  -h, --help  display help for command

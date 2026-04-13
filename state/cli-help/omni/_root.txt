@@ -1,0 +1,82 @@
+
+Quick Start:
+  omni send --to +5511999999999 --text "Hello"
+  omni chats list
+  omni events list --limit 10
+
+Global Flags:
+  --json         Output in JSON format (works with any command)
+  --no-color     Disable colored output
+
+Usage: omni [options] [command]
+
+CLI for Omni - Universal Omnichannel Platform
+
+Options:
+  -V, --version  output the version number
+  --no-color     Disable colored output
+  --all          Show all commands including debug commands
+  -h, --help     display help for command
+
+Status: configured (edbf1747-107a-45ca-9011-89bab1f40ced)
+
+Commands:
+  Core:
+    send         Send message (text, media, location, poll)
+    say          Send text to open chat (verb command)
+    react        React to a message with emoji (verb command)
+    listen       Transcribe audio to text (verb command)
+    imagine      Generate an image from a prompt (Gemini Nano Banana, verb command)
+    film         Generate a video from a prompt (Gemini Veo 3.1, verb command)
+    speak        Synthesize text to speech and send as voice note (verb command)
+    see          Describe an image or video via Gemini Vision (verb command)
+    chats        List and manage conversations
+    messages     Message actions (read receipts)
+    tts          Text-to-speech operations
+    open         Open conversation context (set active chat)
+    close        Clear active conversation context
+    use          Set active instance for verb commands
+    where        Show current context (instance, chat)
+    done         Close turn (send final message + emit turn.done)
+    media        Browse and download media items
+
+  Management:
+    channels     Channel types, add instances, status overview
+    instances    Channel connections (WhatsApp, Discord)
+    persons      Contact directory
+    automations  Event-driven workflows
+    agents       AI agent entity management
+    providers    AI/LLM providers configuration
+    connect      Connect instance to genie agent via NATS
+    routes       Agent routing configuration
+    keys         API key management
+    access       Access control and permissions
+    webhooks     Webhook management
+
+  System:
+    status       API health and connection info
+    config       CLI settings (default instance, format)
+    events       Query message history
+    auth         Authentication management
+    settings     Server settings
+    batch        Batch operations
+    update       Update CLI to latest version
+    start        Start Omni services (API + NATS)
+    stop         Stop Omni services
+    restart      Restart Omni services
+    install      Interactive setup wizard (bootstrap Omni server)
+    prompts      Manage LLM prompt overrides
+    resync       Trigger history backfill for instances
+    replay       Replay missed messages for an agent instance
+    journey      Message journey tracing & latency
+
+Config: instance=edbf1747-107a-45ca-9011-89bab1f40ced, format=human
+
+Examples:
+  omni send --to +55119999 --text "Hi"        # Send text
+  omni send --to +55119999 --media ./pic.jpg  # Send image
+  omni chats messages <chat-id>               # Read conversation
+  omni persons search "Felipe"                # Find contact
+
+Hidden: 4 debug commands
+  Use --all to show all commands

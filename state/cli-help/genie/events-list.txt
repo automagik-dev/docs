@@ -1,0 +1,15 @@
+Usage: genie events list [options]
+
+List recent audit events
+
+Options:
+  --type <type>       Filter by event_type
+  --entity <entity>   Filter by entity_type or entity_id
+  --since <duration>  Time window (e.g., 1h, 30m, 2d) (default: "1h")
+  --errors-only       Show only error events
+  --limit <n>         Max rows to return (default: "50")
+  --json              Output as JSON
+  -h, --help          display help for command
+
+Global Options:
+  -V, --version       output the version number

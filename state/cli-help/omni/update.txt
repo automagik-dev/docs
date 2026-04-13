@@ -1,0 +1,19 @@
+Usage: omni update [options]
+
+Update @automagik/omni to the latest version (restart only services already
+running)
+
+Options:
+  -y, --yes     Skip confirmation prompts (non-interactive)
+  --no-restart  Update CLI only; skip service restarts and API health check on
+                configured API port
+  -h, --help    display help for command
+
+Behavior:
+  - Installs the latest CLI package first.
+  - Restarts tracked Omni services only when they were online before the update.
+  - When that restart path runs, update checks API health on the configured API port.
+  - Use --no-restart to skip restart and API health-check steps.
+  - Exits non-zero if install succeeds but restart or API health check fails in that restart path.
+  - Verify runtime health after update with: omni status
+

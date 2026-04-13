@@ -1,0 +1,15 @@
+Usage: genie type [options] [command]
+
+Task type management
+
+Options:
+  -h, --help               display help for command
+
+Global Options:
+  -V, --version            output the version number
+
+Commands:
+  create [options] <name>  Create a custom task type
+  help [command]           display help for command
+  list [options]           List all task types
+  show [options] <id>      Show task type detail with stage pipeline

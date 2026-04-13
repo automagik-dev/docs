@@ -1,0 +1,8 @@
+Usage: omni chats update [options] <id>
+
+Update a chat
+
+Options:
+  --name <name>         New name
+  --description <desc>  New description
+  -h, --help            display help for command

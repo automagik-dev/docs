@@ -1,0 +1,6 @@
+Usage: omni auth status [options]
+
+Show current authentication status
+
+Options:
+  -h, --help  display help for command

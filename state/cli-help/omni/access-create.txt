@@ -1,0 +1,16 @@
+Usage: omni access create [options]
+
+Create an access rule
+
+Options:
+  --type <type>      Rule type: allow or deny
+  --instance <id>    Instance ID (omit for global rule) (aliases:
+                     --instance-ids, --instances)
+  --phone <pattern>  Phone pattern (supports * wildcard, e.g., +55*)
+  --user <id>        Platform user ID (Discord ID, etc.)
+  --priority <n>     Rule priority (higher = checked first)
+  --action <action>  Action: block, silent_block, or allow (default: "block")
+  --reason <text>    Human-readable reason for the rule
+  --message <text>   Custom message to send when blocked
+  --disabled         Create rule in disabled state
+  -h, --help         display help for command

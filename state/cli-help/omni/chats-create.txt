@@ -1,0 +1,13 @@
+Usage: omni chats create [options]
+
+Create a chat record
+
+Options:
+  --instance <id>       Instance ID (aliases: --instance-ids, --instances)
+  --external-id <id>    External chat ID from the channel
+  --channel <type>      Channel type (whatsapp-baileys, whatsapp-cloud, discord,
+                        slack, telegram)
+  --type <type>         Chat type (private, group) (default: "private")
+  --name <name>         Chat name
+  --description <desc>  Chat description
+  -h, --help            display help for command

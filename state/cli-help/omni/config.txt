@@ -1,0 +1,13 @@
+Usage: omni config [options] [command]
+
+Manage CLI configuration
+
+Options:
+  -h, --help           display help for command
+
+Commands:
+  list                 List all configuration values
+  get [options] <key>  Get a configuration value
+  set <key> [value]    Set or unset a configuration value
+  unset <key>          Remove a configuration value
+  help [command]       display help for command

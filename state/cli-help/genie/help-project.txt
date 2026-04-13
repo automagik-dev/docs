@@ -1,0 +1,20 @@
+Usage: genie project [options] [command]
+
+Project management — named task boards
+
+Options:
+  -h, --help               display help for command
+
+Global Options:
+  -V, --version            output the version number
+
+Commands:
+  archive <name>           Archive a project (cascades to boards and unfinished
+                           tasks)
+  create [options] <name>  Create a new project
+  help [command]           display help for command
+  list [options]           List all projects
+  set-default <name>       Set default project for when outside any repo
+  show [options] <name>    Show project detail with task stats
+  unarchive <name>         Restore an archived project and its boards (tasks
+                           stay as-is)

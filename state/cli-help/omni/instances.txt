@@ -1,0 +1,47 @@
+Usage: omni instances [options] [command]
+
+Manage channel instances
+
+Options:
+  -h, --help                           display help for command
+
+Commands:
+  list [options]                       List all instances
+  get <id>                             Get instance details
+  create [options]                     Create a new instance (supports all API
+                                       fields)
+  delete <id>                          Delete an instance
+  status <id>                          Get instance connection status
+  whoami <id>                          Show phone number and identity for an
+                                       instance
+  qr [options] <id>                    Get QR code for WhatsApp instances
+  pair [options] <id>                  Request pairing code (alternative to QR)
+  connect [options] <id>               Connect an instance
+  disconnect <id>                      Disconnect an instance
+  restart [options] <id>               Restart an instance
+  logout <id>                          Logout and clear session data
+  sync [options] <id>                  Start a sync operation
+  syncs [options] <id> [jobId]         List sync jobs or get job status
+  update [options] <id>                Update an instance (supports all API
+                                       fields)
+  contacts [options] <id>              List contacts for an instance
+  groups [options] <id>                List groups for an instance
+  group-members <id> <jid>             List members of a group
+  profile <id> <userId>                Get user profile from the channel
+  check <id> <phone>                   Check if phone number is registered on
+                                       WhatsApp
+  update-bio <id> <status>             Update own profile bio/status on WhatsApp
+  block <id> <contactId>               Block a contact on WhatsApp
+  unblock <id> <contactId>             Unblock a contact on WhatsApp
+  blocklist <id>                       List blocked contacts on WhatsApp
+  update-picture [options] <id>        Update instance profile picture
+  remove-picture <id>                  Remove instance profile picture
+  group-update-picture [options] <id>  Update a WhatsApp group profile picture
+  group-create [options] <id>          Create a new WhatsApp group
+  group-invite <id> <groupJid>         Get group invite link
+  group-revoke-invite <id> <groupJid>  Revoke group invite link and generate new
+                                       one
+  group-join <id> <code>               Join a group via invite code
+  privacy <id>                         Fetch privacy settings
+  reject-call [options] <id>           Reject an incoming call
+  help [command]                       display help for command

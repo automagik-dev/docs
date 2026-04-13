@@ -1,0 +1,6 @@
+Usage: omni chats label [options] <id> <label>
+
+Add a label to a chat
+
+Options:
+  -h, --help  display help for command

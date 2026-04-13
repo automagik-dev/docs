@@ -1,0 +1,6 @@
+Usage: omni access mode [options] <instanceId> [mode]
+
+Get or set access control mode for an instance
+
+Options:
+  -h, --help  display help for command

@@ -1,0 +1,15 @@
+Usage: omni events replay [options]
+
+Start, list, or manage replay sessions
+
+Options:
+  --start          Start a new replay session
+  --since <time>   Replay events since (required with --start)
+  --until <time>   Replay events until
+  --types <types>  Comma-separated event types to replay
+  --instance <id>  Filter by instance ID (aliases: --instance-ids, --instances)
+  --speed <n>      Speed multiplier
+  --dry-run        Dry run (don't actually process)
+  --status <id>    Get status of a replay session
+  --cancel <id>    Cancel a replay session
+  -h, --help       display help for command

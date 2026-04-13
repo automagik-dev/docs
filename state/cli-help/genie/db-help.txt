@@ -1,0 +1,20 @@
+Usage: genie db [options] [command]
+
+Database management (pgserve)
+
+Options:
+  -h, --help                display help for command
+
+Global Options:
+  -V, --version             output the version number
+
+Commands:
+  backup                    Dump database to .genie/snapshot.sql.gz
+  help [command]            display help for command
+  migrate                   Run pending database migrations
+  query <sql>               Execute arbitrary SQL and print results
+  restore [options] [file]  Restore database from snapshot (default:
+                            .genie/snapshot.sql.gz)
+  status                    Show pgserve health, port, data dir, and table
+                            counts
+  url [options]             Print postgres connection URL for direct access

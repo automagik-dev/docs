@@ -1,0 +1,11 @@
+Usage: genie sessions search [options] <query>
+
+Full-text search across session content
+
+Options:
+  --json         Output as JSON
+  --limit <n>    Max results (default: "20")
+  -h, --help     display help for command
+
+Global Options:
+  -V, --version  output the version number

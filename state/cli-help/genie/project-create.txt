@@ -1,0 +1,12 @@
+Usage: genie project create [options] <name>
+
+Create a new project
+
+Options:
+  --virtual             Create a virtual project (not tied to a repo)
+  --repo <path>         Repo path for the project
+  --description <text>  Project description
+  -h, --help            display help for command
+
+Global Options:
+  -V, --version         output the version number

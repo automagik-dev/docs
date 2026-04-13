@@ -1,0 +1,12 @@
+Usage: omni media [options] [command]
+
+Browse and download media items
+
+Options:
+  -h, --help          display help for command
+
+Commands:
+  list|ls [options]   List media items with transcriptions/descriptions (use
+                      "omni messages get <id>" for full details)
+  download [options]  Download a single media item
+  help [command]      display help for command

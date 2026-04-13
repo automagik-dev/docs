@@ -1,0 +1,17 @@
+Usage: genie qa [options] [command]
+
+QA — self-testing system for genie CLI
+
+Options:
+  -h, --help                  display help for command
+
+Global Options:
+  -V, --version               output the version number
+
+Commands:
+  check [options] <specFile>  Evaluate a QA spec against current team logs and
+                              publish qa-report
+  help [command]              display help for command
+  history                     Show recent QA runs
+  run [options] [target]      Run QA specs (all, a domain, or a single spec)
+  status [options]            Show QA dashboard with last results per spec

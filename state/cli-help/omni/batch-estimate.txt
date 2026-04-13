@@ -1,0 +1,14 @@
+Usage: omni batch estimate [options]
+
+Estimate job scope and cost without creating
+
+Options:
+  --instance <id>          Instance ID (aliases: --instance-ids, --instances)
+  --type <type>            Job type: targeted_chat_sync, time_based_batch, or
+                           media_redownload
+  --chat <id>              Chat ID (required for targeted_chat_sync)
+  --days <n>               Days to look back (required for time_based_batch and
+                           media_redownload)
+  --limit <n>              Max items to process
+  --content-types <types>  Content types: audio,image,video,document
+  -h, --help               display help for command

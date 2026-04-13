@@ -1,0 +1,9 @@
+Usage: omni instances group-update-picture [options] <id>
+
+Update a WhatsApp group profile picture
+
+Options:
+  --group <jid>    Group JID (e.g., 120363xxx@g.us)
+  --base64 <data>  Base64-encoded image data
+  --url <url>      URL to fetch image from
+  -h, --help       display help for command

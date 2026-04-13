@@ -1,0 +1,8 @@
+Usage: omni instances update-picture [options] <id>
+
+Update instance profile picture
+
+Options:
+  --base64 <data>  Base64-encoded image data
+  --url <url>      URL to fetch image from
+  -h, --help       display help for command

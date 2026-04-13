@@ -1,0 +1,9 @@
+Usage: genie serve stop [options]
+
+Stop genie serve and all services
+
+Options:
+  -h, --help     display help for command
+
+Global Options:
+  -V, --version  output the version number

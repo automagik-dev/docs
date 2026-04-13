@@ -1,0 +1,12 @@
+Usage: genie task assign [options] <id>
+
+Assign an actor to a task
+
+Options:
+  --to <name>      Actor name
+  --role <role>    Actor role (default: "assignee")
+  --comment <msg>  Comment on the assignment
+  -h, --help       display help for command
+
+Global Options:
+  -V, --version    output the version number

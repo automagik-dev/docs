@@ -1,0 +1,14 @@
+Usage: genie tag [options] [command]
+
+Tag management
+
+Options:
+  -h, --help               display help for command
+
+Global Options:
+  -V, --version            output the version number
+
+Commands:
+  create [options] <name>  Create a custom tag
+  help [command]           display help for command
+  list [options]           List all tags

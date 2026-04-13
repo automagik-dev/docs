@@ -1,0 +1,46 @@
+5d41c1a Merge pull request #53 from automagik-dev/dev
+31481f0 chore(version): bump to 0.260331.4 [skip ci]
+690072d Merge pull request #54 from automagik-dev/feat/init-scaffolding
+cd9bdfb feat(cli): add --template flag and update all tests for .rlmx/ layout
+f0db2a7 refactor(scaffold): rewrite to create .rlmx/ directory with templates
+bb7166c refactor(config): rewrite loader to only use .rlmx/ directory
+deabfe9 feat(templates): add code analysis template for .rlmx/ scaffolding
+61d589b feat(templates): add default template content for .rlmx/ scaffolding
+e4105b8 chore(version): bump to 0.260331.3 [skip ci]
+1ef5a7b Merge pull request #52 from automagik-dev/dev
+27aa554 Merge pull request #51 from automagik-dev/fix/pgserve-auth-tsvector
+72c20e1 fix(storage): pgserve auth credentials + tsvector size limit
+fc8eebe chore(version): bump to 0.260331.2 [skip ci]
+5f940a2 Merge pull request #45 from automagik-dev/dev
+f3d0150 chore(version): bump to 0.260331.1 [skip ci]
+d4b89fe Merge pull request #50 from automagik-dev/feat/pgserve-storage
+2fd9a62 fix: council review — 5 targeted fixes for pgserve-storage
+8ed4e4d fix: address PR review findings — stale records, SQL safety, source column, binary resolution
+d55f8ee fix: address review findings — parameterized SQL + port handling
+da7f149 feat(cli): add rlmx stats command for querying observability data
+fd8e8b1 feat(rlm): wire storage + observability into main loop and batch engine
+fea33ad feat(observe): add observability tables and ObservabilityRecorder
+7971261 feat(repl): add pg_batteries Python functions and IPC handlers for storage queries
+2709486 feat(storage): add PgStorage class for pgserve lifecycle and context ingestion
+ef0b9fe feat(cli): add context validation gate with auto-fallback for large contexts
+707f20a feat(config): add pgserve dependency and StorageConfig for large context handling
+9909c51 chore(version): bump to 0.260330.18 [skip ci]
+e32d973 fix: use correct Oolong Synth dataset field names (#49)
+34711a6 chore(version): bump to 0.260330.17 [skip ci]
+e203861 fix: use uv for benchmark venv setup, fall back to python3 -m venv (#48)
+8494b36 chore(version): bump to 0.260330.16 [skip ci]
+164ed60 fix: resolve benchmark-data.json path for npm installations (#47)
+9d4a6be chore(version): bump to 0.260330.15 [skip ci]
+f8561c7 Merge pull request #46 from automagik-dev/overnight-phase1
+82724f6 feat: add rlmx benchmark command with cost and oolong modes
+3bb7693 feat: auto-save session artifacts to ~/.rlmx/sessions/
+b6adc5c fix: respect context.extensions from rlmx.yaml (closes #28)
+70225f6 chore(version): bump to 0.260330.14 [skip ci]
+3d13daf Merge pull request #43 from automagik-dev/dev
+7a97daf chore(version): bump to 0.260330.13 [skip ci]
+b50a948 Merge pull request #44 from automagik-dev/fix/reset-empty-streak-on-thinking
+a00f55e fix: reset consecutive empty counter on thinking-only responses
+2caf11d Merge pull request #41 from automagik-dev/dev
+939fe7c Merge pull request #39 from automagik-dev/dev
+47b811b Merge pull request #37 from automagik-dev/dev
+9109b29 Merge pull request #32 from automagik-dev/dev

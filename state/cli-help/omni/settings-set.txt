@@ -1,0 +1,7 @@
+Usage: omni settings set [options] <key> <value>
+
+Update a setting value
+
+Options:
+  --reason <reason>  Reason for change (audit)
+  -h, --help         display help for command

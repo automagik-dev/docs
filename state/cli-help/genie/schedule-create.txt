@@ -1,0 +1,17 @@
+Usage: genie schedule create [options] <name>
+
+Create a new schedule
+
+Options:
+  --command <cmd>             Command to execute (e.g., "genie spawn reviewer")
+  --at <time>                 One-time schedule at absolute time (ISO 8601)
+  --every <interval>          Repeating schedule: duration (10m, 2h, 24h) or
+                              cron expression
+  --after <duration>          One-time schedule after delay (10m, 2h)
+  --timezone <tz>             Timezone for schedule (default: UTC) (default:
+                              "UTC")
+  --lease-timeout <duration>  Lease timeout for runs (default: 5m)
+  -h, --help                  display help for command
+
+Global Options:
+  -V, --version               output the version number

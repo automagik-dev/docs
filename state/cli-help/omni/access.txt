@@ -1,0 +1,17 @@
+Usage: omni access [options] [command]
+
+Manage access control rules (allow/deny lists)
+
+Options:
+  -h, --help                               display help for command
+
+Commands:
+  list [options]                           List access rules
+  create [options]                         Create an access rule
+  delete <id>                              Delete an access rule
+  mode <instanceId> [mode]                 Get or set access control mode for an instance
+  check [options]                          Check if a user has access
+  pending <instanceId>                     List pending pairing requests for an instance
+  approve <instanceId> <requestId>         Approve a pairing request (adds user to allowlist)
+  deny [options] <instanceId> <requestId>  Deny a pairing request
+  help [command]                           display help for command

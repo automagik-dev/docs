@@ -1,0 +1,9 @@
+Usage: genie status [options] <slug>
+
+Show wish state overview for all groups
+
+Options:
+  -h, --help     display help for command
+
+Global Options:
+  -V, --version  output the version number

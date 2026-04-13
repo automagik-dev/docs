@@ -1,0 +1,35 @@
+Usage: genie task [options] [command]
+
+Task lifecycle management
+
+Options:
+  -h, --help                        display help for command
+
+Global Options:
+  -V, --version                     output the version number
+
+Commands:
+  archive <id>                      Archive a task (soft-delete — preserves all
+                                    data)
+  assign [options] <id>             Assign an actor to a task
+  block [options] <id>              Mark task as blocked
+  checkout <id>                     Atomically claim a task for execution
+  close-merged [options]            Auto-close tasks whose wish slugs match
+                                    recently merged PRs
+  comment [options] <id> <message>  Add a comment to a task
+  create [options] <title>          Create a new task
+  dep [options] <id>                Manage task dependencies
+  done [options] <id>               Mark task as done
+  help [command]                    display help for command
+  link [options] <id>               Link task to an external tracker (GitHub,
+                                    Jira, etc.)
+  list [options]                    List tasks with filters
+  move [options] <id>               Move task to a new stage
+  release <id>                      Release task checkout claim
+  show [options] <id>               Show task detail (accepts task-id or #seq)
+  tag <id> <tags...>                Add tags to a task
+  unarchive <id>                    Restore an archived task to its previous
+                                    status
+  unblock [options] <id>            Unblock a task
+  unlock <id>                       Force-release a stale checkout (admin
+                                    override)

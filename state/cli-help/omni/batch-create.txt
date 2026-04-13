@@ -1,0 +1,18 @@
+Usage: omni batch create [options]
+
+Create a batch processing job
+
+Options:
+  --instance <id>          Instance ID (aliases: --instance-ids, --instances)
+  --type <type>            Job type: targeted_chat_sync, time_based_batch, or
+                           media_redownload
+  --chat <id>              Chat ID (required for targeted_chat_sync)
+  --days <n>               Days to look back (required for time_based_batch and
+                           media_redownload)
+  --limit <n>              Max items to process
+  --content-types <types>  Content types: audio,image,video,document
+  --force                  Re-process items that already have content
+  --delay-min <ms>         Min random delay between items in ms (default: 1000)
+  --delay-max <ms>         Max random delay between items in ms (default: 3000)
+  --no-confirm             Skip confirmation prompt
+  -h, --help               display help for command

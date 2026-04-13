@@ -1,0 +1,11 @@
+Usage: omni journey [options] [command]
+
+Message journey tracing
+
+Options:
+  -h, --help            display help for command
+
+Commands:
+  show <correlationId>  Display journey timeline with timing bars
+  summary [options]     Display aggregated journey metrics
+  help [command]        display help for command

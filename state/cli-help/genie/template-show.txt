@@ -1,0 +1,10 @@
+Usage: genie template show [options] <name>
+
+Show template details
+
+Options:
+  --json         Output as JSON
+  -h, --help     display help for command
+
+Global Options:
+  -V, --version  output the version number

@@ -1,0 +1,6 @@
+Usage: omni chats get [options] <id>
+
+Get chat details
+
+Options:
+  -h, --help  display help for command

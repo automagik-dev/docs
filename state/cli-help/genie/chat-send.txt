@@ -1,0 +1,11 @@
+Usage: genie chat send [options] <conversationId> <message>
+
+Send a message to a specific conversation
+
+Options:
+  --reply-to <msgId>  Reply to a specific message ID
+  --from <sender>     Sender ID (auto-detected)
+  -h, --help          display help for command
+
+Global Options:
+  -V, --version       output the version number

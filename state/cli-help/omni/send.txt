@@ -1,0 +1,72 @@
+Usage: omni send [options]
+
+Send a message to a recipient
+
+Options:
+
+  Common:
+    --instance <id>   Instance ID (default: edbf1747-107a-45ca-9011-89bab1f40ced). Aliases: --instances, --instance-ids
+    --to <recipient>  Recipient: WA JID (5511@s.whatsapp.net), phone (+5511...), or Omni chat/person UUID
+
+  Text Message:
+    --text <text>     Message content
+    --reply-to <id>   Reply to specific message
+    --thread-id <id>  Thread/topic ID (e.g. Telegram forum topic)
+
+  Media Message:
+    --media <path>    Image, video, audio, or document
+    --caption <text>  Caption for media
+    --voice           Send audio as voice note
+
+  TTS Voice Note:
+    --tts <text>           Convert text to speech and send as voice note
+    --voice-id <id>        ElevenLabs voice ID (optional)
+    --presence-delay <ms>  Recording presence duration (optional)
+
+  Reaction:
+    --reaction <emoji>  React to a message
+    --message <id>      Message ID to react to
+
+  Sticker:
+    --sticker <url>  Sticker URL or base64
+
+  Contact Card:
+    --contact        Send contact
+    --name <name>    Contact name (required)
+    --phone <phone>  Contact phone
+    --email <email>  Contact email
+
+  Location:
+    --location         Send location
+    --lat <latitude>   Latitude (required)
+    --lng <longitude>  Longitude (required)
+    --address <text>   Location address
+
+  Poll (Discord):
+    --poll <question>   Create poll
+    --options <a,b,c>   Poll choices (comma-separated)
+    --multi-select      Allow multiple selections
+    --duration <hours>  Poll duration
+
+  Embed (Discord):
+    --embed            Send embed message
+    --title <title>    Embed title
+    --description <d>  Embed description
+    --color <hex>      Embed color
+    --url <url>        Embed URL
+
+  Presence:
+    --presence <type>  Send typing/recording/paused indicator
+
+  Forward:
+    --forward             Forward a message to another chat
+    --message <id>        Message ID to forward
+    --from-chat <chatId>  Source chat ID
+
+Examples:
+  omni send --to +5511999 --text "Hello!"                                   # Send text
+  omni send --to +5511999 --media ./photo.jpg --caption "Check this"        # Send media
+  omni send --to +5511999 --reaction "👍" --message msg_abc                 # React to message
+  omni send --to +5511999 --poll "Lunch?" --options "Pizza,Sushi,Tacos"     # Create poll
+  omni send --to +5511999 --tts "Hello from AI!"                            # Send TTS voice note
+  omni send --to +5511999 --forward --message msg_abc --from-chat chat_123  # Forward message

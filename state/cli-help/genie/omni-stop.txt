@@ -1,0 +1,9 @@
+Usage: genie omni stop [options]
+
+Stop the running NATS bridge
+
+Options:
+  -h, --help     display help for command
+
+Global Options:
+  -V, --version  output the version number

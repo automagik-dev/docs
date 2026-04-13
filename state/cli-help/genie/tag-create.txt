@@ -1,0 +1,11 @@
+Usage: genie tag create [options] <name>
+
+Create a custom tag
+
+Options:
+  --color <hex>    Tag color (hex) (default: "#9ca3af")
+  --type <typeId>  Associate with a task type
+  -h, --help       display help for command
+
+Global Options:
+  -V, --version    output the version number

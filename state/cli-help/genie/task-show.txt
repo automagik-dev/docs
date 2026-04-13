@@ -1,0 +1,10 @@
+Usage: genie task show [options] <id>
+
+Show task detail (accepts task-id or #seq)
+
+Options:
+  --json         Output as JSON
+  -h, --help     display help for command
+
+Global Options:
+  -V, --version  output the version number

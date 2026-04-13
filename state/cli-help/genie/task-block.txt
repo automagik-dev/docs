@@ -1,0 +1,11 @@
+Usage: genie task block [options] <id>
+
+Mark task as blocked
+
+Options:
+  --reason <reason>  Reason for blocking
+  --comment <msg>    Additional comment
+  -h, --help         display help for command
+
+Global Options:
+  -V, --version      output the version number

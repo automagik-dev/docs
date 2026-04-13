@@ -1,0 +1,23 @@
+Usage: genie team create [options] <name>
+
+Create a new team with a git worktree
+
+Options:
+  --repo <path>          Path to the git repository
+  --branch <branch>      Base branch to create from (default: "dev")
+  --wish <slug>          Wish slug — auto-spawns a task leader with wish
+                         context
+  --tmux-session <name>  Tmux session to place team window in (default: derived
+                         from repo path)
+  --session <name>       Alias for --tmux-session (deprecated)
+  --no-spawn             Create team and copy wish without spawning the leader
+                         (useful for testing)
+  -h, --help             display help for command
+
+Global Options:
+  -V, --version          output the version number
+
+Examples:
+  genie team create my-feature --repo .                          # Create team in current repo
+  genie team create my-feature --repo . --wish my-feature-slug   # Create team with a wish
+  genie team create hotfix --repo . --branch main                # Create from main branch

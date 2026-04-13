@@ -1,0 +1,8 @@
+Usage: omni keys list [options]
+
+List API keys
+
+Options:
+  --status <status>  Filter by status (active, revoked, expired)
+  --limit <n>        Max results
+  -h, --help         display help for command

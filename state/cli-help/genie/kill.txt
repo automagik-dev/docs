@@ -1,0 +1,9 @@
+Usage: genie kill [options] <name>
+
+Force kill an agent by name
+
+Options:
+  -h, --help     display help for command
+
+Global Options:
+  -V, --version  output the version number

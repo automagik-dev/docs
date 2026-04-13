@@ -1,0 +1,13 @@
+Usage: omni agents create [options]
+
+Create a new agent
+
+Options:
+  --name <name>                       Agent name
+  --provider <provider>               AI provider (claude, agno, openai, gemini,
+                                      custom, omni-internal)
+  --model <model>                     Model identifier (e.g. claude-sonnet-4-6)
+  --type <type>                       Agent type (assistant, workflow, team,
+                                      tool) (default: "assistant")
+  --agent-provider <agentProviderId>  Link to an agent provider configuration
+  -h, --help                          display help for command

@@ -1,0 +1,12 @@
+Usage: omni channels [options] [command]
+
+Channel management — list types, add instances, check status
+
+Options:
+  -h, --help            display help for command
+
+Commands:
+  list                  Show available channel types and instance counts
+  add [options] <type>  Add a new channel instance (interactive setup)
+  status                Overview of all channels and their connection states
+  help [command]        display help for command

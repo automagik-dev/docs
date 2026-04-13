@@ -1,0 +1,49 @@
+Usage: genie dir add [options] <name>
+
+Register an agent in the directory
+
+Options:
+  --dir <path>                   Agent folder (CWD + AGENTS.md)
+  --repo <path>                  Default git repo (overridden by team)
+  --prompt-mode <mode>           Prompt mode: append or system (default:
+                                 "append")
+  --model <model>                Default model (sonnet, opus, codex)
+  --roles <roles...>             Built-in roles this agent can orchestrate
+  --permission-preset <preset>   Permission preset: full, read-only, chat-only
+  --allow <tools>                Comma-separated tool allow list (e.g.
+                                 "Read,Glob,Grep,Bash")
+  --bash-allow <patterns>        Comma-separated regex patterns for allowed
+                                 bash commands
+  --global                       Write to global directory instead of project
+  --sdk-permission-mode <mode>   SDK permission mode:
+                                 default|acceptEdits|bypassPermissions|plan|dontAsk|auto
+  --sdk-tools <list>             SDK tools: comma-separated tool names
+  --sdk-allowed-tools <list>     SDK auto-approved tools: comma-separated
+  --sdk-disallowed-tools <list>  SDK blacklisted tools: comma-separated
+  --sdk-max-turns <n>            SDK max conversation turns
+  --sdk-max-budget <usd>         SDK max budget in USD
+  --sdk-effort <level>           SDK effort: low|medium|high|max
+  --sdk-thinking <config>        SDK thinking:
+                                 adaptive|disabled|enabled[:budgetTokens]
+  --sdk-persist-session          SDK: enable session persistence
+  --no-sdk-persist-session       SDK: disable session persistence
+  --sdk-file-checkpointing       SDK: enable file checkpointing
+  --sdk-output-format <path>     SDK: path to JSON schema file for output
+                                 format
+  --sdk-stream-partial           SDK: include partial messages in stream
+  --sdk-hook-events              SDK: include hook events in stream
+  --sdk-prompt-suggestions       SDK: enable prompt suggestions
+  --sdk-progress-summaries       SDK: enable agent progress summaries
+  --sdk-sandbox                  SDK: enable sandbox
+  --sdk-betas <list>             SDK beta flags: comma-separated
+  --sdk-system-prompt <string>   SDK system prompt text
+  --sdk-mcp-server <spec>        SDK MCP server: name:command:args (repeatable)
+                                 (default: [])
+  --sdk-plugin <path>            SDK plugin path (repeatable) (default: [])
+  --sdk-agent <name>             SDK main agent name
+  --sdk-subagent <spec>          SDK subagent: name:json (repeatable) (default:
+                                 [])
+  -h, --help                     display help for command
+
+Global Options:
+  -V, --version                  output the version number

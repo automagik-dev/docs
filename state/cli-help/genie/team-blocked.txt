@@ -1,0 +1,9 @@
+Usage: genie team blocked [options] <name>
+
+Mark a team as blocked and kill all members
+
+Options:
+  -h, --help     display help for command
+
+Global Options:
+  -V, --version  output the version number

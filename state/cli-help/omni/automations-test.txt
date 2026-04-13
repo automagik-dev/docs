@@ -1,0 +1,7 @@
+Usage: omni automations test [options] <id>
+
+Test an automation with a mock event
+
+Options:
+  --event <json>  Event JSON (e.g., '{"type":"message.received","payload":{}}')
+  -h, --help      display help for command

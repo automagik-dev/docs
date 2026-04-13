@@ -1,0 +1,11 @@
+Usage: omni open [options] <contact>
+
+Open a conversation context (set active chat for verb commands)
+
+Arguments:
+  contact          Contact name, phone number, or chat ID
+
+Options:
+  --instance <id>  Instance to use (default: resolved from context) (aliases:
+                   --instance-ids, --instances)
+  -h, --help       display help for command

@@ -1,0 +1,10 @@
+Usage: genie db restore [options] [file]
+
+Restore database from snapshot (default: .genie/snapshot.sql.gz)
+
+Options:
+  -y, --yes      Skip confirmation prompt
+  -h, --help     display help for command
+
+Global Options:
+  -V, --version  output the version number

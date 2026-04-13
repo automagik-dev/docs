@@ -1,0 +1,9 @@
+Usage: genie db migrate [options]
+
+Run pending database migrations
+
+Options:
+  -h, --help     display help for command
+
+Global Options:
+  -V, --version  output the version number

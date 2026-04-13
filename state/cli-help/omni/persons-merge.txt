@@ -1,0 +1,7 @@
+Usage: omni persons merge [options] <source> <target>
+
+Merge source person into target (source is deleted)
+
+Options:
+  --reason <reason>  Reason for merge
+  -h, --help         display help for command

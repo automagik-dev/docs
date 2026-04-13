@@ -1,0 +1,6 @@
+Usage: omni prompts get [options] <name>
+
+Show current prompt (image|video|document|gate)
+
+Options:
+  -h, --help  display help for command

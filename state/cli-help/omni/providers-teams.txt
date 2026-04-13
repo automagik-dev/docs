@@ -1,0 +1,6 @@
+Usage: omni providers teams [options] <id>
+
+List teams from provider (Agno)
+
+Options:
+  -h, --help  display help for command

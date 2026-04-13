@@ -1,0 +1,12 @@
+Usage: genie events scan [options]
+
+Full server cost scan via ccusage (all CC sessions, not just genie-spawned)
+
+Options:
+  --since <date>  Start date in YYYYMMDD format
+  --json          Output as JSON
+  --breakdown     Show per-model breakdown
+  -h, --help      display help for command
+
+Global Options:
+  -V, --version   output the version number

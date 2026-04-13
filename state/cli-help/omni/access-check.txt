@@ -1,0 +1,9 @@
+Usage: omni access check [options]
+
+Check if a user has access
+
+Options:
+  --instance <id>   Instance ID (aliases: --instance-ids, --instances)
+  --user <id>       Platform user ID to check
+  --channel <type>  Channel type (default: "discord")
+  -h, --help        display help for command

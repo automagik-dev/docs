@@ -1,0 +1,7 @@
+Usage: omni routes get [options] <routeId>
+
+Get agent route details
+
+Options:
+  --instance <id>  Instance ID (aliases: --instance-ids, --instances)
+  -h, --help       display help for command

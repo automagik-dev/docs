@@ -1,0 +1,8 @@
+Usage: omni chats unarchive [options] <id>
+
+Unarchive a chat (optionally on the channel too)
+
+Options:
+  --instance <id>  Instance ID to also unarchive on WhatsApp (aliases:
+                   --instance-ids, --instances)
+  -h, --help       display help for command

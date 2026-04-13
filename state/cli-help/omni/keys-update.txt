@@ -1,0 +1,13 @@
+Usage: omni keys update [options] <id>
+
+Update an API key
+
+Options:
+  --name <name>         New key name
+  --description <desc>  New description
+  --scopes <scopes>     New scopes (comma-separated)
+  --instances <ids>     New instance IDs (comma-separated, empty string to
+                        unrestrict) (alias: --instance-ids)
+  --rate-limit <n>      New rate limit
+  --expires <date>      New expiration (ISO 8601, empty string to clear)
+  -h, --help            display help for command

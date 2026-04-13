@@ -1,0 +1,14 @@
+Usage: genie hook [options] [command]
+
+Hook middleware for Claude Code integration
+
+Options:
+  -h, --help      display help for command
+
+Global Options:
+  -V, --version   output the version number
+
+Commands:
+  dispatch        Dispatch a CC hook event (reads JSON from stdin, writes
+                  decision to stdout)
+  help [command]  display help for command

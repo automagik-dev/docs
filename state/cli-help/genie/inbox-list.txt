@@ -1,0 +1,10 @@
+Usage: genie inbox list [options] [agent]
+
+List conversations with recent messages (PG-backed)
+
+Options:
+  --json         Output as JSON
+  -h, --help     display help for command
+
+Global Options:
+  -V, --version  output the version number

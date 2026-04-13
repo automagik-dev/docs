@@ -1,0 +1,6 @@
+Usage: omni chats delete [options] <id>
+
+Delete a chat
+
+Options:
+  -h, --help  display help for command

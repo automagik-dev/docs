@@ -1,0 +1,97 @@
+391857c8 Merge pull request #349 from automagik-dev/feat/instance-scoping
+63bb37a3 chore(providers): remove dead exports flagged by knip
+afb8ac85 Merge remote-tracking branch 'origin/dev' into feat/instance-scoping
+7bf4a08e test(cli): map media.imagine + media.film in SDK coverage test
+5dfcc498 feat(media): add speak/listen/imagine/see/film verbs (Wave 2 Groups 8-12)
+97f8128e feat(cli): add react verb and resolveReplyTo context helper
+3aec1ea9 feat(providers): add provider framework for multimodal capabilities
+ffe7f370 Merge pull request #348 from automagik-dev/person-dedup
+3938cc1c feat(api): wire turn-based execution mode into agent dispatcher
+5fc2d843 chore: remove accidentally committed .rlmx/ and node_modules from tracking
+a84c252c test(api): add person dedup identity resolution tests
+8bc3d107 fix(test): add persons + context methods to SDK coverage mapping
+ac3589fc feat(cli): add context methods to SDK coverage test
+7fdf1267 feat(api): add person dedup migration script
+71ea5b72 chore(lint): fix biome formatting across concurrent group changes
+ce655914 feat(persons): add merge/link/unlink/update CLI + SDK + smarter @lid auto-linking
+fa1301e8 feat(api): add cross-instance person matching by platformUserId
+8703e7dd fix(api): guard sync-worker against storing LID numbers as phone numbers
+4838271e chore(version): bump to 2.260405.1 [skip ci]
+8f0b20c6 Merge pull request #346 from automagik-dev/fix-quick-wins
+15e33728 fix(api): add root-level /health redirect for external checkers (#335)
+2468c38d fix(api): add exponential retry for NATS reply subscription (#345)
+7229dd53 fix(api): remove over-broad JID self-filter that drops owner phone messages (#344)
+897ba286 Merge branch 'main' into dev
+a855ff44 Merge pull request #334 from automagik-dev/feat/gupshup-channel
+21733a3b chore: merge dev into feat/gupshup-channel — resolve compliance test conflict
+432575ef Merge pull request #343 from automagik-dev/fix-mini-bugs
+c2ef7ff7 Merge pull request #342 from automagik-dev/fix-nats-reply
+6dcad8aa test(channel-sdk): exclude channel-gupshup from coverage check (PR #334 in progress)
+31a3afbe test(channel-sdk): exclude channel-gupshup from coverage check (PR #334 in progress)
+ae5cc5bb test(api): remove flaky integration test for NATS reply subscription
+87431a78 fix(channel-whatsapp): filter bot's own reactions to prevent dispatch loops (#336)
+1288fab3 fix(channel-gupshup): add zod dep, clean stale knip config hints
+29281f0b fix(channel-gupshup): add zod webhook validation, clean stale knip entries
+3aaa40d2 fix(api): wire onReply callback in NatsGenieProvider to restore agent reply delivery (#340)
+32fcaaa9 fix(whatsapp): add waid parameter to vCard TEL line for clickable contacts (#330)
+c7f918e2 fix(cli): replace non-existent `genie dir get` with `genie dir ls` in connect command (#338)
+52e02935 chore(version): bump to 2.260404.1 [skip ci]
+a32ca6fd Merge pull request #321 from automagik-dev/dev
+94e50a98 fix(api): pass Gupshup credentials to plugin.connect()
+a433f8c5 fix(api,db): add Gupshup config fields to API schema and DB
+c13e75be test(channel-gupshup): add unit tests for client, webhooks, senders, and identity
+c861e17f feat(channel-gupshup): wire CLI and SDK integration
+b4e52e92 feat(channel-gupshup): add outbound message senders
+cddcf2cc feat(channel-gupshup): implement plugin class and webhook handler
+eacaa34d feat(channel-gupshup): add Gupshup REST API client
+b648c597 test(channel-sdk): exclude channel-gupshup from coverage guard (stub)
+50172308 Merge pull request #333 from automagik-dev/feat/nats-genie-provider
+574d7187 feat(db): add gupshup to channelTypes
+a3314b01 feat(channel-gupshup): scaffold package with types, capabilities, and utils
+06ebf8bf chore: remove dead genie setup code, fix agent create types
+060ded18 fix(sdk): update ProviderSchema type from 'genie' to 'nats-genie'
+cc67b6b1 feat(core): add NATS Genie provider, replace filesystem-based genie integration
+29b4d6b8 Merge pull request #329 from automagik-dev/fix/responder-empty-sender-guard
+612fb964 fix(api): guard against empty sender ID in responder pairing path
+f0d0ba13 Merge pull request #328 from automagik-dev/group-members
+d9855c33 test(cli): add getGroupMembers to SDK coverage mapping
+67a68813 feat(api): add group member listing with names (#308)
+10e2439e Merge pull request #327 from automagik-dev/fix/sendmessage-null-check
+8eb3e24d fix(api): add null check for instance in sendMessage wrapper
+8156971f Merge pull request #326 from automagik-dev/fix-automation-pairing
+1faa52d1 Merge pull request #325 from automagik-dev/omni-dx-quick-fixes
+0126c43d fix(api): pass channelType to requestPairing callers
+02a5fb54 test(cli): update help assertion to match normalized product name
+bc49e64b feat(events): add access.pairing_approved event type and fix event metadata
+28a06552 fix(api): wire sendMessage dependency into automation engine startEngine()
+bde1ae6e fix(cli): register channels command and normalize product name
+550bcf6f chore(version): bump to 2.260331.1 [skip ci]
+fb5ae6fb Merge pull request #301 from automagik-dev/dev
+d26eb891 Merge branch 'main' into dev
+eda67d1a Merge pull request #318 from automagik-dev/dream-ch-errors
+fa0c5769 feat(errors): add channel-prefixed error codes, sanitize API contexts, type Telegram errors
+b74a3576 Merge pull request #317 from automagik-dev/fix/contacts-pushname-missing
+123c9021 fix(api): enrich contacts with pushName from platform_identities
+48f671e0 Merge pull request #316 from automagik-dev/fix/group-name-null-fallback
+0839ec4e fix(api): add JID-based fallback for null group names
+85b8e278 Merge pull request #315 from automagik-dev/feat/mark-online-configurable
+ef984603 feat(api): make markOnlineOnConnect configurable per instance
+51ea2608 Merge pull request #314 from automagik-dev/fix/inbox-bridge-sanitization
+8ff28690 fix(api): sanitize outbound text in inbox-bridge relay path
+247834e2 chore(wishes): add 4 quick-win wishes for next sprint
+378e6683 test(api): add route config merge and debounce override tests
+ae34180b Merge pull request #313 from automagik-dev/fix/debounce-message-drops
+845d0019 fix(api): prevent typing events from causing double dispatch during debounce flush
+38a9159e Merge pull request #311 from automagik-dev/fix/outbound-directive-sanitizer
+cccc5db5 fix(channel-sdk): sanitize outbound messages to strip REPLY NOW directive
+702ea279 Merge pull request #302 from automagik-dev/chore/surgeon-sentinel-2026-03-25
+ecb65d4e Merge pull request #303 from automagik-dev/fix/surgeon-cli-json-output-invalid
+88616c26 Merge pull request #304 from automagik-dev/surgeon-benchmarker-omni-2026-03-25
+59a59062 Merge pull request #305 from automagik-dev/chore/surgeon-simplifier-2026-03-25
+eabd765d Merge branch 'dev' of https://github.com/automagik-dev/omni into dev
+65e2392a chore: delete deprecated skills, stale plan, orphaned agents
+c082e2c2 refactor: reduce cognitive complexity across 7 functions in packages/
+2cdad622 chore(surgeon): [benchmarker] remove redundant await in MessageService.create()
+cac6480b fix(cli): write info/warn to stderr in JSON mode to produce valid JSON output
+76246558 fix(api): replace explicit `any` types with proper interfaces
+488538eb Merge pull request #271 from automagik-dev/dev

@@ -1,0 +1,9 @@
+Usage: genie review [options] <agent> <ref>
+
+Spawn agent with review scope for a wish group (format: <slug>#<group>)
+
+Options:
+  -h, --help     display help for command
+
+Global Options:
+  -V, --version  output the version number

@@ -1,0 +1,7 @@
+Usage: omni config get [options] <key>
+
+Get a configuration value
+
+Options:
+  --raw       Output only the value (no key label, no formatting)
+  -h, --help  display help for command

@@ -1,0 +1,10 @@
+Usage: genie team fire [options] <agent>
+
+Remove an agent from a team
+
+Options:
+  --team <name>  Team name (auto-detects from leader context if omitted)
+  -h, --help     display help for command
+
+Global Options:
+  -V, --version  output the version number

@@ -1,0 +1,8 @@
+Usage: omni messages remove-reaction [options] <messageId>
+
+Remove a reaction from a message
+
+Options:
+  --instance <id>  Instance ID (aliases: --instance-ids, --instances)
+  --emoji <emoji>  Emoji to remove
+  -h, --help       display help for command

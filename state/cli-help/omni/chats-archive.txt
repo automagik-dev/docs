@@ -1,0 +1,8 @@
+Usage: omni chats archive [options] <id>
+
+Archive a chat (optionally on the channel too)
+
+Options:
+  --instance <id>  Instance ID to also archive on WhatsApp (aliases:
+                   --instance-ids, --instances)
+  -h, --help       display help for command

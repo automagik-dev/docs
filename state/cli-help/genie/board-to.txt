@@ -1,0 +1,25 @@
+Usage: genie board [options] [command]
+
+Board and pipeline management
+
+Options:
+  -h, --help                     display help for command
+
+Global Options:
+  -V, --version                  output the version number
+
+Commands:
+  archive [options] <name...>    Archive a board and its unfinished tasks
+  columns [options] <name...>    Show board column pipeline
+  create [options] <name>        Create a new board
+  delete [options] <name...>     Delete a board
+  edit [options] <name...>       Edit board or column properties
+  export [options] <name...>     Export board as JSON
+  help [command]                 display help for command
+  import [options]               Import board from JSON file
+  list [options]                 List all boards
+  reconcile [options] <name...>  Fix orphaned column_ids by matching task stage
+                                 to board columns
+  show [options] <name...>       Show board detail
+  template                       Board template management
+  use [options] <name...>        Set active board for current repo

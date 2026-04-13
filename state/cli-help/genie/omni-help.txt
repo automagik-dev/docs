@@ -1,0 +1,16 @@
+Usage: genie omni [options] [command]
+
+Manage the Omni ↔ Genie NATS bridge
+
+Options:
+  -h, --help        display help for command
+
+Global Options:
+  -V, --version     output the version number
+
+Commands:
+  help [command]    display help for command
+  start [options]   Start the NATS bridge (subscribe to omni.message.>)
+  status [options]  Show bridge status: active sessions, queue depth, idle
+                    timers
+  stop              Stop the running NATS bridge

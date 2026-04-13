@@ -1,0 +1,25 @@
+Usage: genie task list [options]
+
+List tasks with filters
+
+Options:
+  --stage <stage>        Filter by stage
+  --type <type>          Filter by type
+  --status <status>      Filter by status
+  --priority <priority>  Filter by priority
+  --release <release>    Filter by release
+  --due-before <date>    Filter by due date
+  --mine                 Show only tasks assigned to me
+  --project <name>       Show tasks for a specific project
+  --board <name>         Filter by board name
+  --gh <owner/repo#N>    Filter by GitHub issue link
+  --by-column            Group tasks by board column (kanban view)
+  --include-done         Include done tasks in kanban view (hidden by default)
+  --all                  Show tasks from ALL projects
+  --limit <n>            Max number of tasks to return (default: "100")
+  --offset <n>           Skip first N tasks (for pagination) (default: "0")
+  --json                 Output as JSON
+  -h, --help             display help for command
+
+Global Options:
+  -V, --version          output the version number

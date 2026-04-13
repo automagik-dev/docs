@@ -1,0 +1,10 @@
+Usage: omni media download [options]
+
+Download a single media item
+
+Options:
+  --message <uuid>  Message ID (UUID)
+  --chat <uuid>     Chat ID (UUID, used with --external)
+  --external <id>   External message ID (used with --chat)
+  --output <path>   Save file to specific location (absolute or relative path)
+  -h, --help        display help for command

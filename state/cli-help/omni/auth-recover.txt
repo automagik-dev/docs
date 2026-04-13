@@ -1,0 +1,8 @@
+Usage: omni auth recover [options]
+
+Recover API key when keyValid shows no (requires local PM2 access)
+
+Options:
+  --api-url <url>  API base URL (default: http://localhost:8882)
+  --rotate         Generate a new key instead of recovering the existing one
+  -h, --help       display help for command

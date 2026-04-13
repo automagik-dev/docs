@@ -1,0 +1,13 @@
+Usage: genie qa run [options] [target]
+
+Run QA specs (all, a domain, or a single spec)
+
+Options:
+  --timeout <seconds>  Max seconds per spec (default: 3600)
+  --parallel <n>       Max specs to run in parallel (default: 5)
+  --verbose            Show all collected events
+  --ndjson             Machine-readable NDJSON output
+  -h, --help           display help for command
+
+Global Options:
+  -V, --version        output the version number

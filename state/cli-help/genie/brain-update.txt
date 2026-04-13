@@ -1,0 +1,9 @@
+Usage: genie brain update [options]
+
+Update genie-brain to latest version
+
+Options:
+  -h, --help     display help for command
+
+Global Options:
+  -V, --version  output the version number

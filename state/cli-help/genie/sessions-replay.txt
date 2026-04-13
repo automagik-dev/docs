@@ -1,0 +1,10 @@
+Usage: genie sessions replay [options] <session-id>
+
+Replay a session — interleave content + events
+
+Options:
+  --json         Output as JSON
+  -h, --help     display help for command
+
+Global Options:
+  -V, --version  output the version number

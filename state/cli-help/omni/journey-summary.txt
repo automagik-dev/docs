@@ -1,0 +1,7 @@
+Usage: omni journey summary [options]
+
+Display aggregated journey metrics
+
+Options:
+  --since <duration>  Filter by time (e.g., 1h, 30m, 24h, or ISO date)
+  -h, --help          display help for command

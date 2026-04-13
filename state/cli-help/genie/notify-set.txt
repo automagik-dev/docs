@@ -1,0 +1,13 @@
+Usage: genie notify set [options]
+
+Set notification preference for a channel
+
+Options:
+  --channel <channel>    Channel: whatsapp, telegram, email, slack, discord,
+                         tmux
+  --priority <priority>  Minimum priority threshold (default: "normal")
+  --default              Set as default channel
+  -h, --help             display help for command
+
+Global Options:
+  -V, --version          output the version number

@@ -1,0 +1,10 @@
+Usage: genie notify list [options]
+
+List notification preferences
+
+Options:
+  --json         Output as JSON
+  -h, --help     display help for command
+
+Global Options:
+  -V, --version  output the version number

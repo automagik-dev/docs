@@ -1,0 +1,16 @@
+Usage: genie setup [options]
+
+Configure genie settings
+
+Options:
+  --quick        Accept all defaults
+  --shortcuts    Only configure keyboard shortcuts
+  --codex        Only configure Codex integration
+  --terminal     Only configure terminal defaults
+  --session      Only configure session settings
+  --reset        Reset configuration to defaults
+  --show         Show current configuration
+  -h, --help     display help for command
+
+Global Options:
+  -V, --version  output the version number

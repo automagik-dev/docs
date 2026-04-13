@@ -1,0 +1,9 @@
+Usage: genie team archive [options] <name>
+
+Archive a team (preserves all data, kills members)
+
+Options:
+  -h, --help     display help for command
+
+Global Options:
+  -V, --version  output the version number

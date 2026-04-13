@@ -1,0 +1,6 @@
+Usage: omni instances blocklist [options] <id>
+
+List blocked contacts on WhatsApp
+
+Options:
+  -h, --help  display help for command

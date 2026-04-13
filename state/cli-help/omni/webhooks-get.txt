@@ -1,0 +1,6 @@
+Usage: omni webhooks get [options] <id>
+
+Get webhook source details
+
+Options:
+  -h, --help  display help for command

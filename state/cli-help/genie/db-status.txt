@@ -1,0 +1,9 @@
+Usage: genie db status [options]
+
+Show pgserve health, port, data dir, and table counts
+
+Options:
+  -h, --help     display help for command
+
+Global Options:
+  -V, --version  output the version number

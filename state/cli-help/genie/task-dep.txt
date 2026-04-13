@@ -1,0 +1,13 @@
+Usage: genie task dep [options] <id>
+
+Manage task dependencies
+
+Options:
+  --depends-on <id2>  This task depends on id2
+  --blocks <id2>      This task blocks id2
+  --relates-to <id2>  This task relates to id2
+  --remove <id2>      Remove dependency on id2
+  -h, --help          display help for command
+
+Global Options:
+  -V, --version       output the version number

@@ -1,0 +1,18 @@
+Usage: omni done [options] [text]
+
+Close the current turn (send final message/reaction + emit turn.done)
+
+Arguments:
+  text              Final text message to send before closing
+
+Options:
+  --react <emoji>   React to trigger message + close turn
+  --skip            Close turn with no outbound message
+  --media <path>    Send media file + close turn
+  --caption <text>  Caption for media
+  --reason <text>   Reason for closing (used with --skip)
+  --instance <id>   Override instance (default: from context) (aliases:
+                    --instance-ids, --instances)
+  --chat <id>       Override chat (default: from context)
+  --message <id>    Override trigger message (default: from context)
+  -h, --help        display help for command

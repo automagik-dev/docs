@@ -1,0 +1,22 @@
+Usage: omni speak [options] <text>
+
+Synthesize text to speech and send as a voice note (or save with --output)
+
+Arguments:
+  text               Text to convert to speech
+
+Options:
+  --provider <name>  TTS provider (gemini, elevenlabs). Default: server config.
+  --voice <name>     Voice identifier (e.g. Kore for Gemini, JBFqn... for
+                     ElevenLabs)
+  --style <prompt>   Style prompt prepended to text (Gemini only, e.g. "Say
+                     cheerfully")
+  --language <code>  BCP-47 language code (e.g. en-US, pt-BR)
+  --speed <factor>   Speaking speed multiplier 0.5-2.0 (provider-dependent)
+  --format <fmt>     Audio format: mp3, ogg, opus, wav, pcm, flac, aac (default:
+                     ogg)
+  --output <path>    Save audio to file instead of sending
+  --instance <id>    Override instance (default: from context) (aliases:
+                     --instance-ids, --instances)
+  --chat <id>        Override chat (default: from context)
+  -h, --help         display help for command

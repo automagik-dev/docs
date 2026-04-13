@@ -1,0 +1,9 @@
+Usage: genie team unarchive [options] <name>
+
+Restore an archived team
+
+Options:
+  -h, --help     display help for command
+
+Global Options:
+  -V, --version  output the version number

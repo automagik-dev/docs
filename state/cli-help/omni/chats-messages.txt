@@ -1,0 +1,20 @@
+Usage: omni chats messages [options] <id>
+
+List chat messages (use "omni messages get <id>" for full single message)
+
+Options:
+  --limit <n>         Limit results (default: 100)
+  --before <cursor>   Get messages before cursor
+  --after <cursor>    Get messages after cursor
+  --compact           Show compact format (minimal fields, no transcriptions)
+  --media-only        Only show media messages (all types)
+  --audio-only        Only show audio messages
+  --images-only       Only show image messages
+  --videos-only       Only show video messages
+  --docs-only         Only show document messages
+  --search <text>     Filter messages containing text (case-insensitive)
+  --since <duration>  Only show messages since duration ago (e.g., "1h", "7d",
+                      "30d")
+  --truncate <n>      Truncate text to N chars (0 = no truncation, default: no
+                      truncation)
+  -h, --help          display help for command

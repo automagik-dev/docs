@@ -1,0 +1,14 @@
+Usage: genie agent send [options] <body>
+
+Send a direct message to an agent (hierarchy-enforced)
+
+Options:
+  --to <agent>     Recipient agent name (default: team leader) (default:
+                   "team-lead")
+  --from <sender>  Sender ID (auto-detected from context)
+  --team <name>    Explicit team context for sender/recipient resolution
+  --broadcast      Send to all direct reports
+  -h, --help       display help for command
+
+Global Options:
+  -V, --version    output the version number

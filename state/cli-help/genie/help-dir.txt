@@ -1,0 +1,19 @@
+Usage: genie dir [options] [command]
+
+Agent directory management
+
+Options:
+  -h, --help               display help for command
+
+Global Options:
+  -V, --version            output the version number
+
+Commands:
+  add [options] <name>     Register an agent in the directory
+  edit [options] <name>    Update an agent directory entry
+  export [options] <name>  Print full AGENTS.md frontmatter for an agent from
+                           PG state
+  help [command]           display help for command
+  ls [options] [name]      List all agents or show single entry details
+  rm [options] <name>      Remove an agent from the directory
+  sync                     Sync agents from workspace agents/ directory
