@@ -8,6 +8,34 @@ description: "Bulk interrogation with caching, cost estimation, and the Gemini B
 
 Run hundreds of questions against the same context. Cache is always enabled — the first question pays full cost, subsequent questions benefit from provider-level caching at up to 90% savings.
 
+## End-to-end example
+
+Audit a TypeScript source tree for security smells in three commands:
+
+```bash End-to-end
+# 1. Write the questions
+cat > audit.txt << 'EOF'
+Are any credentials hardcoded?
+Where is user input validated?
+Are SQL queries parameterized?
+EOF
+
+# 2. Warm the cache (optional — first batch question pays full cost otherwise)
+rlmx cache --context ./src/ --ext .ts,.js
+
+# 3. Run the batch against the warm cache
+rlmx batch audit.txt --context ./src/ --ext .ts,.js --max-cost 1.00
+```
+
+```jsonl stdout
+{"question":"Are any credentials hardcoded?","answer":"No hardcoded credentials detected in src/. All secrets are pulled from process.env via src/config/env.ts.","stats":{"iterations":2,"inputTokens":1500,"outputTokens":220,"cost":0.0070}}
+{"question":"Where is user input validated?","answer":"Input validation lives in src/middleware/validate.ts using zod schemas per route...","stats":{"iterations":2,"inputTokens":1400,"outputTokens":310,"cost":0.0008}}
+{"question":"Are SQL queries parameterized?","answer":"All queries in src/db/ use parameterized statements via the pg client; no string interpolation found.","stats":{"iterations":1,"inputTokens":1200,"outputTokens":180,"cost":0.0006}}
+{"type":"aggregate","total_questions":3,"completed":3,"total_cost":0.0084,"cache_savings":0.0128}
+```
+
+The first question paid ~$0.0070 (cache miss); the next two paid ~$0.0007 each thanks to Gemini's 90% cache discount.
+
 ## Quick start
 
 Create a questions file (one question per line):

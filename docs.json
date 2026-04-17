@@ -194,7 +194,8 @@
             "group": "Configuration",
             "pages": [
               "rlmx/config",
-              "rlmx/batch"
+              "rlmx/batch",
+              "rlmx/cache"
             ]
           }
         ]

@@ -1,0 +1,210 @@
+---
+title: "Cache Mode (CAG)"
+sidebarTitle: "Cache Mode"
+description: "Cache-Augmented Generation — bake full context into the system prompt and lean on provider-level prompt caching for 50–95% discounts."
+---
+
+# Cache Mode (CAG)
+
+Cache-Augmented Generation (CAG) embeds your **full context directly in the system prompt** and lets the provider's prompt cache handle the rest. Subsequent queries over the same context pay a fraction of the input-token cost — up to 90% off on Google and Anthropic.
+
+<Note>
+  Use cache mode when your context fits inside the provider's window **and** you plan to ask multiple questions against it. For corpora that exceed the window, stay on default RLM mode (programmatic navigation).
+</Note>
+
+## CAG vs default RLM
+
+| Mode | How it works | Best for |
+|------|--------------|----------|
+| **Default RLM** | Context loaded into a Python REPL `context` variable; LLM writes code to navigate it programmatically | Very large codebases, exploratory analysis, unknown questions |
+| **Cache (CAG)** | Full context embedded in the system prompt and cached at the provider | Repeated questions on the same docs, study sessions, batch Q&A |
+
+Switch into cache mode with the `--cache` flag on any query, or set `cache.enabled: true` in `.rlmx/rlmx.yaml`.
+
+## End-to-end example
+
+Interrogate a documentation folder three times — the first query warms the cache, the next two ride it.
+
+### 1. Estimate the cost
+
+```bash
+rlmx cache --context ./docs/ --estimate
+```
+
+```text Output
+rlmx cache estimate
+---
+  context:          ./docs/
+  metadata:         42 files, 310KB
+  estimated tokens: 93,000
+  provider limit:   1,000,000 tokens
+  utilization:      9.3%
+  provider:         google
+  model:            gemini-3.1-flash-lite-preview
+  ttl:              3600s
+  estimated cost:   $0.0070
+```
+
+The context fits well under the 1M-token Gemini window — safe to cache.
+
+### 2. Warm the cache
+
+```bash
+rlmx cache --context ./docs/
+```
+
+```text Output (stderr)
+rlmx: warming cache for ./docs/ (~93,000 tokens)
+rlmx: cache warmup complete
+  provider:         google
+  model:            gemini-3.1-flash-lite-preview
+  estimated tokens: 93,000
+  ttl:              3600s
+  estimated cost:   $0.0070
+```
+
+One warmup call primes the provider cache for the next hour (Gemini default TTL).
+
+### 3. Run cached queries
+
+```bash
+rlmx "What RPC primitives are available?" --context ./docs/ --cache
+rlmx "How are errors surfaced?" --context ./docs/ --cache
+rlmx "What's the threading model?" --context ./docs/ --cache
+```
+
+```text Approximate cost per query
+First  (warmup):  $0.0070  full input tokens billed
+Second (cached):  $0.0007  90% discount on cached input
+Third  (cached):  $0.0007  90% discount on cached input
+Total for four runs: ~$0.0084
+```
+
+Each `--cache` invocation hashes the context; matching content hashes hit the cached system prompt instead of re-sending it.
+
+## How it works
+
+When `--cache` is enabled RLMX:
+
+1. Computes a SHA-256 content hash over sorted context items
+2. Builds a session ID: `{cache.session-prefix}-{hash}` (or just the hash)
+3. Writes the full context into the system prompt under a `## Context Files` block
+4. Sends the request with provider-specific cache headers (`cache_control` for Anthropic, explicit cached content for Gemini, etc.)
+5. Provider returns usage metrics including `cache_read_tokens` — billed at the discount rate
+
+If the context exceeds the provider limit, RLMX logs a warning, **disables cache mode automatically**, and falls back to RLM navigation (or storage mode if `storage.enabled` is `auto`/`always`).
+
+## Provider support
+
+| Provider | Cache limit | Discount on cached input | TTL behavior |
+|----------|-------------|--------------------------|--------------|
+| Google Gemini | 1,000,000 tokens | ~90% | Implicit + explicit; `retention: long` maps to 1-hour TTL |
+| Anthropic | 200,000 tokens | ~90% | Ephemeral (~5 min) or long-lived via `cache_control` |
+| OpenAI | 128,000 tokens | ~50% | Automatic prompt caching, no TTL knob |
+| Amazon Bedrock | 128,000 tokens | Provider-dependent | Inherits underlying model support |
+
+<Warning>
+  **Anthropic note:** Anthropic's default cache TTL is ~5 minutes. Set `cache.retention: long` in your `rlmx.yaml` to use the 1-hour tier (usually 2× base cost to write, ~90% discount on reads).
+</Warning>
+
+## Configuration
+
+Cache behavior lives under `cache:` in `.rlmx/rlmx.yaml`:
+
+```yaml
+cache:
+  enabled: false          # enable globally (or use --cache per-invocation)
+  retention: long         # short | long — maps to provider TTL tier
+  ttl: 3600               # TTL seconds (provider-specific override)
+  expire-time: ""         # ISO 8601 absolute expiry (Google explicit caching)
+  session-prefix: "myproj" # prepended to the content hash in the session ID
+```
+
+| Field | Description |
+|-------|-------------|
+| `enabled` | Turn cache mode on by default for every `rlmx` invocation. CLI `--cache` overrides this per-run. |
+| `retention` | `short` for ephemeral caches, `long` for extended TTL. Maps to provider-specific behavior. |
+| `ttl` | Explicit TTL in seconds when the provider supports it. |
+| `expire-time` | ISO 8601 timestamp for Google explicit caching. Mutually exclusive with `ttl`. |
+| `session-prefix` | Namespace for the cache session ID — useful when multiple projects share a provider account. |
+
+See the full table in [Configuration → cache](/rlmx/config#cache).
+
+## The `rlmx cache` command
+
+`rlmx cache` is the operator-facing entry point for CAG. It has two modes:
+
+| Invocation | Behavior |
+|------------|----------|
+| `rlmx cache --context <path> --estimate` | Prints token count, provider limit, utilization %, and projected first-query cost. **No LLM calls.** |
+| `rlmx cache --context <path>` | Issues a one-iteration warmup query to prime the provider cache. |
+
+Full flag reference: [CLI → `rlmx cache`](/rlmx/cli/reference#rlmx-cache).
+
+## Practical patterns
+
+### Study session over a codebase
+
+Warm once, then ask as many follow-ups as you want within the TTL:
+
+```bash
+rlmx cache --context ./src/ --ext .ts,.js
+rlmx "Where is the auth middleware?" --context ./src/ --cache --ext .ts,.js
+rlmx "What drives rate limiting?" --context ./src/ --cache --ext .ts,.js
+rlmx "List the database migrations" --context ./src/ --cache --ext .ts,.js
+```
+
+### Cached batch interrogation
+
+Batch mode always enables caching — it's effectively `rlmx cache` plus a question loop. See [Batch Mode](/rlmx/batch) for the questions-file format and cost math.
+
+```bash
+rlmx cache --context ./docs/
+rlmx batch study.txt --context ./docs/
+```
+
+### Budget-capped cached run
+
+Set a hard spend ceiling so runaway iterations can't overshoot cache savings:
+
+```bash
+rlmx "Summarize the entire repo" \
+  --context ./src/ \
+  --cache \
+  --max-cost 0.50 \
+  --max-iterations 10
+```
+
+### Automatic fallback to RLM
+
+If the context inflates past the provider limit, RLMX logs a warning and silently downgrades to RLM navigation:
+
+```text
+rlmx: context exceeds model limit (~1,250,000 tokens > 1,000,000), disabling cache mode
+rlmx: storage mode activated for large context (~1,250,000 tokens)
+```
+
+No action needed — the query still runs, just without caching.
+
+## When NOT to use cache mode
+
+- Context is too large for the provider window (use default RLM with `storage.enabled: auto`)
+- Questions span **different** contexts — each unique context pays its own warmup cost
+- You only plan to ask one question — the first-query cost equals a non-cached query, so there's no savings
+
+## See also
+
+<CardGroup cols={2}>
+  <Card title="Batch Mode" icon="layer-group" href="/rlmx/batch">
+    Bulk interrogation that stacks caching with the Gemini Batch API for up to 95% savings.
+  </Card>
+  <Card title="CLI Reference" icon="terminal" href="/rlmx/cli/reference#rlmx-cache">
+    Every flag on `rlmx cache` and `--cache` documented.
+  </Card>
+  <Card title="Configuration" icon="gear" href="/rlmx/config#cache">
+    `cache:` section of `rlmx.yaml` in full.
+  </Card>
+  <Card title="Provider limits" icon="ruler" href="/rlmx/batch#provider-context-limits">
+    Max cacheable context size by provider.
+  </Card>
+</CardGroup>
