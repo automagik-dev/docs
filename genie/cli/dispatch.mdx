@@ -117,15 +117,22 @@ Wave 3:
 
 ## `genie reset`
 
-Reset a stuck or failed execution group back to ready state.
+Reset wish state. `<slug>#<group>` resets one in-progress group; bare `<slug>` wipes the wish and recreates from current `WISH.md`.
 
 ```bash
-genie reset <slug>#<group>
+genie reset [options] <ref>
 ```
+
+| Option | Description |
+|--------|-------------|
+| `-y, --yes` | Skip interactive confirmation prompt (required in non-interactive mode) |
 
 ```bash Terminal
 $ genie reset add-oauth#2
 🔄 Group 2 reset to "ready".
+
+$ genie reset add-oauth --yes
+🔄 Wish "add-oauth" wiped and recreated from WISH.md.
 ```
 
 ## Context Injection

@@ -9,7 +9,11 @@ These commands are hidden by default and visible with the `--all` flag. They are
 
 ## Dead Letters
 
-Manage failed events that could not be processed.
+Manage failed events that could not be processed. Dead letters capture events that exhausted their retry budget — typically webhook deliveries, agent callbacks, or channel sends that repeatedly errored.
+
+<Note>
+**When to use:** if a message appears stuck (received on the channel but never processed, or an outbound reply that never arrived), start with `omni dead-letters list` to see if the event landed in the dead-letter queue. Use `stats` for an aggregate health check, `get` to inspect the failure, and `retry` once the underlying issue is resolved. The `dead-letters` command is hidden from default `omni --help` — it is visible via `omni --all` and intended for operators and debugging.
+</Note>
 
 ### `omni dead-letters list`
 

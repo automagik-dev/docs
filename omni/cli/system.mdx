@@ -94,6 +94,84 @@ omni journey summary                    # Aggregated journey metrics
 
 ---
 
+## `omni turns`
+
+Admin turn management — inspect active conversation turns, force-close stuck turns, and view aggregate metrics.
+
+```bash
+omni turns [command]
+```
+
+### Subcommands
+
+| Command | Description |
+|---------|-------------|
+| `list` | List turns with optional filters |
+| `get <id>` | Get a single turn by ID |
+| `close <id>` | Admin force-close a turn |
+| `close-all` | Bulk close all open turns (requires `--confirm`) |
+| `stats` | Show aggregate turn metrics |
+
+### `omni turns list`
+
+List turns with optional filters.
+
+| Option | Description |
+|--------|-------------|
+| `--status <status>` | Filter by status: `open`, `done`, `timeout` |
+| `--instance <id>` | Filter by instance ID (aliases: `--instance-ids`, `--instances`) |
+| `--chat <id>` | Filter by chat ID |
+| `--agent <id>` | Filter by agent ID |
+| `--limit <n>` | Max results (default: `50`) |
+| `--offset <n>` | Offset for pagination (default: `0`) |
+
+```bash
+omni turns list --status open --limit 20
+```
+
+### `omni turns get`
+
+Retrieve a single turn by its ID.
+
+```bash
+omni turns get 7f3e1a2b-9c4d-4e5f-a6b7-8c9d0e1f2a3b
+```
+
+### `omni turns close`
+
+Admin force-close a turn that is stuck open.
+
+| Option | Description |
+|--------|-------------|
+| `--reason <text>` | Close reason recorded with the turn |
+
+```bash
+omni turns close 7f3e1a2b-9c4d-4e5f-a6b7-8c9d0e1f2a3b --reason "stuck on upstream timeout"
+```
+
+### `omni turns close-all`
+
+Bulk close every open turn. This is a destructive admin action and **requires the `--confirm` flag** — without it, the command exits with an error and takes no action.
+
+| Option | Description |
+|--------|-------------|
+| `--confirm` | **Required.** Confirm the bulk close. |
+| `--reason <text>` | Close reason recorded on every closed turn |
+
+```bash
+omni turns close-all --confirm --reason "maintenance window"
+```
+
+### `omni turns stats`
+
+Show aggregate turn metrics: open count, total count, average duration, and timeout rate.
+
+```bash
+omni turns stats
+```
+
+---
+
 ## `omni replay`
 
 Replay missed messages for an agent instance. Useful for recovering messages that arrived while an agent was offline.
