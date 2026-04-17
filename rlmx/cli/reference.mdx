@@ -144,84 +144,129 @@ rlmx init --template default --dir ./my-project
 
 ## `rlmx cache`
 
-Pre-warm the provider cache or estimate context size and costs.
+Pre-warm the provider cache for a given context, or estimate its size and cost without making any API calls.
 
 ```bash
-rlmx cache [options]
+rlmx cache --context <path> [--estimate] [options]
 ```
+
+`--context` is required. Without `--estimate`, rlmx performs a single-iteration warmup run so the provider caches the prompt prefix for subsequent queries.
 
 | Flag | Type | Default | Description |
 |------|------|---------|-------------|
-| `--context <path>` | string | — | Path to context directory or file |
-| `--estimate` | boolean | `false` | Show cost estimate without making LLM calls |
-| `--ext <list>` | string | `.md` | File extensions for context dirs |
+| `--context <path>` | string | **required** | Path to context directory or file |
+| `--estimate` | boolean | `false` | Print token/cost estimate only — skip the warmup call |
+| `--ext <list>` | string | from `rlmx.yaml` | File extensions when `--context` is a directory (comma-separated) |
+| `--tools <level>` | string | `core` | Tool level: `core`, `standard`, or `full` |
+| `--timeout <ms>` | number | `300000` | Warmup timeout |
+| `--verbose` | boolean | `false` | Verbose stderr logging |
 
 ### Examples
 
 ```bash
-# Estimate cache costs (no LLM calls)
+# Estimate only — no LLM calls
 rlmx cache --context ./docs/ --estimate
 
-# Warm the provider cache
+# Warm the provider cache for future queries
 rlmx cache --context ./docs/
 
-# Estimate with custom extensions
+# Custom extensions for a source-code corpus
 rlmx cache --context ./src/ --ext .ts,.js --estimate
 ```
 
-### Estimate output
+### Outputs
 
-The `--estimate` flag shows token counts, provider limits, and cost projections without making any API calls:
+**With `--estimate`** — a `key: value` block is printed to stdout and the process exits without calling any LLM:
 
 ```
-Context: ./docs/ (23 files, 145KB)
-Estimated tokens: 43,500
-Provider limit: 1,000,000 (google)
-Cache retention: long
-Estimated first-query cost: $0.003
-Estimated cached-query cost: $0.0003 (90% savings)
+rlmx cache estimate
+---
+  context:          ./docs/
+  metadata:         23 files, 145KB
+  estimated tokens: 43,500
+  provider limit:   1,048,576 tokens
+  utilization:      4.1%
+  provider:         google
+  model:            gemini-3.1-flash-lite-preview
+  ttl:              3600s
+  estimated cost:   $0.0033
 ```
+
+**Without `--estimate`** — a minimal RLM loop runs to prime the provider cache. Progress and the summary are emitted to stderr:
+
+```
+rlmx: warming cache for ./docs/ (~43,500 tokens)
+rlmx: cache warmup complete
+  provider:         google
+  model:            gemini-3.1-flash-lite-preview
+  estimated tokens: 43,500
+  ttl:              3600s
+  estimated cost:   $0.0033
+```
+
+If the context exceeds the provider's token limit, the command exits with a non-zero status and an error message. See [Cache Mode](/rlmx/cache) for the full caching workflow.
 
 ---
 
 ## `rlmx batch`
 
-Run bulk queries from a questions file against cached context.
+Run bulk queries from a questions file against a shared cached context. Each question is executed through the same RLM loop used by `rlmx "query"`, with provider-level prompt caching always enabled so the first question pays full price and subsequent questions benefit from the cache.
 
 ```bash
-rlmx batch <file> [options]
+rlmx batch <questions-file> [options]
 ```
+
+Questions are read one per line. Blank lines and lines beginning with `#` are ignored.
 
 | Flag | Type | Default | Description |
 |------|------|---------|-------------|
-| `--context <path>` | string | — | Path to context directory or file |
+| `<questions-file>` | path | **required** | Path to a text file of questions (one per line) |
+| `--context <path>` | string | — | Shared context for every question |
 | `--max-iterations <n>` | number | `30` | Maximum RLM iterations per question |
-| `--max-cost <n>` | number | — | Maximum total USD spend across all questions |
-| `--parallel <n>` | number | `1` | Concurrent questions |
-| `--batch-api` | boolean | `false` | Use Gemini Batch API for 50% cost reduction |
-| `--output <mode>` | string | — | Output mode |
-| `--verbose` | boolean | `false` | Show progress |
+| `--timeout <ms>` | number | `300000` | Per-question timeout |
+| `--max-cost <n>` | number | — | Stop after cumulative USD cost crosses this threshold |
+| `--max-tokens <n>` | number | — | Per-question token cap |
+| `--max-depth <n>` | number | — | Maximum recursive `rlm_query` depth |
+| `--parallel <n>` | number | `1` | Concurrency hint (currently executes sequentially) |
+| `--batch-api` | boolean | `false` | Opt into the Gemini Batch API path (requires `provider: google`) |
+| `--tools <level>` | string | `core` | Tool level: `core`, `standard`, or `full` |
+| `--ext <list>` | string | from `rlmx.yaml` | File extensions for directory context |
+| `--verbose` | boolean | `false` | Show per-question progress on stderr |
 
-Cache is always enabled for batch mode. See [Batch Mode](/rlmx/batch) for full details.
+<Note>
+  `--cache` does not need to be passed — batch mode always runs with `cache.enabled = true`. If the context exceeds the provider's token limit, rlmx falls back to pgserve storage mode when `storage.enabled` is `auto` or `always`.
+</Note>
 
 ### Example
 
 ```bash
-# Run questions from a file
+# Run a questions file against a cached docs corpus
 rlmx batch questions.txt --context ./docs/
 
-# With budget cap
+# Stop if total spend crosses $1.00
 rlmx batch questions.txt --context ./src/ --max-cost 1.00
 
-# Low iteration count for quick answers
-rlmx batch questions.txt --context ./docs/ --max-iterations 3
+# Gemini Batch API for 50% input/output token discount
+rlmx batch questions.txt --context ./docs/ --batch-api
 ```
+
+### Outputs
+
+`rlmx batch` writes **JSONL to stdout** — one JSON object per question, followed by a final aggregate line:
+
+```jsonl
+{"question":"How does IPC work?","answer":"IPC uses...","stats":{"iterations":2,"inputTokens":42100,"outputTokens":520,"cost":0.0042}}
+{"question":"Where is auth defined?","answer":"src/auth.ts...","stats":{"iterations":1,"inputTokens":820,"outputTokens":310,"cost":0.0009}}
+{"type":"aggregate","total_questions":2,"completed":2,"total_cost":0.0051,"cache_savings":0.004}
+```
+
+Budget trips, cache fallbacks, and verbose progress are logged to stderr so the stdout stream stays valid JSONL for downstream pipelines. See [Batch Mode](/rlmx/batch) for full details.
 
 ---
 
 ## `rlmx stats`
 
-Query run history and cost breakdowns from the observability database.
+Query run history and cost breakdowns from the rlmx observability database (pgserve at `~/.rlmx/data`). Stats are populated automatically by every run that saves a session.
 
 ```bash
 rlmx stats [options]
@@ -229,64 +274,120 @@ rlmx stats [options]
 
 | Flag | Type | Default | Description |
 |------|------|---------|-------------|
-| `--context <path>` | string | — | Path to context (directory or file) |
-| `--output <mode>` | string | `text` | Output mode: `text`, `json`, `stream` |
-| `--verbose` | boolean | `false` | Show iteration progress on stderr |
+| `--run <id>` | string | — | Show the event timeline for a specific session id |
+| `--costs` | boolean | `false` | Show cost breakdown grouped by model |
+| `--tools` | boolean | `false` | Show REPL tool usage grouped by session |
+| `--since <duration>` | string | — | Limit to the recent window (`30m`, `24h`, `7d`) |
+| `--output json` | literal | — | Emit structured JSON instead of the terminal table |
 
-Displays a table of past runs with columns for timestamp, iterations, tokens used, cost, and session ID. Requires pgserve storage to be configured — stats reads from the observability tables populated by the `ObservabilityRecorder`.
+Without any flags, `rlmx stats` prints the 20 most recent sessions as a terminal table (id, query, model, iterations, cost, status, duration).
 
 <Note>
-  Stats require pgserve storage. Configure the `storage` section in `.rlmx/rlmx.yaml` or run with a pgserve instance available. See [Configuration](/rlmx/config) for setup.
+  Stats require pgserve storage. If `~/.rlmx/data` does not exist, the command prints `"No stats yet. Run a query first."` and exits cleanly. See [Configuration](/rlmx/config) for storage setup.
 </Note>
 
-### Example
+### Examples
 
 ```bash
-# View recent run history
+# Most recent 20 runs as a table
 rlmx stats
 
-# Output as JSON for scripting
+# JSON for scripting / jq pipelines
 rlmx stats --output json
+
+# Cost by model over the last 24 hours
+rlmx stats --costs --since 24h
+
+# Tool usage over the last week
+rlmx stats --tools --since 7d
+
+# Full event timeline for a specific run
+rlmx stats --run 0c3e2f1a-...-9f02
 ```
+
+### Outputs
+
+**Default (sessions table)** — plain-text columns written to stdout:
+
+```
+ID          Query                           Model                       Iter        Cost  Status     Duration
+--------------------------------------------------------------------------------------------------------------
+0c3e2f1a..  How does IPC work?              google/gemini-3.1-flash...     3    $0.0042  completed       4.1s
+f91d8a05..  Summarize paper.md              google/gemini-3.1-flash...     2    $0.0011  completed       1.8s
+```
+
+**`--run <id>`** — one row per event (`llm_call`, `repl_exec`, `sub_call`) with iteration, token counts, cost, duration, and kind-specific detail (model, code preview, request type).
+
+**`--costs`** — one row per `(session, model)` pair with total calls, input/output tokens, cost, and average call duration.
+
+**`--tools`** — one row per `(session, request_type)` with calls, errors, and average duration.
+
+**`--output json`** — any of the above as a pretty-printed JSON array of rows.
 
 ---
 
 ## `rlmx benchmark`
 
-Run benchmarks to measure cost efficiency or answer quality.
+Run benchmarks that compare the RLM loop against a direct LLM call on the same question. rlmx benchmark does **not** accept `--context` — each mode ships its own dataset.
 
 ```bash
 rlmx benchmark <mode> [options]
 ```
 
-Two modes are available:
+| Mode | Dataset | Measures |
+|------|---------|----------|
+| `cost` | Built-in curated dataset (`src/benchmark-data.json`) | Tokens, cost, latency savings for RLM vs direct |
+| `oolong` | [Oolong Synth](https://huggingface.co/datasets/google/Oolong-Synth) auto-downloaded via HuggingFace | Answer quality (accuracy) plus the same cost metrics |
 
-| Mode | Description |
-|------|-------------|
-| `cost` | Measure token usage and USD cost across sample queries |
-| `oolong` | Evaluate answer quality against the Oolong Synth dataset |
+### Flags
 
-| Flag | Type | Default | Description |
-|------|------|---------|-------------|
-| `--context <path>` | string | — | Path to context (directory or file) |
-| `--max-cost <n>` | number | — | Maximum USD spend for the benchmark run |
-| `--max-tokens <n>` | number | — | Maximum total tokens |
-| `--max-iterations <n>` | number | `30` | Maximum RLM iterations per question |
-| `--output <mode>` | string | `text` | Output mode: `text`, `json` |
-| `--verbose` | boolean | `false` | Show progress |
+| Flag | Applies to | Default | Description |
+|------|------------|---------|-------------|
+| `--output json` | `cost` | table | Print JSON results to stdout instead of the table |
+| `--samples <n>` | `oolong` | `5` | Number of samples to evaluate |
+| `--idx <n>` | `oolong` | — | Run a specific sample index only (ignores `--samples`) |
+| `--tools <level>` | both | `core` | Tool level used for the RLM runs |
 
-### Example
+Model and provider are resolved from `rlmx.yaml` / `~/.rlmx/settings.json` via the usual priority order.
+
+### Examples
 
 ```bash
-# Run a cost benchmark with budget cap
-rlmx benchmark cost --context ./docs/ --max-cost 1.00
+# Cost benchmark, formatted table on stderr
+rlmx benchmark cost
 
-# Run Oolong quality evaluation
-rlmx benchmark oolong --context ./docs/ --verbose
+# Cost benchmark, machine-readable JSON on stdout
+rlmx benchmark cost --output json
 
-# JSON output for CI integration
-rlmx benchmark cost --context ./src/ --output json --max-tokens 50000
+# Oolong quality run — 5 samples (default)
+rlmx benchmark oolong
+
+# Oolong — 20 samples
+rlmx benchmark oolong --samples 20
+
+# Oolong — just sample index 42
+rlmx benchmark oolong --idx 42
 ```
+
+### Outputs
+
+Both modes print a **box-drawn comparison table to stderr** with per-question rows (Direct / RLM / Savings) and a TOTALS footer covering tokens, cost, latency, and average RLM iterations:
+
+```
+┌───────────────┬──────────┬─────────┬──────────┬──────────┬──────┐
+│ Question      │ Mode     │  Tokens │     Cost │  Latency │ Iter │
+├───────────────┼──────────┼─────────┼──────────┼──────────┼──────┤
+│ ipc_summary   │ Direct   │  12,400 │ $0.00093 │     820ms│   -  │
+│               │ RLM      │   3,100 │ $0.00024 │   2,410ms│    3 │
+│               │ Savings  │   75.0% │    74.2% │        - │      │
+├───────────────┼──────────┼─────────┼──────────┼──────────┼──────┤
+│ TOTALS        │ Direct   │  94,200 │ $0.00707 │   6.2s   │   -  │
+│               │ RLM      │  23,500 │ $0.00182 │  18.4s   │  2.8 │
+│               │ Savings  │   75.1% │    74.3% │        - │      │
+└───────────────┴──────────┴─────────┴──────────┴──────────┴──────┘
+```
+
+With `rlmx benchmark cost --output json`, the same results are emitted as a structured JSON document to **stdout** (timestamp, mode, model, per-question `runs[]`, and `totals`). Every benchmark — table or JSON — is also persisted to `~/.rlmx/benchmarks/benchmark-<mode>-<timestamp>.json` and the saved path is printed to stderr.
 
 ---
 
