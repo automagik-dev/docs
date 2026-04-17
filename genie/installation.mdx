@@ -1,52 +1,76 @@
 ---
 title: "Installation"
 sidebarTitle: "Installation"
+icon: "download"
 description: "Install Genie CLI, configure prerequisites, and verify your setup."
 ---
 
-# Installation
-
-Genie runs on Linux and macOS. It requires a few tools to orchestrate agents effectively. For a guided walkthrough, see the [Quickstart](/genie/quickstart).
+<Note>
+  Genie runs on **Linux** and **macOS**. Windows is not supported today (WSL2 works but is not on the tested matrix). You'll also need Node.js 18+ or Bun, Claude Code (or another agent), tmux, Git, and — recommended — the GitHub CLI.
+</Note>
 
 ## Prerequisites
 
 | Tool | Required | Purpose |
 |------|----------|---------|
 | [Node.js](https://nodejs.org/) 18+ or [Bun](https://bun.sh/) | Yes | Runtime for the CLI |
-| [Claude Code](https://docs.anthropic.com/en/docs/claude-code) | Yes | AI agent backend |
+| [Claude Code](https://docs.anthropic.com/en/docs/claude-code) | Yes | AI agent backend (or swap for [Codex, Open Claw, or a BYOA adapter](/genie/concepts/byoa)) |
 | [tmux](https://github.com/tmux/tmux) | Yes | Agent process management |
 | [Git](https://git-scm.com/) | Yes | Version control and worktrees |
 | [GitHub CLI](https://cli.github.com/) (`gh`) | Recommended | PR creation and issue tracking |
 
-## One-Line Install
+## Install Genie
 
-The bootstrap script detects your system and installs via the best available method:
+Pick the path that matches how you manage tools on your machine. The one-line bootstrap is the fastest; npm/Bun are the most familiar; "from source" is for contributors.
+
+### Homebrew (macOS / Linuxbrew)
+
+<Warning>
+  A first-class Homebrew tap (`automagik/tap/genie`) is on the roadmap but not published yet. Until then, macOS users can run the one-line bootstrap below — it auto-detects Homebrew and uses it to install any missing prerequisites (Node, tmux, gh). Track the tap rollout in the [GitHub release workflow](https://github.com/automagik-dev/genie).
+</Warning>
+
+```bash
+# Coming soon — tap not yet public
+brew tap automagik/tap
+brew install automagik/tap/genie
+```
+
+### One-line bootstrap
+
+The bootstrap script detects your system and installs via the best available method (including Homebrew on macOS for prerequisites):
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/automagik-dev/genie/main/install.sh | bash
 ```
 
-This will:
-1. Install the `@automagik/genie` package globally
-2. Symlink the Claude Code plugin to `~/.claude/plugins/genie`
-3. Configure git hooks for agent identity injection
-4. Verify prerequisites with `genie doctor`
+<Steps>
+  <Step title="Install the package">
+    Downloads and installs `@automagik/genie` globally using your system's package manager.
+  </Step>
+  <Step title="Link the Claude Code plugin">
+    Symlinks the plugin to `~/.claude/plugins/genie` so Claude Code can discover every slash command.
+  </Step>
+  <Step title="Configure git hooks">
+    Wires up hooks for agent identity injection and event capture.
+  </Step>
+  <Step title="Run genie doctor">
+    Verifies prerequisites and config, then prints a green checklist (or tells you what's missing).
+  </Step>
+</Steps>
 
-## Manual Install
-
-### Via npm
+### npm
 
 ```bash
 npm install -g @automagik/genie
 ```
 
-### Via Bun
+### Bun
 
 ```bash
 bun install -g @automagik/genie
 ```
 
-### From Source
+### From source
 
 ```bash
 git clone https://github.com/automagik-dev/genie.git
@@ -56,7 +80,7 @@ bun run build
 bun link
 ```
 
-## Post-Install Setup
+## Post-install setup
 
 After installing, run the setup wizard:
 
@@ -64,15 +88,24 @@ After installing, run the setup wizard:
 genie setup
 ```
 
-This configures:
-- **Session management** — tmux session naming and window layout
-- **Terminal preferences** — shell, timeouts, read line counts
-- **Shortcuts** — shell aliases and tmux keybindings
-- **Codex integration** — optional OpenAI Codex support
+<CardGroup cols={2}>
+  <Card title="Session management" icon="layer-group">
+    tmux session naming and window layout, so every agent lands in a predictable pane.
+  </Card>
+  <Card title="Terminal preferences" icon="terminal">
+    Default shell, timeouts, and read-line counts tuned to your environment.
+  </Card>
+  <Card title="Shell integration" icon="keyboard">
+    Shell aliases and tmux keybindings to keep the hot-path commands a keystroke away.
+  </Card>
+  <Card title="Codex integration" icon="plug">
+    Optional — wire up OpenAI Codex alongside Claude Code for mixed-provider teams.
+  </Card>
+</CardGroup>
 
-## Verify Installation
+## Verify your install
 
-Run the diagnostic tool to check everything is configured:
+Run the diagnostic tool to confirm every component is wired up:
 
 ```bash
 genie doctor
@@ -93,7 +126,7 @@ Genie Doctor — Checking your setup...
 All checks passed.
 ```
 
-## Environment Variables
+## Environment variables
 
 | Variable | Default | Description |
 |----------|---------|-------------|
@@ -116,3 +149,20 @@ genie uninstall
 ```
 
 This removes the CLI, plugin symlink, and git hooks. Your project's `.genie/` state directory is preserved.
+
+## What's next
+
+<CardGroup cols={2}>
+  <Card title="Configure your setup" icon="sliders" href="/genie/config/setup">
+    Tune session layout, shortcuts, shell integration, and provider adapters.
+  </Card>
+  <Card title="Learn the CLI" icon="terminal" href="/genie/cli/agents">
+    Tour the `genie` command surface — agents, spawning, events, and more.
+  </Card>
+  <Card title="Quickstart" icon="rocket" href="/genie/quickstart">
+    Five-minute smoke test from install to first pull request.
+  </Card>
+  <Card title="Full onboarding walkthrough" icon="route" href="/genie/onboarding">
+    The 15-minute tour: install → smoke test → wizard → first wish → first PR → first monitor.
+  </Card>
+</CardGroup>

@@ -1,0 +1,97 @@
+---
+title: "Onboarding"
+sidebarTitle: "Onboarding"
+icon: "rocket"
+description: "The first 15 minutes — install, smoke test, first wish, first PR, first monitor."
+---
+
+<Note>
+  This is the 15-minute walkthrough. If you want the 60-second smoke test, jump to the [Quickstart](/genie/quickstart). If you want to be narrated through step-by-step inside your agent, run [`/wizard`](/genie/skills/wizard) — same flow, inline.
+</Note>
+
+The first 15 minutes with Genie, end to end. You'll install the CLI, smoke-test it, run your first wish, open your first PR, and check your first monitor.
+
+<Steps>
+  <Step title="Install the CLI">
+    Run the bootstrap script. See [Installation](/genie/installation) for manual / Homebrew / source paths.
+
+    ```bash
+    curl -fsSL https://raw.githubusercontent.com/automagik-dev/genie/main/install.sh | bash
+    ```
+
+    Verify:
+
+    ```bash
+    genie doctor
+    ```
+  </Step>
+
+  <Step title="Smoke test it">
+    Open your agent in a project directory and run:
+
+    ```bash
+    genie
+    ```
+
+    Genie scaffolds `.genie/`, `AGENTS.md`, and git hooks on a fresh repo. Confirmation output should mention the scaffolding it performed. See [Quickstart](/genie/quickstart) for the full expected terminal output.
+  </Step>
+
+  <Step title="Run the wizard">
+    [`/wizard`](/genie/skills/wizard) is the guided tour through your first Genie session — five phases from environment check to your first merged PR. It calls the right loop skill at each step, so you get to see the whole loop in action without memorizing skill names first.
+
+    ```text
+    /wizard
+    ```
+
+    If you close your agent halfway through, the next `/wizard` invocation picks up where you left off.
+  </Step>
+
+  <Step title="Your first wish">
+    When the wizard asks "What's the first thing you'd like to build or fix?", pick something concrete. A good first wish is small, self-contained, and observable.
+
+    ```text
+    Add a dark mode toggle to the settings page
+    ```
+
+    The wizard routes you through [`/brainstorm`](/genie/skills/brainstorm) (if the idea needs sharpening) and then [`/wish`](/genie/skills/wish) to produce a `WISH.md` — scope, acceptance criteria, execution groups.
+  </Step>
+
+  <Step title="Review and ship">
+    [`/review`](/genie/skills/review) gates the wish. A **SHIP** verdict means the plan is clear enough to execute. Then [`/work`](/genie/skills/work) dispatches agents per execution group and opens a pull request targeting `dev` when everything lands.
+
+    If review returns **FIX-FIRST**, [`/fix`](/genie/skills/fix) closes the gaps automatically — max two loops before escalation.
+  </Step>
+
+  <Step title="Monitor what you shipped">
+    Once the PR is open, keep an eye on progress:
+
+    ```bash
+    genie status <wish-slug>            # progress per group
+    genie events list --since 10m        # recent activity across all agents
+    ```
+
+    For long-running work or multiple parallel wishes, [`/pm`](/genie/skills/pm) is the playbook — copilot, autopilot, and pair modes for orchestrating a backlog.
+  </Step>
+</Steps>
+
+## If something breaks
+
+<CardGroup cols={2}>
+  <Card title="Gate flagged FIX-FIRST" icon="wrench" href="/genie/skills/fix">
+    The fix skill applies severity-tagged gap lists and re-reviews automatically. Two loops max.
+  </Card>
+  <Card title="Agent went silent" icon="radio" href="/genie/cli/agents">
+    `genie ls` shows agent status. `genie kill <name>` and `genie resume <name>` handle stuck or crashed agents.
+  </Card>
+</CardGroup>
+
+## What's next
+
+<CardGroup cols={2}>
+  <Card title="The Genie Loop" icon="arrows-rotate" href="/genie/skills/loop-overview">
+    The canonical plan → review → work → ship → monitor lifecycle.
+  </Card>
+  <Card title="Core concepts" icon="book" href="/genie/concepts/wishes">
+    Understand wishes, agents, teams, and skills in depth.
+  </Card>
+</CardGroup>
