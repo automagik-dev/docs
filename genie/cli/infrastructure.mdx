@@ -12,6 +12,10 @@ Commands for setting up Genie, launching the TUI and desktop app, managing servi
 
 Launch the interactive terminal UI (OpenTUI nav + tmux Claude Code).
 
+<Note>
+  `genie tui` is not in the top-level `genie --help` output. Invoke it directly by name — the CLI resolves it at dispatch time. If your install was built without the TUI module, the command will error immediately; fall back to `genie app` (desktop app) or the pane-level commands in this page.
+</Note>
+
 ```bash
 genie tui [options]
 ```
@@ -168,6 +172,10 @@ genie app --tui
 
 Manage the Omni &harr; Genie NATS bridge. `genie omni` subscribes to `omni.message.>` subjects, routes inbound messages to agent sessions, and streams responses back to Omni. Session state and executor configuration are read from PostgreSQL — there is no in-memory Map, so status queries stay accurate across restarts and multiple bridge processes.
 
+<Note>
+  `genie omni` is not in the top-level `genie --help` output. It resolves by name at dispatch time; installations without the Omni bridge module will exit with a clear error. The bridge is opt-in and does **not** auto-start with `genie serve`.
+</Note>
+
 ```bash
 genie omni [command] [options]
 ```
@@ -266,7 +274,7 @@ $ genie setup
 | Flag | Description |
 |------|-------------|
 | `--quick` | Skip interactive prompts, use defaults |
-| `--shortcuts` | Only configure terminal shortcuts |
+| `--shortcuts` | Only configure keyboard shortcuts (shell aliases + tmux keybindings) |
 | `--codex` | Only configure Codex integration |
 | `--terminal` | Only configure terminal settings |
 | `--session` | Only configure session naming |
