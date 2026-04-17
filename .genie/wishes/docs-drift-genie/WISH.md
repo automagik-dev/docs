@@ -37,7 +37,7 @@ automagik-dev/genie shipped 17 days of development (v4.260330.1 → v4.260416.5)
 
 ### Group D — Document wish-state drift detection
 
-**Deliverable:** Add a subsection (or <Warning> callout) to `genie/concepts/wishes.mdx` covering the new drift-detection feature from commit `dcf23e60 feat(wish-state): detect WISH.md drift and fail loud on stale state` (2026-04-15). Explain: what triggers it, the exact error message users will see, recovery steps.
+**Deliverable:** Add a subsection (or `<Warning>` callout) to `genie/concepts/wishes.mdx` covering the new drift-detection feature from commit `dcf23e60 feat(wish-state): detect WISH.md drift and fail loud on stale state` (2026-04-15). Explain: what triggers it, the exact error message users will see, recovery steps.
 
 **Source of truth:** `/home/genie/workspace/repos/genie/src/term-commands/state.ts`.
 
