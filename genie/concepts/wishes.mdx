@@ -117,6 +117,51 @@ The task system records:
 
 State is stored in the `tasks` and `task_dependencies` tables — no file locks needed, and concurrency is handled natively by PostgreSQL.
 
+### Drift Detection
+
+When state is first created, Genie stashes a SHA-256 signature of the wish's group structure (group names + sorted `depends-on` per group) on the parent task. Any later dispatch recomputes that signature from the current `WISH.md` and compares. If they diverge, Genie **fails loud** instead of silently dispatching against a stale plan.
+
+<Warning>
+**What triggers it:** editing `WISH.md` to add a group, remove a group, or change a group's `depends-on` after the wish has already been initialized in the database. Prose edits (summary, decisions, context) leave the signature untouched.
+</Warning>
+
+**The error you'll see:**
+
+```text
+Wish "dark-mode-toggle" group structure has changed since state was created.
+  + added: Group 3
+  - removed: Group 2
+  ~ changed deps: Group 1
+
+Run `genie reset dark-mode-toggle` to recreate state from the current WISH.md.
+```
+
+Each diff line appears only when non-empty — you may see just additions, just removals, or just dependency changes.
+
+**Recovery:**
+
+<Steps>
+  <Step title="Confirm the edit was intentional">
+    If the WISH.md change was accidental, revert it — the error will clear on the next dispatch.
+  </Step>
+  <Step title="Reset the wish state">
+    If the edit was intentional, wipe the cached state and recreate it from the current `WISH.md`:
+
+    ```bash
+    genie reset <slug>
+    ```
+
+    In non-interactive contexts (CI, agent shells), add `--yes` to skip the confirmation prompt. See [`genie reset`](/genie/cli/dispatch#genie-reset) for the full flag list.
+  </Step>
+  <Step title="Re-dispatch">
+    Any previously in-progress groups are lost with the reset — re-run `/work` (or re-dispatch manually) against the refreshed plan.
+  </Step>
+</Steps>
+
+<Note>
+Pre-existing state from before this feature landed has no stored signature and is treated as "valid, never validated" — it won't false-alarm on the next dispatch, but the first `genie reset <slug>` will enrol it into drift tracking.
+</Note>
+
 ## File Locations
 
 | Location | Path | Purpose |
