@@ -23,6 +23,7 @@ genie spawn <name> [options]
 | `--role <role>` | Role override (engineer, reviewer, qa, fix, etc.) |
 | `--model <model>` | Model override (e.g., `sonnet`, `opus`) |
 | `--skill <skill>` | Skill to load on start |
+| `--prompt <text>` | Initial prompt to send as the first user message |
 | `--new-window` | Spawn in a new tmux window instead of a pane |
 | `--window <name>` | Target a specific tmux window by name |
 | `--layout <layout>` | Layout mode: `mosaic` (default) or `vertical` |
@@ -33,6 +34,24 @@ genie spawn <name> [options]
 | `--cwd <path>` | Working directory (overrides directory entry) |
 | `--session <session>` | tmux session name to spawn into |
 | `--no-auto-resume` | Disable auto-resume on pane death |
+
+### SDK streaming + resume flags
+
+When you spawn through the `claude-sdk` provider, these extra flags control turn budget, streaming, and session resumption:
+
+| Option | Description |
+|--------|-------------|
+| `--stream` | Stream SDK messages to stdout in real time (claude-sdk provider) |
+| `--stream-format <format>` | Streaming output format: `text` (default), `json`, `ndjson` |
+| `--sdk-stream` | SDK: enable streaming output (shortcut for `--stream`) |
+| `--sdk-max-turns <n>` | SDK: cap the number of conversation turns the agent may take |
+| `--sdk-max-budget <usd>` | SDK: cap the USD spend for this session |
+| `--sdk-effort <level>` | SDK: reasoning effort level — `low`, `medium`, `high`, `max` |
+| `--sdk-resume <session-id>` | SDK: resume a previous session by ID |
+
+<Note>
+  SDK flags only apply when `--provider` resolves to a `claude-sdk`-backed executor. For non-SDK providers (e.g., classic `claude` or `codex`), they are silently ignored.
+</Note>
 
 ### Examples
 
@@ -57,6 +76,15 @@ genie spawn engineer --cwd /home/user/my-project
 
 # Spawn with accept-edits permission
 genie spawn engineer --permission-mode acceptEdits
+
+# Seed the agent with an initial prompt
+genie spawn engineer --prompt "start the dispatch refactor, reference wish fix-dispatch-initial-prompt"
+
+# SDK streaming with a turn cap and USD budget
+genie spawn engineer --provider claude-sdk --stream --sdk-max-turns 20 --sdk-max-budget 5.00
+
+# Resume a previous SDK session
+genie spawn engineer --provider claude-sdk --sdk-resume conv-3d324b09
 ```
 
 ## `genie stop`

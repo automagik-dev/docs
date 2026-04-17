@@ -101,8 +101,8 @@ Built-in agent roles: `engineer`, `reviewer`, `fixer`, `tracer`, `qa`, `docs`.
 
 | Flag | Description |
 |------|-------------|
-| `--model <model>` | Model override (sonnet, opus, codex) |
-| `--provider <provider>` | Provider (claude, codex) |
+| `--model <model>` | Model override (e.g., `sonnet`, `opus`) |
+| `--provider <provider>` | Provider: `claude` or `codex` (default: `claude`) |
 | `--layout <layout>` | Layout mode: `mosaic` (default) or `vertical` |
 | `--color <color>` | Teammate pane border color |
 | `--plan-mode` | Start teammate in plan mode |
@@ -162,11 +162,16 @@ Stopped agent "engineer". Use 'genie resume engineer' to continue.
 
 ## `genie ls`
 
-List all active agents.
+List registered agents with runtime status.
 
 ```bash
-genie ls [--json]
+genie ls [options]
 ```
+
+| Option | Description |
+|--------|-------------|
+| `--json` | Output the agent list as JSON (suitable for piping to `jq`) |
+| `--source <name>` | Filter by executor metadata source (e.g., `omni`) — useful when your workspace has agents registered from multiple origins |
 
 ```bash Terminal
 $ genie ls
@@ -174,6 +179,9 @@ AGENT       STATUS    PANE   PROVIDER   MODEL
 engineer    running   %42    claude     sonnet
 reviewer    running   %43    claude     sonnet
 fixer       stopped   %44    claude     sonnet
+
+$ genie ls --source omni
+# only agents registered through Omni's executor metadata
 ```
 
 ## `genie history`
