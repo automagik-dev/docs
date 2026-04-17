@@ -1,12 +1,16 @@
 ---
 title: "Agents"
 sidebarTitle: "Agents"
-description: "Agent lifecycle commands — spawn, kill, stop, resume, ls, history, read, answer."
+description: "Agent lifecycle commands — spawn, kill, stop, resume, ls, history, read, answer. For register, see Directory."
 ---
 
 # Agent Commands
 
 Top-level commands for managing agent lifecycle — spawning, stopping, listing, and inspecting agents.
+
+<Note>
+  To **register** an agent in the directory before spawning, see [`genie agent register`](/genie/cli/directory#genie-agent-register).
+</Note>
 
 ## Agent Lifecycle at a Glance
 
@@ -232,8 +236,117 @@ genie read <agent> [options]
 
 ## `genie answer`
 
-Send a response to an agent that is waiting for input.
+Answer a question for an agent that is currently blocked at a prompt — picks the menu option, types text into a free-form input, or sends raw keystrokes. Genie inspects the agent's pane state first; if no question is pending it logs `No question pending` and exits without acting.
 
 ```bash
-genie answer <agent> '<response>'
+genie answer <name> <choice>
 ```
+
+<ParamField path="name" type="string" required>
+  Agent name (or any target the resolver accepts — pane id, session label, etc.).
+</ParamField>
+
+<ParamField path="choice" type="string" required>
+  How to answer. One of:
+  - **Numeric (`1`–`9`)** — navigates to that menu option and presses Enter.
+  - **`text:<message>`** — selects the free-form text option, types `<message>`, and presses Enter.
+  - **Anything else** — sent verbatim as keystrokes to the pane.
+</ParamField>
+
+<CodeGroup>
+```bash Pick a menu option
+$ genie answer engineer 2
+Selected option 2 for engineer (pane %42)
+```
+
+```bash Type free-form text
+$ genie answer engineer 'text:focus on edge cases in token refresh'
+Sent feedback: "focus on edge cases in token refresh"
+```
+
+```bash No prompt pending
+$ genie answer engineer 1
+No question pending (state: working)
+```
+</CodeGroup>
+
+<Note>
+  `genie answer` only acts when the pane is in a question state. To send a regular instruction to a working agent, use [`genie send`](/genie/cli/messaging#genie-send).
+</Note>
+
+## `genie approval`
+
+Remote approval queue used by tmux-path agents that need a human (or another agent) to allow or deny a tool call before the provider proceeds. Approvals live in Postgres so any teammate with CLI access can resolve them.
+
+```bash
+genie approval <subcommand> [options]
+```
+
+Subcommands: [`request`](#genie-approval-request), [`resolve`](#genie-approval-resolve), [`list`](#genie-approval-list).
+
+### `genie approval request`
+
+Create an approval request and (optionally) block until it is resolved. Used by agent runtimes when a tool needs out-of-band sign-off.
+
+```bash
+genie approval request --tool <name> --input <preview> --agent <name> [--wait] [--timeout <seconds>]
+```
+
+| Flag | Description |
+|------|-------------|
+| `--tool <name>` | Tool name requiring approval (required). |
+| `--input <preview>` | Preview text of the tool input shown to the approver (required). |
+| `--agent <name>` | Agent requesting the approval (required). |
+| `--wait` | Block until the approval is resolved; exits non-zero on `deny`. |
+| `--timeout <seconds>` | Override the workspace `permissions.timeout` (default `300`). On timeout, the workspace `permissions.defaultAction` decides (default `deny`). |
+
+```bash Terminal
+$ genie approval request --tool Bash --input 'rm -rf node_modules' --agent engineer --wait
+Approval created: 7b1f3c20-8d4e-4c8a-9bf1-2a18c4ad7e9e
+Waiting for resolution (timeout: 300s, default: deny)...
+Decision: allow
+```
+
+### `genie approval resolve`
+
+Allow or deny a pending approval by id. The actor label is the value of `GENIE_AGENT_NAME` if set, otherwise the `--by` value.
+
+```bash
+genie approval resolve <id> --decision allow|deny [--by <actor>]
+```
+
+| Flag | Description |
+|------|-------------|
+| `--decision <decision>` | `allow` or `deny` (required). |
+| `--by <actor>` | Display label for the decision maker. Defaults to `GENIE_AGENT_NAME` or `cli`. |
+
+```bash Terminal
+$ genie approval resolve 7b1f3c20-8d4e-4c8a-9bf1-2a18c4ad7e9e --decision allow --by felipe
+Approval 7b1f3c20-8d4e-4c8a-9bf1-2a18c4ad7e9e resolved: allow by felipe
+```
+
+### `genie approval list`
+
+List pending approvals across the workspace, optionally filtered by agent.
+
+```bash
+genie approval list [--agent <name>] [--json]
+```
+
+| Flag | Description |
+|------|-------------|
+| `--agent <name>` | Only show approvals requested by this agent. |
+| `--json` | Emit the raw rows as JSON (suitable for piping to `jq`). |
+
+```bash Terminal
+$ genie approval list
+  ID                                     AGENT                TOOL            TIMEOUT
+  ─────────────────────────────────────────────────────────────────────────────────────
+  7b1f3c20-8d4e-4c8a-9bf1-2a18c4ad7e9e   engineer             Bash            14:32:08
+
+  1 pending approval
+```
+
+<Note>
+  Workspace defaults for approvals (`permissions.timeout`, `permissions.defaultAction`) are configured in the workspace config — see [Configuration](/genie/config/files).
+</Note>
