@@ -7,67 +7,60 @@ description: "Guided onboarding — scaffold workspace, shape agent identity, cr
 
 # /wizard — First-Run Onboarding
 
-Walk a new user (or their agent) through the complete Genie setup in five phases. Each phase has clear entry/exit criteria so the wizard can be interrupted and resumed.
+`/wizard` is the guided tour through your first Genie session. It walks you through five phases — environment check, agent identity, first wish, execution, and celebration — and hands off to the right loop skill at each step. If you close the tab halfway through, the next `/wizard` invocation picks up where you left off.
 
-## When to Use
+<Note>
+  **When to reach for `/wizard`**
+  - First time running Genie in a new project
+  - You just ran the bootstrap script and it pointed you here
+  - There's no `.genie/` directory or `AGENTS.md` in the repo yet
+  - You want a narrated path through your first wish instead of jumping straight into [`/brainstorm`](/genie/skills/brainstorm)
+</Note>
 
-- First time running Genie in a new project
-- User explicitly invokes `/wizard`
-- Bootstrap script directed the agent here after install
-- No `.genie/` directory or `AGENTS.md` exists in the current repo
+## The five phases
 
-## Phases
+<Steps>
+  <Step title="Environment check">
+    The wizard verifies your prerequisites and prints a checklist — CLI version, git repo, `.genie/` directory, `AGENTS.md`, and any plugin config. Missing items get fixed inline or flagged with a one-line instruction.
 
-### Phase 1: Environment Check
+    ```text
+    Wizard Phase 1/5: Environment Check
+      genie CLI    ✅ v4.x.x
+      git repo     ✅
+      .genie/      ⬜ not found — will scaffold
+      AGENTS.md    ⬜ not found — will create
+      CLAUDE.md    ✅ found
+    ```
 
-Verify prerequisites are in place:
+    If `genie` isn't installed, the wizard sends you to the [Installation guide](/genie/installation). If you're not inside a git repo, it asks you to `git init` first.
+  </Step>
 
-```text
-Wizard Phase 1/5: Environment Check
-  genie CLI    ✅ v4.x.x
-  git repo     ✅
-  .genie/      ⬜ not found — will scaffold
-  AGENTS.md    ⬜ not found — will create
-  CLAUDE.md    ✅ found
-```
+  <Step title="Agent identity">
+    The wizard scaffolds `.genie/` if it's missing, then hands off to [`/brainstorm`](/genie/skills/brainstorm) so you can shape what this agent is for. You answer a few questions about the project; the wizard explores the codebase alongside you and crystallizes the result into an `AGENTS.md`.
 
-If `genie` is not installed, directs the user to install first. If not in a git repo, asks the user to initialize one.
+    Prefer to skip? Ask for the minimal `AGENTS.md` and move on — you can revisit identity later.
+  </Step>
 
-### Phase 2: Agent Identity
+  <Step title="First wish">
+    The wizard asks, "What's the first thing you'd like to build or fix?" If the idea is fuzzy, it routes you back to [`/brainstorm`](/genie/skills/brainstorm). Once the idea is concrete, it calls [`/wish`](/genie/skills/wish) to produce a structured plan and [`/review`](/genie/skills/review) to validate it before any code gets written.
 
-1. If `.genie/` does not exist, run `genie` to trigger scaffolding.
-2. Delegate to `/brainstorm` with seed context about shaping the agent identity for this project.
-3. Let `/brainstorm` explore the codebase, ask questions, and track WRS.
-4. Crystallize into an `AGENTS.md` when ready.
+    ```text
+    Wizard Phase 3/5: First Wish
+      Idea         ✅ "Add dark mode to the settings page"
+      Brainstorm   ✅ design crystallized
+      Wish plan    ✅ .genie/wishes/add-dark-mode/WISH.md
+      Review       ✅ SHIP — plan approved
+    ```
+  </Step>
 
-**Skip option:** Creates a minimal `AGENTS.md` if the user wants to skip identity shaping.
+  <Step title="Execute">
+    You see a summary of the execution groups and how many agents will run. When you confirm, the wizard runs [`/work`](/genie/skills/work) on the approved wish and reports progress as groups land. Final validation goes back through [`/review`](/genie/skills/review); if it comes back `FIX-FIRST`, the wizard loops through [`/fix`](/genie/skills/fix) automatically.
+  </Step>
 
-### Phase 3: First Wish
+  <Step title="Celebrate">
+    The wizard summarizes what shipped and points you at the next thing to try.
 
-1. Ask: "What's the first thing you'd like to build or fix?"
-2. If the idea is fuzzy, delegate to `/brainstorm`.
-3. Once concrete, delegate to `/wish` to create a structured wish plan.
-4. Run `/review` to validate the plan.
-
-```text
-Wizard Phase 3/5: First Wish
-  Idea         ✅ "Add dark mode to the settings page"
-  Brainstorm   ✅ design crystallized
-  Wish plan    ✅ .genie/wishes/add-dark-mode/WISH.md
-  Review       ✅ SHIP — plan approved
-```
-
-### Phase 4: Execute
-
-1. Show execution summary (groups, estimated agents).
-2. Run `/work` on the approved wish.
-3. Monitor progress and report status.
-4. Run `/review` for final verification.
-
-### Phase 5: Celebrate
-
-Summarize what was accomplished and show next steps:
-
+    <Frame>
 ```text
 Your first wish has been granted!
 
@@ -76,14 +69,31 @@ Status:  COMPLETE
 Files:   12 files changed, 340 insertions
 Review:  SHIP — all criteria met
 ```
+    </Frame>
 
-Next steps include creating a PR, running another wish, setting up a team, or exploring other skills.
+    From here you can open the PR, start a second wish, spin up a team, or hand off to [`/pm`](/genie/skills/pm) to keep watch over longer-running work.
+  </Step>
+</Steps>
 
 ## Resumption
 
-If interrupted and re-invoked, the wizard detects current state:
+If you close the wizard partway through, the next `/wizard` invocation inspects the repo and skips phases that are already complete:
 
 - `.genie/` exists → skip scaffolding
 - `AGENTS.md` exists → skip identity
-- Approved wish exists → skip to Phase 4
-- Completed wish exists → skip to Phase 5
+- An approved wish exists → jump to Phase 4
+- A completed wish exists → jump to Phase 5
+
+## What's next
+
+<CardGroup cols={3}>
+  <Card title="The Genie Loop" icon="circle-nodes" href="/genie/skills/loop-overview">
+    See the canonical plan → review → work → ship → monitor flow in one page.
+  </Card>
+  <Card title="/brainstorm" icon="lightbulb" href="/genie/skills/brainstorm">
+    Explore a fuzzy idea until it's crisp enough to wish on.
+  </Card>
+  <Card title="/wish" icon="scroll" href="/genie/skills/wish">
+    Convert a crystallized idea into an executable wish plan.
+  </Card>
+</CardGroup>

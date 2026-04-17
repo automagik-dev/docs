@@ -1,10 +1,9 @@
 ---
 title: "Quickstart"
 sidebarTitle: "Quickstart"
+icon: "rocket"
 description: "Five minutes from nothing to your first PR. Bring whatever agent you like — we're not picky."
 ---
-
-# Quickstart
 
 Five minutes. One PR. Whatever agent you already use.
 
@@ -100,10 +99,21 @@ Next: run /wizard for guided onboarding.
     ```
 
     It'll walk you through the thinking you'd do anyway — but faster:
-    - Scope — what's in, what's out
-    - Constraints — dependencies, breaking changes
-    - Design — approach, tradeoffs
-    - Readiness — is this crisp enough to actually build?
+
+    <AccordionGroup>
+      <Accordion title="Scope" icon="crosshairs">
+        What's in, what's out. The brainstorm skill pushes you to name both edges before you write a line of code.
+      </Accordion>
+      <Accordion title="Constraints" icon="link">
+        Dependencies, breaking changes, hidden invariants. If something is load-bearing, it gets called out here instead of surfacing in review.
+      </Accordion>
+      <Accordion title="Design" icon="compass-drafting">
+        Approach and tradeoffs. This is the "why this way" that your future self will thank you for.
+      </Accordion>
+      <Accordion title="Readiness" icon="circle-check">
+        Is this crisp enough to actually build? If not, the brainstorm keeps probing until it is.
+      </Accordion>
+    </AccordionGroup>
   </Step>
 
   <Step title="Create a Wish">
@@ -222,19 +232,21 @@ Creating pull request...
 | Validate | `/review` | SHIP or FIX-FIRST verdict |
 | Ship | PR created | Ready for you to merge (agents don't push to production — that's your job) |
 
-Under the hood, Genie tracks all work in an embedded PostgreSQL database — tasks, boards, audit events, and session history. You can query everything with `genie events summary --today` or `genie task list --by-column` for a Kanban view.
+<Note>
+  Under the hood, Genie tracks every task, board, audit event, and session in an embedded PostgreSQL database. Query it with `genie events summary --today` or `genie task list --by-column` for a Kanban view.
+</Note>
 
-## Next steps
+## What's next
 
 <CardGroup cols={2}>
+  <Card title="Full onboarding walkthrough" icon="route" href="/genie/onboarding">
+    The 15-minute tour — install → smoke test → wizard → first wish → first PR → first monitor.
+  </Card>
+  <Card title="The Genie Loop" icon="arrows-rotate" href="/genie/skills/loop-overview">
+    Plan → Review → Work → Ship → Monitor — the canonical lifecycle and the skills behind each phase.
+  </Card>
   <Card title="Core Concepts" icon="book" href="/genie/concepts/wishes">
     Understand wishes, agents, teams, and skills in depth.
-  </Card>
-  <Card title="Skills Reference" icon="wand-magic-sparkles" href="/genie/skills/brainstorm">
-    Browse all 14 built-in skills.
-  </Card>
-  <Card title="Hacks & Tips" icon="lightbulb" href="/genie/hacks">
-    Community patterns, cost tips, and power-user techniques.
   </Card>
   <Card title="Stuck? Ask on Discord" icon="discord" href="https://discord.gg/automagik">
     Real humans. Real answers. Usually within minutes, not days.

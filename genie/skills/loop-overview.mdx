@@ -1,0 +1,76 @@
+---
+title: "The Genie Loop"
+sidebarTitle: "Loop Overview"
+icon: "arrows-rotate"
+description: "Plan → Review → Work → Ship → Monitor — the canonical lifecycle"
+---
+
+<Note>
+Every genie job moves through five phases. You can jump in at any phase; the skills that implement each phase are listed below.
+</Note>
+
+## The five phases
+
+<CardGroup cols={3}>
+  <Card title="Plan" icon="sparkles" href="/genie/skills/wish">
+    Shape intent into a scoped wish with acceptance criteria. Driven by [/wish](/genie/skills/wish) (and [/brainstorm](/genie/skills/brainstorm) when the idea is still fuzzy).
+  </Card>
+  <Card title="Review" icon="clipboard-check" href="/genie/skills/review">
+    Gate the plan (and later the PR) against criteria before work starts. Driven by [/review](/genie/skills/review).
+  </Card>
+  <Card title="Work" icon="hammer" href="/genie/skills/work">
+    Execute the approved plan. Driven by [/work](/genie/skills/work); FIX-FIRST gaps flow through [/fix](/genie/skills/fix).
+  </Card>
+  <Card title="Ship" icon="rocket" href="/genie/skills/review">
+    Final `/review` pass on the PR, then merge. The same skill that gated the plan gates the shipped change.
+  </Card>
+  <Card title="Monitor" icon="radar" href="/genie/skills/pm">
+    Watch the work land, triage escalations, and orchestrate the next loop. Driven by [/pm](/genie/skills/pm).
+  </Card>
+</CardGroup>
+
+## A one-shot lifecycle
+
+<Steps>
+  <Step title="Start with an idea">
+    Open [/brainstorm](/genie/skills/brainstorm) if the idea is still fuzzy, or jump straight to [/wish](/genie/skills/wish) if you already know the shape. New to the loop? Run [/wizard](/genie/skills/wizard) — it walks you through this sequence end-to-end.
+  </Step>
+  <Step title="Formalize the plan">
+    [/wish](/genie/skills/wish) produces `.genie/wishes/<slug>/WISH.md` with IN/OUT scope, acceptance criteria, and execution groups. This is the artifact every downstream phase reads from.
+  </Step>
+  <Step title="Gate the plan">
+    [/review](/genie/skills/review) inspects the wish and returns **SHIP**, **FIX-FIRST**, or **BLOCKED**. A SHIP verdict authorizes execution.
+  </Step>
+  <Step title="Execute the work">
+    [/work](/genie/skills/work) orchestrates subagents per execution group, runs validation, and loops on failures. FIX-FIRST findings from review are closed by [/fix](/genie/skills/fix) before work resumes.
+  </Step>
+  <Step title="Ship the PR">
+    [/review](/genie/skills/review) runs again against the pull request. Merge only on SHIP.
+  </Step>
+  <Step title="Monitor and iterate">
+    [/pm](/genie/skills/pm) tracks progress, surfaces blockers, and queues the next wish. The loop repeats.
+  </Step>
+</Steps>
+
+## Entry points
+
+| I want to... | Start at... | Skill |
+|---|---|---|
+| Explore a fuzzy idea | Plan | [/brainstorm](/genie/skills/brainstorm) |
+| Formalize a plan | Plan | [/wish](/genie/skills/wish) |
+| Gate a plan / PR | Review | [/review](/genie/skills/review) |
+| Execute an approved wish | Work | [/work](/genie/skills/work) |
+| Close FIX-FIRST gaps | Work | [/fix](/genie/skills/fix) |
+| Be walked through the whole loop | all | [/wizard](/genie/skills/wizard) |
+| Orchestrate a backlog | all | [/pm](/genie/skills/pm) |
+
+## What's next
+
+<CardGroup cols={2}>
+  <Card title="Walk through the loop" icon="rocket" href="/genie/onboarding">
+    The 15-minute guided walkthrough uses this loop end-to-end — install, smoke test, first wish, first PR, first monitor.
+  </Card>
+  <Card title="Understand wishes" icon="scroll" href="/genie/concepts/wishes">
+    Every loop revolves around a wish. Learn the primitive that all five phases operate on.
+  </Card>
+</CardGroup>

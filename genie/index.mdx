@@ -1,6 +1,7 @@
 ---
 title: "What is Genie?"
 sidebarTitle: "What is Genie?"
+icon: "hat-wizard"
 description: "You shouldn't be the orchestration layer. Genie is."
 ---
 
@@ -43,12 +44,26 @@ You describe what you want. Genie breaks it into parallelizable work, assigns ag
 
 The practical version, for the exhausted developer at 11 PM:
 
-- **Stop re-explaining** — context is structural, not conversational. Write it once, every agent inherits it. We're serious — *once*.
-- **Parallel execution** — five agents working simultaneously across isolated worktrees. No stepping on each other's code.
-- **Reproducible workflows** — wishes are versioned artifacts. Run the same plan twice, get consistent results. No more "works on my agent."
-- **Overnight mode** — dispatch a team before bed. Wake up to a pull request. This is not a metaphor.
-- **Bring your own agent** — Claude, Codex, Open Claw, or that custom thing you built last weekend. We don't care which AI you use.
-- **Portable context** — wishes, skills, and team configs live in your repo. Switch machines, switch agents, keep everything.
+<CardGroup cols={2}>
+  <Card title="Stop re-explaining" icon="message-slash">
+    Context is structural, not conversational. Write it once, every agent inherits it. We're serious — *once*.
+  </Card>
+  <Card title="Parallel execution" icon="layer-group">
+    Five agents working simultaneously across isolated worktrees. No stepping on each other's code.
+  </Card>
+  <Card title="Reproducible workflows" icon="arrows-rotate">
+    Wishes are versioned artifacts. Run the same plan twice, get consistent results. No more "works on my agent."
+  </Card>
+  <Card title="Overnight mode" icon="moon">
+    Dispatch a team before bed. Wake up to a pull request. This is not a metaphor.
+  </Card>
+  <Card title="Bring your own agent" icon="plug">
+    Claude, Codex, Open Claw, or that custom thing you built last weekend. We don't care which AI you use.
+  </Card>
+  <Card title="Portable context" icon="suitcase">
+    Wishes, skills, and team configs live in your repo. Switch machines, switch agents, keep everything.
+  </Card>
+</CardGroup>
 
 ## Bring your own agent
 
@@ -117,20 +132,23 @@ Genie is CLI-first today — built for developers who live in the terminal. But 
 
 The CLI isn't going anywhere. If you want to orchestrate agents at 2 AM in a tmux session while your cat judges you, we respect that.
 
-## Get started
+## What's next
 
 <CardGroup cols={2}>
-  <Card title="Features" icon="stars" href="/genie/features">
-    Full feature matrix — what Genie can do today and what's coming next.
+  <Card title="Install Genie" icon="download" href="/genie/installation">
+    Get the CLI, plugin, and git hooks set up in a couple of minutes.
   </Card>
   <Card title="Quickstart" icon="rocket" href="/genie/quickstart">
-    From zero to your first PR in five minutes.
+    Five-minute smoke test — from zero to a first pull request.
+  </Card>
+  <Card title="Onboarding walkthrough" icon="route" href="/genie/onboarding">
+    The full 15-minute tour: install, wizard, first wish, first PR, first monitor.
+  </Card>
+  <Card title="The Genie Loop" icon="arrows-rotate" href="/genie/skills/loop-overview">
+    Plan → Review → Work → Ship → Monitor — the canonical lifecycle and the skills that drive it.
   </Card>
   <Card title="Core Concepts" icon="book" href="/genie/concepts/wishes">
     Understand wishes, agents, teams, and skills.
-  </Card>
-  <Card title="Genie Hacks" icon="lightbulb" href="/genie/hacks">
-    Community patterns, techniques, and cost tips from power users.
   </Card>
   <Card title="Discord" icon="discord" href="https://discord.gg/automagik">
     Community, feedback, and support.

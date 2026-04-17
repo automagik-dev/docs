@@ -33,8 +33,9 @@
             "pages": [
               "genie/index",
               "genie/features",
+              "genie/installation",
               "genie/quickstart",
-              "genie/installation"
+              "genie/onboarding"
             ]
           },
           {
@@ -50,25 +51,31 @@
             ]
           },
           {
-            "group": "Skills Reference",
+            "group": "The Genie Loop",
             "pages": [
+              "genie/skills/loop-overview",
+              "genie/skills/wizard",
               "genie/skills/brainstorm",
               "genie/skills/wish",
-              "genie/skills/work",
               "genie/skills/review",
-              "genie/skills/pm",
-              "genie/skills/wizard",
-              "genie/skills/council",
-              "genie/skills/trace",
+              "genie/skills/work",
               "genie/skills/fix",
-              "genie/skills/report",
-              "genie/skills/refine",
+              "genie/skills/pm"
+            ]
+          },
+          {
+            "group": "Power Skills",
+            "pages": [
+              "genie/skills/council",
               "genie/skills/dream",
+              "genie/skills/refine",
+              "genie/skills/trace",
+              "genie/skills/report",
               "genie/skills/docs",
-              "genie/skills/genie",
-              "genie/skills/genie-hacks",
+              "genie/skills/learn",
               "genie/skills/brain",
-              "genie/skills/learn"
+              "genie/skills/genie-hacks",
+              "genie/skills/genie"
             ]
           },
           {

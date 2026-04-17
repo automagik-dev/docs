@@ -1,12 +1,13 @@
 ---
 title: "Features"
 sidebarTitle: "Features"
-description: "8 capabilities that make Genie work — from structured intent to provider-agnostic orchestration."
+icon: "stars"
+description: "The capabilities that make Genie work — from structured intent to provider-agnostic orchestration."
 ---
 
-# 8 capabilities that make Genie work
-
-Genie isn't one big feature — it's eight small ones that compose into something larger than any of them alone. Each capability solves a specific coordination problem. Together, they turn "AI can code" into "AI can ship."
+<Note>
+  Genie isn't one big feature — it's a set of small, composable capabilities that turn "AI can code" into "AI can ship." Each one solves a specific coordination problem. Together, they become a coherent orchestration layer.
+</Note>
 
 <CardGroup cols={2}>
   <Card title="Wishes — Structured Intent" icon="scroll" href="/genie/concepts/wishes">
@@ -33,7 +34,7 @@ Genie isn't one big feature — it's eight small ones that compose into somethin
   <Card title="Context Preservation" icon="brain" href="/genie/architecture/transcripts">
     Provider-agnostic transcript capture across Claude and Codex. Session history survives crashes, suspends, and provider switches.
   </Card>
-  <Card title="14 Skills + /pm" icon="wand-magic-sparkles" href="/genie/concepts/skills">
+  <Card title="Skills + /pm" icon="wand-magic-sparkles" href="/genie/skills/loop-overview">
     Composable slash commands — from `/brainstorm` through `/dream`, plus a full `/pm` playbook. Each one encodes a workflow we got tired of repeating manually.
   </Card>
   <Card title="Item Registry" icon="store" href="/genie/architecture/postgres">
@@ -47,6 +48,19 @@ Genie isn't one big feature — it's eight small ones that compose into somethin
   </Card>
 </CardGroup>
 
----
+## What's next
 
-**Learn more** — [Core Concepts](/genie/concepts/wishes) · [CLI Reference](/genie/cli/session) · [Architecture](/genie/architecture/overview) · [Installation](/genie/installation) · [Setup](/genie/config/setup)
+<CardGroup cols={2}>
+  <Card title="Install the CLI" icon="download" href="/genie/installation">
+    Get Genie running on Linux or macOS — npm, Bun, Homebrew, or the one-line bootstrap.
+  </Card>
+  <Card title="Quickstart" icon="rocket" href="/genie/quickstart">
+    Five-minute smoke test from install to your first merged PR.
+  </Card>
+  <Card title="The Genie Loop" icon="arrows-rotate" href="/genie/skills/loop-overview">
+    Plan → Review → Work → Ship → Monitor — the canonical lifecycle that ties these features together.
+  </Card>
+  <Card title="Core Concepts" icon="book" href="/genie/concepts/wishes">
+    The primitives — wishes, agents, teams, skills — that power every feature above.
+  </Card>
+</CardGroup>
