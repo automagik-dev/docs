@@ -271,25 +271,29 @@ omni listen audio.ogg --reply --language pt-BR
 
 ### `omni imagine`
 
-Generate an image from a text prompt using Gemini Nano Banana.
+Generate an image from a text prompt using Gemini Nano Banana and send it to the active chat, or save it locally with `--output`.
 
 ```bash
 omni imagine <prompt> [options]
 ```
 
+Prompts are free-form text describing the desired image. Longer, descriptive prompts that specify subject, style, lighting, and composition tend to produce better results (e.g. `"A neon-lit cyberpunk street at night, cinematic wide shot, rain-slick pavement"`). By default the generated image is delivered to the current chat; pass `--output <path>` to write it to disk instead (for `--count > 1`, `-N` is appended to the filename).
+
 | Option | Description |
 |--------|-------------|
 | `--aspect-ratio <ratio>` | Aspect ratio: `1:1`, `3:4`, `4:3`, `9:16`, `16:9`, `3:2`, `2:3` |
-| `--size <size>` | Image size preset: `1K`, `2K`, `4K` |
+| `--size <size>` | Image size preset: `1K`, `2K`, `4K` (not all models support all sizes) |
 | `--model <name>` | Model alias (`nano-banana-2`, `nano-banana-pro`) or raw Gemini model ID |
+| `--provider <name>` | Provider override (default: server `imagegen.provider` config) |
 | `--count <n>` | Number of images to generate (`1`–`4`, default: `1`) |
-| `--output <path>` | Save locally instead of sending |
-| `--reply [message-id]` | Quote-reply to a message |
+| `--output <path>` | Save locally instead of sending (appends `-N` when `--count > 1`) |
+| `--reply [message-id]` | Quote-reply to the trigger message or a specific message |
 
 ```bash
 omni imagine "A sunset over a cyberpunk city"
 omni imagine "Logo for an AI company" --aspect-ratio 1:1 --count 4
 omni imagine "Architecture diagram" --output diagram.png
+omni imagine "Portrait of a fox in a meadow" --model nano-banana-pro --size 2K
 ```
 
 ### `omni film`
@@ -314,6 +318,8 @@ omni film <prompt> [options]
 ```bash
 omni film "A drone shot flying over a tropical forest"
 omni film "Product demo animation" --resolution 1080p --output demo.mp4
+omni film "Vertical reel of city lights at night" --aspect-ratio 9:16
+omni film "Silent ambient loop of rain on leaves" --no-audio
 ```
 
 ### `omni see`
