@@ -93,6 +93,31 @@ When a message arrives, Omni resolves the handler in this order:
 2. **Per-chat route** — if a route exists for this specific chat, use it
 3. **Per-instance route** — fallback to the instance-level default agent
 
+## Reply Filters
+
+Each instance can constrain which inbound messages reach the bound agent. The default is **allow-all**: when an instance has no reply filter set (`agent_reply_filter = null`), every message routed to the agent is dispatched.
+
+Switching to `filtered` mode lets you opt into specific triggers — DMs, @mentions, replies to the bot, or messages mentioning the bot's name.
+
+```bash
+# Default behaviour (no filter) — agent sees every message
+omni instances update my-whatsapp --clear-reply-filter
+
+# Constrain to DMs and @mentions only
+omni instances update my-whatsapp \
+  --reply-filter-mode filtered \
+  --reply-on-dm \
+  --reply-on-mention
+
+# Match custom name patterns in group chats
+omni instances update my-whatsapp \
+  --reply-filter-mode filtered \
+  --reply-on-name \
+  --reply-name-patterns "support,help bot,assistant"
+```
+
+See [`omni instances update`](/omni/cli/management) for every reply-filter flag.
+
 ## API Keys
 
 Manage API keys for authenticating with the Omni API:

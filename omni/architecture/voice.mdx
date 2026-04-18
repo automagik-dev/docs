@@ -1,0 +1,75 @@
+---
+title: "Voice Gateway"
+sidebarTitle: "Voice"
+description: "Bun-native Discord voice client with DAVE end-to-end encryption — join channels, stream audio, debug sessions."
+---
+
+# Voice Gateway
+
+Omni ships a Bun-native voice gateway that joins Discord voice channels, decrypts incoming audio, and exposes the streams over a local WebSocket so agents can listen, transcribe, and respond. The implementation lives in `@omni/voice-client` and is wired into the Discord channel adapter — no external Node sidecar required.
+
+## What it does
+
+| Capability | Notes |
+|------------|-------|
+| Discord voice gateway v8 | UDP transport, libsodium-backed packet auth |
+| **DAVE E2EE** | Discord Audio & Video End-to-End encryption — Omni participates as a full DAVE client (group key exchange, sender keys, key rotation) |
+| Opus codec | Decode incoming Opus frames, optionally re-encode for outbound |
+| Per-user streams | Audio is demuxed per Discord user ID so transcription/STT can target a single speaker |
+| Session WebSocket | A local WebSocket (`omni voice stream`) emits audio frames + control events for downstream consumers |
+
+## Lifecycle
+
+```text
+omni voice join ──▶ Discord gateway handshake
+                         │
+                         ▼
+                    DAVE key exchange
+                         │
+                         ▼
+              Voice UDP / SRTP established
+                         │
+                         ▼
+           Per-user Opus streams demuxed
+                         │
+                         ▼
+        omni voice stream <id> taps the bus
+                         │
+                         ▼
+                 omni voice leave
+```
+
+## CLI
+
+```bash
+# Join a Discord voice channel
+omni voice join --instance my-discord --guild <guild-id> --channel <voice-channel-id>
+
+# List active voice sessions
+omni voice sessions
+
+# Tap a session over WebSocket — opus by default, pcm for raw frames
+omni voice stream <session-id> --format pcm --save ./recordings
+
+# Filter to a single speaker
+omni voice stream <session-id> --user <discord-user-id>
+
+# Show only control events (joined/left/speaking) without audio stats
+omni voice stream <session-id> --events-only
+
+# Leave the session
+omni voice leave --instance my-discord
+```
+
+`omni voice stream` exits cleanly on `Ctrl+C` and is safe to pipe into transcription tooling.
+
+## Discord-specific notes
+
+- The Discord adapter manages voice **per instance** — one Discord bot token, one voice gateway. Multiple guild channels can be joined sequentially but only one at a time per instance today.
+- DAVE is **mandatory** for any guild that has it enabled. The voice client negotiates the protocol version automatically and rejects sessions that fail the handshake rather than falling back to plaintext.
+- Audio frames are **never persisted** by the gateway itself. Use `--save <dir>` on `omni voice stream` if you need on-disk artefacts; otherwise the bus is in-memory only.
+
+## See also
+
+- [`omni voice` CLI reference](/omni/cli/messaging) (verb commands and channel ops)
+- [Instances](/omni/concepts/instances) for setting up the Discord bot token

@@ -26,6 +26,39 @@ omni instances logout <id>               # Logout and clear session
 omni instances update <id> [options]     # Update settings
 ```
 
+### Updating Instance Settings
+
+`omni instances update <id>` exposes every API field. Common groups:
+
+**Agent binding** — `--agent-fk-id`, `--agent-provider`, `--agent`, `--agent-type`, `--agent-timeout`, `--agent-stream-mode` / `--no-agent-stream-mode`, `--agent-session-strategy`.
+
+**Reply filter** — `--reply-filter-mode all|filtered`, plus `--reply-on-dm`, `--reply-on-mention`, `--reply-on-reply`, `--reply-on-name`, and `--reply-name-patterns`. Use `--clear-reply-filter` to remove the filter entirely (`null` = allow all messages through).
+
+**Message timing** — `--debounce-mode`, `--debounce-min`, `--debounce-max`, `--debounce-restart-on-typing`, and `--debounce-group <ms>`.
+
+**Split delay** — controls the pause between chunks when an agent reply is auto-split on double newlines:
+
+| Flag | Description |
+|------|-------------|
+| `--split-delay-mode <mode>` | `disabled`, `fixed`, or `randomized` |
+| `--split-delay-fixed <ms>` | Fixed delay between chunks (use with mode `fixed`) |
+| `--split-delay-min <ms>` | Lower bound (use with mode `randomized`) |
+| `--split-delay-max <ms>` | Upper bound (use with mode `randomized`) |
+
+```bash
+# Humanise multi-chunk replies with a 600–1200 ms randomised gap
+omni instances update my-whatsapp \
+  --enable-auto-split \
+  --split-delay-mode randomized \
+  --split-delay-min 600 \
+  --split-delay-max 1200
+
+# Disable split delay entirely (back-to-back chunks)
+omni instances update my-whatsapp --split-delay-mode disabled
+```
+
+**Other common flags** — `--access-mode`, `--reaction-ack`, `--ack-timeout`, `--tts-voice`, `--tts-model`, `--token`, `--profile-name`. Run `omni instances update --help` for the full list.
+
 ### WhatsApp Pairing
 
 ```bash
@@ -120,6 +153,82 @@ omni automations test <id> [options]   # Test with mock event (dry run)
 omni automations execute <id> [opts]   # Execute with real event
 omni automations logs <id> [options]   # View execution logs
 ```
+
+---
+
+## `omni follow-up`
+
+Configure the **idle-chat follow-up sequence** — when a customer goes quiet after an agent reply, Omni can fire a configurable cadence of nudges and stop on inbound, handoff, archive, or window expiry.
+
+Config is layered with **closest scope wins** at runtime:
+
+```
+chat  →  instance  →  agent  →  (no config)
+```
+
+`enabled: false` at any level explicitly disables the sequence at that scope — broader scopes do **not** leak through.
+
+```bash
+omni follow-up get <scope> <id>          # Read config at agents|instances|chats
+omni follow-up set <scope> <id> <json>   # Write config (literal JSON, @path, or `-` for stdin)
+omni follow-up unset <scope> <id>        # Clear override so the next-broader scope applies
+```
+
+### Config shape
+
+```json
+{
+  "enabled": true,
+  "schedule": {
+    "kind": "fixed",
+    "intervalsMinutes": [30, 120, 1440]
+  },
+  "maxFollowUps": 3,
+  "promptTemplate": "Customer has been idle for {{minutes}} min. Send a friendly nudge.",
+  "stopOutsideMessagingWindow": true,
+  "showTypingIndicator": true
+}
+```
+
+| Field | Description |
+|-------|-------------|
+| `enabled` | Master switch at this scope. `false` short-circuits broader scopes. |
+| `schedule.kind` | `fixed` (cycle through `intervalsMinutes`) or `exponential` (`initialMinutes`, `factor`, `maxMinutes`). |
+| `maxFollowUps` | Hard cap on follow-ups fired per sequence (1–50). |
+| `promptTemplate` | Synthetic prompt sent to the agent. Placeholders: `{{minutes}}`, `{{sequenceIndex}}`, `{{chatName}}`, `{{syntheticPrompt}}`. |
+| `stopOutsideMessagingWindow` | On WhatsApp BSP/Cloud, disarm when the last inbound is older than 24 h. Default `true`. |
+| `showTypingIndicator` | Emit a 2–3 s typing/presence indicator before the follow-up on channels that support it. Default `true`. |
+
+### Examples
+
+```bash
+# Apply a default sequence to every chat on an instance
+omni follow-up set instances my-whatsapp '{
+  "enabled": true,
+  "schedule": { "kind": "fixed", "intervalsMinutes": [30, 120] },
+  "maxFollowUps": 2,
+  "promptTemplate": "Friendly nudge — customer idle {{minutes}}m."
+}'
+
+# Override a single chat with an exponential schedule
+omni follow-up set chats <chat-id> '{
+  "enabled": true,
+  "schedule": { "kind": "exponential", "initialMinutes": 15, "factor": 2, "maxMinutes": 720 },
+  "maxFollowUps": 5,
+  "promptTemplate": "Idle nudge #{{sequenceIndex}} for {{chatName}}"
+}'
+
+# Read from a file
+omni follow-up set agents <agent-id> @./follow-up.json
+
+# Disable for one chat without touching the agent/instance defaults
+omni follow-up set chats <chat-id> '{"enabled": false, "schedule": {"kind":"fixed","intervalsMinutes":[60]}, "maxFollowUps": 1, "promptTemplate": "x"}'
+
+# Remove the override and inherit again
+omni follow-up unset chats <chat-id>
+```
+
+A sequence is automatically disarmed when any of these happen: customer replies, chat is handed off, chat is archived/muted, the WhatsApp 24 h window expires, the agent errors, an outbound send fails, the user clears the agent session, or the configured `maxFollowUps` is reached.
 
 ---
 

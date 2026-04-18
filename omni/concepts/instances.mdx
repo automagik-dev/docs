@@ -12,8 +12,10 @@ An **instance** is a connection to a messaging channel — a WhatsApp number, a 
 
 | Channel | Adapter | Connection Method |
 |---------|---------|-------------------|
-| WhatsApp | `whatsapp-baileys` | QR code or pairing code |
-| Discord | `discord` | Bot token |
+| WhatsApp (Baileys) | `whatsapp-baileys` | QR code or pairing code |
+| WhatsApp (Cloud API) | `whatsapp-cloud` | Meta-issued access token |
+| Gupshup (BSP) | `gupshup` | App-name + API key + webhook |
+| Discord | `discord` | Bot token (voice via DAVE E2EE) |
 | Telegram | `telegram` | Bot API token |
 | Slack | `slack` | OAuth / Bot token |
 
