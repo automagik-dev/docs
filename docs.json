@@ -14,8 +14,12 @@
     "decoration": "gradient"
   },
   "fonts": {
-    "heading": { "family": "Geist" },
-    "body": { "family": "Geist" }
+    "heading": {
+      "family": "Geist"
+    },
+    "body": {
+      "family": "Geist"
+    }
   },
   "styling": {
     "codeblocks": "dark"
@@ -174,7 +178,8 @@
           {
             "group": "Architecture",
             "pages": [
-              "omni/architecture/media"
+              "omni/architecture/media",
+              "omni/architecture/voice"
             ]
           }
         ]

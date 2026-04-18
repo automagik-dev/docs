@@ -127,6 +127,26 @@ omni chats read <chat-id>                          # Mark as read
 omni chats disappearing <chat-id> --duration 7d   # Toggle disappearing messages
 ```
 
+### Chat fields
+
+`omni chats list` and `omni chats get` return the canonical chat record. Two fields are worth calling out:
+
+| Field | Description |
+|-------|-------------|
+| `isGroup` | `true` for group chats, `false` for 1:1. Derived from the channel's external chat ID (e.g. `@g.us` suffix on WhatsApp), so it is always present and consistent across channels. Use this in automation conditions instead of pattern-matching on JID strings. |
+| `personId` | Stable Omni person UUID. On WhatsApp, Omni canonicalises LID and JID identifiers so the same human is one `personId` regardless of which form the channel reports. |
+
+```bash
+# List only group chats
+omni chats list --json | jq '.[] | select(.isGroup == true)'
+
+# Filter automation conditions on isGroup instead of JID
+omni automations create \
+  --trigger message.received \
+  --action call_agent \
+  --condition '[{"field": "payload.chat.isGroup", "op": "eq", "value": false}]'
+```
+
 ### Labels
 
 ```bash

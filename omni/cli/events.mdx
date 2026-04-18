@@ -32,6 +32,43 @@ omni events list --instance <id> --type message.received --limit 100
 omni events list --chat-id <id> --since 7d
 ```
 
+## `omni events stream`
+
+Stream events in real-time (`tail -f` style). Polls the event bus and prints new events as they arrive. `Ctrl+C` to stop.
+
+```bash
+omni events stream [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--instance <id>` | Filter by instance ID (aliases: `--instance-ids`, `--instances`) |
+| `--channel <type>` | Filter by channel type |
+| `--type <type>` | Filter by event type |
+| `--chat-id <id>` | Filter by chat ID |
+| `--person-id <id>` | Filter by person ID |
+| `--since <time>` | Start cursor (e.g., `5min`, `24h`, `7d`, or ISO timestamp) |
+| `--errors-only` | Show only error/failure events |
+| `--all` | Include noisy event types (`presence`, `delivered`, `read`, `progress`) |
+| `--ndjson` | Emit JSON Lines (one event per line) — same as global `--json` in stream mode |
+| `--poll-ms <n>` | Polling interval in milliseconds (default: `2000`) |
+
+```bash
+# Tail every event for one instance
+omni events stream --instance my-whatsapp
+
+# Watch failures only across all instances
+omni events stream --errors-only
+
+# Pipe to jq for ad-hoc filters
+omni events stream --ndjson | jq 'select(.type == "message.received")'
+
+# Stream the last hour and continue
+omni events stream --since 1h
+```
+
+---
+
 ## `omni events search`
 
 Full-text search across event content.

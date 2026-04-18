@@ -16,6 +16,7 @@ Manage AI agent entities.
 omni agents list               # List all agents
 omni agents get <id>           # Get agent details
 omni agents create [options]   # Create a new agent
+omni agents update <id> [opts] # Update an agent (partial patch)
 omni agents delete <id>        # Delete (soft-delete, sets inactive)
 ```
 
@@ -23,6 +24,61 @@ omni agents delete <id>        # Delete (soft-delete, sets inactive)
 
 ```bash
 omni agents create --name "Support Bot" --provider <provider-id>
+```
+
+| Option | Description |
+|--------|-------------|
+| `--name <name>` | Agent name |
+| `--provider <provider>` | AI provider: `claude`, `agno`, `openai`, `gemini`, `custom`, `omni-internal` |
+| `--model <model>` | Model identifier (e.g., `claude-sonnet-4-6`) |
+| `--type <type>` | Agent type: `assistant`, `workflow`, `team`, `tool` (default: `assistant`) |
+| `--agent-provider <id>` | Link to an existing agent provider configuration |
+| `--provider-agent-id <id>` | Provider-internal agent identifier (e.g. an Agno agent name). Stored at `metadata.providerAgentId` and used by the dispatcher to resolve the runtime agent. |
+| `--config-path <path>` | Path to the agent config file (DB column `config_path`) |
+| `--metadata <json>` | Additional metadata as JSON. Merged into `metadata`; `--provider-agent-id` wins if both set `providerAgentId`. |
+
+```bash
+# Bind to an Agno-hosted agent by its provider-internal ID
+omni agents create \
+  --name "Support" \
+  --provider agno \
+  --agent-provider <agent-provider-id> \
+  --provider-agent-id support-bot \
+  --metadata '{"team": "ops"}'
+
+# Point an agent at a config file on disk
+omni agents create \
+  --name "Triage" \
+  --provider claude \
+  --model claude-sonnet-4-6 \
+  --config-path /etc/omni/agents/triage.yaml
+```
+
+### Updating an Agent
+
+`omni agents update <id>` is a partial patch — omitted fields are preserved. Metadata is merged shallowly so you can change one key without rewriting the whole object.
+
+| Option | Description |
+|--------|-------------|
+| `--name <name>` | Rename the agent |
+| `--model <model>` | Switch the model |
+| `--provider <provider>` | Switch provider type |
+| `--agent-provider <id>` | Re-link to a different agent provider |
+| `--type <type>` | Change agent type |
+| `--active` / `--inactive` | Toggle active state |
+| `--provider-agent-id <id>` | Update `metadata.providerAgentId`. Wins over any value in `--metadata`. |
+| `--config-path <path>` | Update the agent config file path |
+| `--metadata <json>` | Shallow-merge into existing metadata. Omitted keys are preserved. |
+
+```bash
+# Switch to a new model and bump metadata
+omni agents update <id> --model claude-sonnet-4-6 --metadata '{"version": 2}'
+
+# Repoint at a different provider-side agent
+omni agents update <id> --provider-agent-id support-bot-v2
+
+# Mark inactive without deleting
+omni agents update <id> --inactive
 ```
 
 ---

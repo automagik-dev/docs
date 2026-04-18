@@ -83,13 +83,17 @@ Connect a channel and send your first message in under 5 minutes.
     Route incoming messages to an AI agent:
 
     ```bash
-    # Create a provider (e.g., Genie)
-    omni providers create --name "Genie" --type genie
+    # Create an agent provider (e.g. an Agno backend)
+    omni providers create --name "Agno" --schema agno --base-url https://agno.example.com --api-key <key>
 
-    # Create an agent
-    omni agents create --name "My Agent" --provider <provider-id>
+    # Create an agent bound to that provider
+    omni agents create \
+      --name "My Agent" \
+      --provider agno \
+      --agent-provider <agent-provider-id> \
+      --provider-agent-id support-bot
 
-    # Create a route — all messages from this instance go to the agent
+    # Route all messages from this instance to the agent
     omni routes create --instance <instance-id> --agent <agent-id>
     ```
   </Step>
