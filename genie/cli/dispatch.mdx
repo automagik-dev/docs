@@ -8,6 +8,10 @@ description: "Context-injecting dispatch commands — brainstorm, wish, work, re
 
 Context-injecting spawn commands that bridge the wish state machine and [agent](/genie/concepts/agents) spawn. Each command extracts relevant context from wish artifacts and injects it into the spawned agent.
 
+<Note>
+  Dispatch commands are **thin wrappers** around [skills](/genie/concepts/skills) and [spawn](/genie/cli/spawn). `genie wish`, `genie work`, and `genie review` each resolve a skill (`/wish`, `/work`, `/review`), inject the relevant wish artifact as system-prompt context, and spawn the agent. If you need raw control, call `genie spawn` directly — dispatch exists so you don't have to reconstruct that context by hand every time.
+</Note>
+
 ## `genie brainstorm`
 
 Spawn an agent with brainstorm DRAFT.md content.
@@ -173,6 +177,14 @@ $ genie reset add-oauth --yes
 🔄 Wish "add-oauth" wiped and recreated from WISH.md.
 ```
 
+<Warning>
+  Bare `genie reset <slug>` wipes all group state — completed work, in-flight groups, review history — and recreates the wish from the current `WISH.md`. Use `genie reset <slug>#<group>` when you only need to rerun a single group.
+</Warning>
+
+<Tip>
+  `genie status <slug>` is the fastest pre-flight check before any dispatch command — it shows which groups are ready, in-progress, or blocked, so you don't spawn a duplicate agent on a group that's already running.
+</Tip>
+
 ## Context Injection
 
 All dispatch commands inject:
@@ -181,3 +193,20 @@ All dispatch commands inject:
 3. Wish-level context when available (summary, scope, decisions)
 
 Context is written to a temp file and passed via `--append-system-prompt-file`.
+
+## See also
+
+<CardGroup cols={2}>
+  <Card title="Wish skill" icon="scroll" href="/genie/skills/wish">
+    Shape a draft idea into a structured `WISH.md`.
+  </Card>
+  <Card title="Work skill" icon="arrows-spin" href="/genie/skills/work">
+    Orchestrate the execution groups defined in a wish.
+  </Card>
+  <Card title="Review skill" icon="circle-check" href="/genie/skills/review">
+    Validate completed work against the wish's acceptance criteria.
+  </Card>
+  <Card title="Spawn & Lifecycle" icon="rocket" href="/genie/cli/spawn">
+    Spawn agents directly when you don't need wish context.
+  </Card>
+</CardGroup>

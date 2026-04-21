@@ -8,6 +8,10 @@ description: "Project management — named task boards for multi-repo organizati
 
 The `genie project` command group manages named [projects](/genie/concepts/projects) for organizing tasks across repos. Projects scope boards and tasks, and provide aggregate stats.
 
+<Note>
+  A **project** groups tasks and boards; a **team** groups agents working inside a worktree. They're independent — you can run several teams against one project (different branches of the same wish), or one team across several projects (a sweep that touches multiple repos).
+</Note>
+
 ## `genie project list`
 
 List all projects.
@@ -59,6 +63,10 @@ Archive a project. Archived projects are hidden from `project list` unless `--al
 genie project archive <name>
 ```
 
+<Warning>
+  Archiving a project hides its tasks from the default views but does not delete them. If you archive the project tied to the repo you're currently in, new `genie task` calls will fall back to the default project until you `unarchive` or `set-default`.
+</Warning>
+
 ## `genie project unarchive`
 
 Restore an archived project.
@@ -81,4 +89,25 @@ genie task list --all
 # Tasks for a specific project
 genie task list --project "Auth Refactor"
 ```
+
+<Tip>
+  Use `--virtual` for initiatives that span multiple repos (cross-cutting refactors, documentation sweeps, compliance work). Virtual projects don't require a repo path, so they scope tasks across whatever repos the work touches.
+</Tip>
+
+## See also
+
+<CardGroup cols={2}>
+  <Card title="Projects (concept)" icon="folder" href="/genie/concepts/projects">
+    How projects, repos, and default scoping fit together.
+  </Card>
+  <Card title="Boards" icon="columns-3" href="/genie/cli/boards">
+    Boards scope inside a project — one project can host several boards.
+  </Card>
+  <Card title="Tasks" icon="list-check" href="/genie/cli/tasks">
+    Create and move the tasks that live inside a project.
+  </Card>
+  <Card title="Team" icon="users-gear" href="/genie/cli/team">
+    Teams execute work; projects track the work itself.
+  </Card>
+</CardGroup>
 

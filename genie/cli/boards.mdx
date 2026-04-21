@@ -8,6 +8,10 @@ description: "Board and pipeline management — create, configure, and manage Ka
 
 The `genie board` command group manages Kanban-style boards with configurable column pipelines. For an overview of how boards, columns, and gates work, see [Boards](/genie/concepts/boards). Boards are project-scoped and replace task types as the primary pipeline mechanism. Each column can have its own gate type and associated action skill.
 
+<Note>
+  Boards don't own tasks — projects do. A board defines the **pipeline** (ordered columns + gates) that tasks inside a project flow through. The active board for a repo (set via `genie board use`) determines which pipeline `genie task move` uses.
+</Note>
+
 ## `genie board create`
 
 Create a new board.
@@ -76,6 +80,10 @@ Delete a board.
 ```bash
 genie board delete <name> [--project <project>] [--force]
 ```
+
+<Warning>
+  Deleting a board does not delete its tasks, but it does orphan their `column_id` values. If you need to recover the pipeline later, use `genie board archive` instead — archiving keeps the board and its unfinished tasks intact.
+</Warning>
 
 ## `genie board columns`
 
@@ -217,4 +225,25 @@ Each board column can have a gate that controls whether tasks can auto-advance t
 | `human+agent` | Either can advance |
 
 Gates work with the [task lifecycle](/genie/cli/tasks) — when a task is moved to a gated column, the gate determines who can move it out.
+
+<Tip>
+  Board state is inspectable from scripts: `genie board show <name> --json` and `genie task list --json` both emit structured output. Combine with `jq` to count tasks per column, flag stalled work, or build custom dashboards.
+</Tip>
+
+## See also
+
+<CardGroup cols={2}>
+  <Card title="Tasks" icon="list-check" href="/genie/cli/tasks">
+    Create, move, and inspect the tasks that flow through board columns.
+  </Card>
+  <Card title="Projects" icon="folder" href="/genie/cli/projects">
+    Projects scope the boards and tasks that belong to a repo.
+  </Card>
+  <Card title="Boards (concept)" icon="columns-3" href="/genie/concepts/boards">
+    How boards, columns, and gates combine into a pipeline.
+  </Card>
+  <Card title="Releases, Tags & Types" icon="tag" href="/genie/cli/releases-tags-types">
+    Tag tasks, group them into releases, or define custom type pipelines.
+  </Card>
+</CardGroup>
 

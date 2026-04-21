@@ -38,6 +38,10 @@ $ genie
 | `--dir <path>` | Override working directory |
 | `--reset` | Reset the session (kills existing, starts fresh) |
 
+<Warning>
+  `--reset` kills the existing tmux session and drops any unsaved pane state. It does **not** touch the persistent Claude sessions stored in PostgreSQL, but in-flight agents will be terminated. Use `genie stop <name>` if you only want to pause an agent.
+</Warning>
+
 ### Session Naming
 
 Sessions are named after `basename(cwd)`. When multiple folders share the same basename, a 4-character hash is appended for disambiguation:
@@ -47,6 +51,14 @@ $ cd ~/projects/myapp && genie        # Session: myapp
 $ cd ~/work/api-server && genie       # Session: api-server
 $ cd ~/other/api-server && genie      # Session: api-server-c7b1
 ```
+
+<Note>
+  The hash suffix is deterministic — running `genie` from the same path always yields the same session name, so reconnecting from a new terminal attaches to the original session rather than starting a second one.
+</Note>
+
+<Tip>
+  Prefer short, lowercase session names (`auth`, `docs`, `sprint12`) with `--session <name>` when you want to share the session across teammates or scripts. Avoid spaces and special characters — tmux treats them as argument boundaries, which breaks `genie send` and `tmux attach -t` round-trips.
+</Tip>
 
 ### Session with Teams
 
@@ -67,3 +79,20 @@ Print the installed Genie version.
 $ genie --version
 4.260324.8
 ```
+
+## See also
+
+<CardGroup cols={2}>
+  <Card title="Team" icon="users-gear" href="/genie/cli/team">
+    Pin a team to a shared tmux session with `--tmux-session`.
+  </Card>
+  <Card title="Spawn & Lifecycle" icon="rocket" href="/genie/cli/spawn">
+    Spawn agents into the current session.
+  </Card>
+  <Card title="Messaging" icon="message" href="/genie/cli/messaging">
+    Send messages between agents running in the session.
+  </Card>
+  <Card title="Observability" icon="chart-mixed" href="/genie/cli/observability">
+    Inspect Claude sessions stored in PostgreSQL.
+  </Card>
+</CardGroup>

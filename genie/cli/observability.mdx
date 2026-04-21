@@ -40,6 +40,10 @@ genie events list --since 30m --errors-only
 genie events list --v2 --kind agent.lifecycle --severity warn
 ```
 
+<Note>
+  `genie events list` defaults to the last hour. Widen with `--since 1d` or narrow with `--since 5m` when chasing a specific incident.
+</Note>
+
 <Tip>
   For a walkthrough of `rot.*` and `detector.*` events and triage, see [Detectors](/genie/observability/detectors).
 </Tip>
@@ -134,6 +138,10 @@ Show aggregated error patterns.
 genie events errors [--since <duration>] [--json]
 ```
 
+<Warning>
+  Treat `genie events errors` as an incident-response tool. A sudden spike in an error pattern usually means a provider outage, a credential rotation, or a broken agent — investigate before spawning more work on top.
+</Warning>
+
 ### `genie events costs`
 
 Cost breakdown from OTel API request events.
@@ -155,6 +163,10 @@ genie events costs [options]
 genie events costs --today --by-agent
 genie events costs --since 7d --by-model
 ```
+
+<Tip>
+  Every `genie events` subcommand supports `--json`. Pipe into `jq` for ad-hoc analysis — e.g., `genie events costs --since 7d --by-model --json | jq '.[] | select(.usd > 1)'` surfaces only models that cost more than $1 in the last week.
+</Tip>
 
 ### `genie events tools`
 
@@ -535,3 +547,20 @@ Publish a QA result to the PostgreSQL event log. Called internally by the QA tea
 ```bash
 genie qa-report <json>
 ```
+
+## See also
+
+<CardGroup cols={2}>
+  <Card title="Spawn & Lifecycle" icon="rocket" href="/genie/cli/spawn">
+    Spawn the agents whose events land in the audit log.
+  </Card>
+  <Card title="Messaging" icon="message" href="/genie/cli/messaging">
+    Send instructions to agents instead of scraping terminal output.
+  </Card>
+  <Card title="Scheduling" icon="clock" href="/genie/cli/scheduling">
+    Configure cron triggers whose runs surface through `schedule history`.
+  </Card>
+  <Card title="Database" icon="database" href="/genie/cli/database">
+    Inspect the PostgreSQL store that backs every event, session, and metric.
+  </Card>
+</CardGroup>
