@@ -27,6 +27,10 @@ genie release create "v1.0" --tasks #10 #11 #12
 genie release create "sprint-3" --tasks task-6c3a2cf2
 ```
 
+<Warning>
+  A release, once created, is the identity used for changelogs and ship tracking. Reusing the same release name with a different task list is not the same as editing the membership — create the next release with a new name (`v1.1`, `sprint-4`) rather than overwriting history.
+</Warning>
+
 ### `genie release list`
 
 List all releases.
@@ -89,6 +93,10 @@ genie tag list --type software --json
 ## Task Type Commands
 
 Task types define the stage pipeline that tasks follow. Each stage has a gate (`human`, `agent`, or `human+agent`) that controls who can advance tasks through it.
+
+<Note>
+  A **type** describes the pipeline a task flows through (`draft → brainstorm → wish → build → review → qa → ship`); a **role** describes what an agent does (`engineer`, `reviewer`, `qa`). Types live on tasks; roles live on agents. A reviewer agent can work on any task type whose pipeline has a review stage.
+</Note>
 
 ### `genie type list`
 
@@ -160,3 +168,24 @@ The built-in `software` type uses this pipeline:
 ```text
 draft → brainstorm → wish → build → review → qa → ship
 ```
+
+<Tip>
+  Start from `genie type show software --json` when designing a custom type — the output is a valid `--stages` payload you can edit and pass back to `genie type create`. Cheaper than writing the JSON from scratch, and it keeps your gates consistent with the built-in pipeline.
+</Tip>
+
+## See also
+
+<CardGroup cols={2}>
+  <Card title="Tasks" icon="list-check" href="/genie/cli/tasks">
+    Assign tasks to releases, attach tags, and pick their type.
+  </Card>
+  <Card title="Boards" icon="columns-3" href="/genie/cli/boards">
+    Boards now drive day-to-day pipelines — types remain for custom task shapes.
+  </Card>
+  <Card title="Projects" icon="folder" href="/genie/cli/projects">
+    Releases and tags scope inside a project.
+  </Card>
+  <Card title="Dispatch" icon="paper-plane" href="/genie/cli/dispatch">
+    Dispatch commands match pipeline stage names (`wish`, `work`, `review`, `done`).
+  </Card>
+</CardGroup>

@@ -49,6 +49,10 @@ $ genie dir rm sofia
 Agent "sofia" removed from project directory.
 ```
 
+<Warning>
+  `genie dir rm` only removes the registry entry — the agent folder on disk is untouched. If the agent has active sessions or team memberships, stop those first (`genie stop <name>`, `genie team fire <name>`) before removing the entry, otherwise dispatch commands will fail to resolve it.
+</Warning>
+
 ## `genie dir ls`
 
 List all registered agents or show details for a specific agent.
@@ -136,6 +140,13 @@ Created agent scaffold at .genie/agents/sofia/
   HEARTBEAT.md   — recurring task checklist
 ```
 
+<Note>
+  Three related commands, one clear split:
+  - `genie init agent <name>` — scaffolds the **files** (SOUL.md, HEARTBEAT.md). Use this when starting from scratch.
+  - `genie dir add <name> --dir <path>` — registers an **existing folder** in the directory. Use this when the agent already lives on disk.
+  - `genie agent register <name>` — registers locally **and** in Omni for cross-channel messaging. Use this when the agent should reply on WhatsApp, Slack, etc.
+</Note>
+
 ---
 
 ## Scope
@@ -148,3 +159,24 @@ Agent entries can be stored at two levels:
 | **Global** | `~/.genie/directory.json` | Agents available across all repos |
 
 Use `--global` to target the global directory.
+
+<Tip>
+  Register reusable, role-style agents (engineer, reviewer, qa) in the **global** directory so every repo picks them up. Keep repo-specific personas (e.g., a project mascot or domain expert) in the **project** directory so they don't leak into unrelated work.
+</Tip>
+
+## See also
+
+<CardGroup cols={2}>
+  <Card title="Agents (concept)" icon="robot" href="/genie/concepts/agents">
+    How agents, roles, and providers relate.
+  </Card>
+  <Card title="Spawn & Lifecycle" icon="rocket" href="/genie/cli/spawn">
+    Spawn the agents you've registered here.
+  </Card>
+  <Card title="Item Registry" icon="store" href="/genie/cli/registry">
+    Share agent definitions across machines via the registry.
+  </Card>
+  <Card title="Messaging" icon="message" href="/genie/cli/messaging">
+    Message a registered agent from the CLI.
+  </Card>
+</CardGroup>

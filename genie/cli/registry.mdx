@@ -55,6 +55,14 @@ git@github.com:user/repo.git
    - **workflow** — registers schedule with cron expression
    - **stack** — recursively installs all bundled items
 
+<Note>
+  `--force` overwrites an existing item with the same name. If you made local edits inside `~/.genie/items/<name>/`, they're discarded — use `--full` during development so the clone is a full git checkout you can work from.
+</Note>
+
+<Tip>
+  Install a stack to bootstrap an entire workspace in one command — `stack` items recursively install every agent, skill, board, and workflow they bundle.
+</Tip>
+
 ### Examples
 
 ```bash
@@ -101,6 +109,10 @@ git tag v1.0.0
 git push origin v1.0.0
 genie publish
 ```
+
+<Warning>
+  `genie publish` records the version in `app_versions` against a specific git SHA — once registered, that `(name, version)` pair cannot be quietly replaced. If you pushed a broken tag, bump the version and publish again rather than trying to rewrite history.
+</Warning>
 
 ## `genie item update`
 
@@ -232,3 +244,20 @@ If no `genie.yaml` exists, Genie infers the manifest from conventions:
 | `AGENTS.md` | `agent` — reads name, model, roles from YAML frontmatter |
 | `manifest.ts` | `app` |
 | `skill.md` | `skill` |
+
+## See also
+
+<CardGroup cols={2}>
+  <Card title="Directory" icon="address-book" href="/genie/cli/directory">
+    Register and edit agents in the local directory.
+  </Card>
+  <Card title="Boards" icon="columns-3" href="/genie/cli/boards">
+    Boards are one of the item types you can publish and install.
+  </Card>
+  <Card title="Scheduling" icon="clock" href="/genie/cli/scheduling">
+    Workflow items create schedules on install.
+  </Card>
+  <Card title="Database" icon="database" href="/genie/cli/database">
+    Inspect the app store tables that back the registry.
+  </Card>
+</CardGroup>

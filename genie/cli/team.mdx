@@ -35,6 +35,14 @@ $ genie team create auth-rewrite --repo . --wish add-oauth --branch dev
 | `--tmux-session <name>` | tmux session name (avoids session explosion) | — |
 | `--no-spawn` | Create team without spawning a leader agent | — |
 
+<Note>
+  Pair `--wish <slug>` with an existing wish to auto-spawn a team leader preloaded with that wish's context. Use `--no-spawn` when you want the team scaffold without burning tokens — handy for tests or staged rollouts.
+</Note>
+
+<Tip>
+  The `--wish` flag is the fastest path from "I have a wish" to "work is happening." It creates the worktree, checks out the branch, and hands the leader the WISH.md so it can dispatch execution groups immediately.
+</Tip>
+
 ## `genie team hire`
 
 Add an agent to a team. Use `council` to hire all 10 council members at once.
@@ -142,6 +150,10 @@ Disbanded team "auth-rewrite".
   Agents terminated.
 ```
 
+<Warning>
+  `genie team disband` deletes the team's worktree and terminates its agents. Uncommitted changes in the worktree are lost. If you only want to pause the team, use `genie team archive` — it preserves data and can be restored with `unarchive`.
+</Warning>
+
 ## `genie team done`
 
 Mark a team's work as complete.
@@ -184,4 +196,21 @@ Cleaned up 2 orphaned worktrees and 1 dead tmux session.
 ## Auto-Detection
 
 When `--team` is omitted, genie auto-detects the team from the leader context (environment variables or tmux session).
+
+## See also
+
+<CardGroup cols={2}>
+  <Card title="Teams (concept)" icon="users-gear" href="/genie/concepts/teams">
+    How teams, worktrees, and leaders fit together.
+  </Card>
+  <Card title="Spawn & Lifecycle" icon="rocket" href="/genie/cli/spawn">
+    Spawn, stop, resume, and kill the individual agents within a team.
+  </Card>
+  <Card title="Dispatch" icon="paper-plane" href="/genie/cli/dispatch">
+    Dispatch wish-aware commands (`wish`, `work`, `review`) that the leader uses.
+  </Card>
+  <Card title="Messaging" icon="message" href="/genie/cli/messaging">
+    Send instructions to team members while work is in flight.
+  </Card>
+</CardGroup>
 
