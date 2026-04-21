@@ -8,6 +8,10 @@ description: "Database management — check health, run migrations, and execute 
 
 The `genie db` command group manages the embedded PostgreSQL instance (pgserve) that backs Genie's task store, agent registry, schedules, and more.
 
+<Note>
+Genie requires pgserve >=1.1.10 (bumped 2026-04-20).
+</Note>
+
 ## `genie db status`
 
 Show pgserve health, port, data directory, and table counts.
