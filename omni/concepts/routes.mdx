@@ -96,3 +96,28 @@ omni routes create --instance $WA_INST --agent $PT_AGENT
 # Discord instance → English-speaking agent
 omni routes create --instance $DC_INST --agent $EN_AGENT
 ```
+
+<Note>
+Route resolution is **per-message**, evaluated by `omni routes test` exactly the same way the dispatcher evaluates it at runtime. Use `omni routes test --instance <id> --chat <id> --person <id>` before going live to confirm a route override resolves to the agent you expect.
+</Note>
+
+<Tip>
+Routes are cached. Use `omni routes metrics` to inspect cache hit rates — if they're low after a config change, the cache may be cold; if they're high but you're seeing the wrong agent, you may have a stale cache and need a process restart.
+</Tip>
+
+## See also
+
+<CardGroup cols={2}>
+  <Card title="AI Agents (concept)" icon="robot" href="/omni/concepts/agents">
+    How providers, agents, and routes compose.
+  </Card>
+  <Card title="Instances (concept)" icon="puzzle-piece" href="/omni/concepts/instances">
+    Per-channel configuration and reply filters.
+  </Card>
+  <Card title="Routes / Auth CLI" icon="route" href="/omni/cli/routes-persons-auth">
+    Full `omni routes`, `omni persons`, `omni auth` reference.
+  </Card>
+  <Card title="Agents CLI" icon="terminal" href="/omni/cli/agents">
+    Manage agents and inspect routing decisions.
+  </Card>
+</CardGroup>

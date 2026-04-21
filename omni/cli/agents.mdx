@@ -149,3 +149,24 @@ omni keys update <id> --name "Staging"  # Update a key
 omni keys revoke <id>                   # Revoke (disable) a key
 omni keys delete <id>                   # Permanently delete a key
 ```
+
+<Tip>
+Most agent and provider commands accept `--json` and pipe cleanly into `jq`. Use `omni agents list --json | jq '.[] | select(.active == true) | .id'` to script over the live agent set.
+</Tip>
+
+## See also
+
+<CardGroup cols={2}>
+  <Card title="Routes & Auth" icon="route" href="/omni/cli/routes-persons-auth">
+    Full reference for `omni routes`, `omni persons`, and `omni auth`.
+  </Card>
+  <Card title="Providers (deep)" icon="plug" href="/omni/cli/providers">
+    Per-provider create/update flag tables, schemas, and setup wizards.
+  </Card>
+  <Card title="Agents (concept)" icon="robot" href="/omni/concepts/agents">
+    How agents, providers, and routes relate.
+  </Card>
+  <Card title="Routes (concept)" icon="diagram-project" href="/omni/concepts/routes">
+    Routing rules, priorities, and resolution order.
+  </Card>
+</CardGroup>

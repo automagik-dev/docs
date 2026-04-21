@@ -341,3 +341,28 @@ These flags work with any command:
 |------|-------------|
 | `--json` | Output in JSON format |
 | `--no-color` | Disable colored output |
+
+<Tip>
+Set `--json` once via `omni config set format json` to avoid retyping it on every command — useful when wiring CLI output into scripts.
+</Tip>
+
+<Warning>
+`omni payloads delete` and `omni config unset` are destructive — payloads can't be recovered, and unsetting a config key reverts to defaults silently. There's no undo or audit log.
+</Warning>
+
+## See also
+
+<CardGroup cols={2}>
+  <Card title="Server lifecycle" icon="server" href="/omni/cli/management">
+    `install`, `start`, `stop`, `restart`, `doctor`, `update`.
+  </Card>
+  <Card title="Events & Analytics" icon="chart-line" href="/omni/cli/events">
+    Full reference for `omni events list`, `stream`, `replay`, `analytics`.
+  </Card>
+  <Card title="Debug" icon="bug" href="/omni/cli/debug">
+    Step-by-step troubleshooting commands and recipes.
+  </Card>
+  <Card title="Webhooks" icon="webhook" href="/omni/cli/webhooks">
+    Configure outbound event delivery to external services.
+  </Card>
+</CardGroup>

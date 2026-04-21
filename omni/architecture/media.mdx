@@ -121,3 +121,24 @@ Browse and download media:
 omni media list --instance <id>
 omni media download --id <media-id>
 ```
+
+<Warning>
+Media files persist on disk indefinitely until you run a cleanup. On a busy instance the `~/.omni/data/media/` tree grows unbounded — schedule periodic pruning if you do not need full media history.
+</Warning>
+
+## See also
+
+<CardGroup cols={2}>
+  <Card title="Messaging" icon="message" href="/omni/cli/messaging">
+    `omni media list`, `download`, and inline TTS via `omni send --tts`.
+  </Card>
+  <Card title="Batch processing" icon="layer-group" href="/omni/cli/tts-batch-prompts">
+    `omni batch` for bulk transcription and description backfills.
+  </Card>
+  <Card title="Voice gateway" icon="microphone" href="/omni/architecture/voice">
+    Real-time voice streaming and DAVE-protected sessions.
+  </Card>
+  <Card title="Providers" icon="plug" href="/omni/cli/providers">
+    Configure Gemini, ElevenLabs, and Groq for transcription and TTS.
+  </Card>
+</CardGroup>

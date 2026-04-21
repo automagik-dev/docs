@@ -127,3 +127,28 @@ omni keys create --name "Production"
 omni keys list
 omni keys revoke <key-id>
 ```
+
+<Note>
+Three concepts are easy to confuse on first read: a **provider** is reusable infrastructure (auth + base URL), an **agent** is a logical entity bound to one provider, and a **route** decides which agent handles a given conversation. You typically have a handful of providers, a few dozen agents, and routes per instance.
+</Note>
+
+<Tip>
+For routine deactivation prefer `omni keys revoke` over `omni keys delete` — revoked keys keep their audit trail and still appear in `omni keys list`, which makes incident review and rotation tracking much easier.
+</Tip>
+
+## See also
+
+<CardGroup cols={2}>
+  <Card title="Routes (concept)" icon="diagram-project" href="/omni/concepts/routes">
+    Routing rules, priorities, and resolution order.
+  </Card>
+  <Card title="Instances (concept)" icon="puzzle-piece" href="/omni/concepts/instances">
+    Per-channel configuration that scopes agent behaviour.
+  </Card>
+  <Card title="Agents (CLI)" icon="terminal" href="/omni/cli/agents">
+    `omni agents`, `omni providers`, `omni routes`, `omni keys` reference.
+  </Card>
+  <Card title="Providers (CLI)" icon="plug" href="/omni/cli/providers">
+    Per-provider config schemas and setup wizards.
+  </Card>
+</CardGroup>
