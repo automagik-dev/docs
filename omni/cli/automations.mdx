@@ -205,3 +205,13 @@ omni automations logs <id> [options]
 omni automations logs <id>
 omni automations logs <id> --limit 50
 ```
+
+## Trigger reliability
+
+Each registered trigger event type (e.g. `message.received`, `chat.idle_timeout`, `chat.archived`, `handoff`, `follow_up.*`) is backed by a **durable NATS consumer** named `automation-engine-<eventType>`. Durable consumers persist across restarts and survive arbitrary idle windows, so low-frequency triggers fire reliably even if no event arrives for hours.
+
+<Note>
+Older builds (pre-2.260418.1) used ephemeral consumers that the NATS server garbage-collected after 5 seconds of idle. The for-await loop exited silently and every subsequent publish was accepted by the stream but delivered to nobody. **If you upgraded from before 2.260418.1, low-frequency automations now actually run** — review your action wiring before re-enabling `chat.idle_timeout`, `chat.archived`, `handoff`, and `follow_up.*` automations.
+</Note>
+
+Durable names are sanitised to NATS-safe characters; if you create a custom trigger event type with unusual characters, the engine still produces a stable durable name.

@@ -154,6 +154,28 @@ omni chats label <chat-id> "vip"       # Add label
 omni chats unlabel <chat-id> "vip"     # Remove label
 ```
 
+### Clear an agent session (HTTP)
+
+`POST /v2/chats/clear-session` rotates the conversation's agent session ID and re-arms it for the next inbound message. Use it from an integration when the operator wants to "reset" the running agent for a chat without disconnecting the channel.
+
+```bash
+curl -X POST https://omni.example.com/v2/chats/clear-session \
+  -H "Authorization: Bearer $OMNI_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"instanceId": "0c6f8...","chatId": "5511..."}'
+```
+
+| Body field | Required | Description |
+|------------|----------|-------------|
+| `instanceId` | yes | UUID of the channel instance |
+| `chatId` | yes | External chat ID (e.g. WhatsApp JID) |
+
+The endpoint accepts `application/json`, `application/x-www-form-urlencoded`, and `multipart/form-data`. On success it returns `{ success: true, sessionId, sessionStrategy }` and as a side-effect disarms any pending follow-ups and unpauses the agent (mirrors the trash-emoji behaviour from inside the chat).
+
+<Note>
+Clearing a session does **not** delete chat history — only the agent's conversation handle is rotated.
+</Note>
+
 ---
 
 ## `omni messages`

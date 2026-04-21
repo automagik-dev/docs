@@ -238,3 +238,39 @@ omni providers teams <id>
 # List workflows
 omni providers workflows <id>
 ```
+
+## Handoff payload (Gupshup)
+
+When a Gupshup provider triggers a human handoff via `POST /v2/messages/handoff`, the request body now uses structured fields. The legacy `extra_info` is still accepted but new integrations should send `dadosLead` and `motivoHandoff`.
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `instanceId` | uuid | yes | Gupshup instance ID |
+| `chatId` | string | yes | Chat ID to pause the agent on |
+| `to` | string | yes | Recipient phone number |
+| `text` | string | yes | Message text shown to the end user |
+| `dadosLead` | string | no | Free-text lead-data summary for the human attendant |
+| `motivoHandoff` | string | no | Handoff trigger and notes (e.g. `"Gatilho: sinalizou close \|\|\| Obs: ..."`) |
+| `extraInfo` | string | no | **Legacy** — prefer `dadosLead`. Still accepted as a fallback. |
+| `handoffFields` | object | no | Structured fields for Gupshup flow variables (e.g. `nome`, `cidade`, `temperatura_lead`) |
+
+```bash
+curl -X POST https://omni.example.com/v2/messages/handoff \
+  -H "Authorization: Bearer $OMNI_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "instanceId": "0c6f8...",
+    "chatId": "5511...",
+    "to": "+5511999999999",
+    "text": "Um atendente humano vai continuar de onde a IA parou.",
+    "dadosLead": "Cliente perguntou sobre desconto em planos enterprise",
+    "motivoHandoff": "Gatilho: pediu humano ||| Obs: lead quente",
+    "handoffFields": { "nome": "Maria", "cidade": "Curitiba", "temperatura_lead": "quente" }
+  }'
+```
+
+If both `dadosLead` and `extraInfo` are sent, `dadosLead` wins; the legacy field is silently ignored. `motivoHandoff` is appended to the Gupshup notification only when present.
+
+<Note>
+The `handoffFields` object maps directly onto Gupshup template variables. Keys you don't define in your Gupshup flow are dropped server-side.
+</Note>
