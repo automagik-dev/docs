@@ -12,9 +12,11 @@ Genie provides seven command groups for observability: `events` for the audit lo
 
 The `genie events` command group queries the PostgreSQL audit event log. Events are structured as OTel-compatible records covering API costs, tool usage, task transitions, and errors.
 
+Thirteen subcommands group into three layers: **reading** (`list`, `errors`, `costs`, `tools`, `timeline`, `timeline-v2`, `summary`, `scan`), **streaming** (`stream`, `stream-follow`, `subscribe`), and **operations** (`migrate`, `admin`). Reading commands hit the table directly; streaming commands tail events in real time (with `stream-follow` and `subscribe` targeting the v2 enriched surface); operations commands are one-shot migrations and sentinel-audited incident response.
+
 ### `genie events list`
 
-List recent audit events.
+List recent audit events. Pass `--v2` to switch to the enriched `genie_runtime_events` surface with TraceId/SpanId/Severity/Duration columns.
 
 ```bash
 genie events list [options]
@@ -22,12 +24,103 @@ genie events list [options]
 
 | Option | Description |
 |--------|-------------|
-| `--type <type>` | Filter by event type |
+| `--type <type>` | Filter by `event_type` |
 | `--entity <entity>` | Filter by entity type or entity ID |
 | `--since <duration>` | Time window, e.g., `1h`, `30m`, `2d` (default: `1h`) |
 | `--errors-only` | Show only error events |
-| `--limit <n>` | Max rows (default: `50`) |
+| `--limit <n>` | Max rows to return (default: `50`) |
 | `--json` | Output as JSON |
+| `-f, --follow` | Follow mode — real-time streaming (alias: `genie events stream`) |
+| `--v2` | Use enriched `genie_runtime_events` surface with TraceId/SpanId/Severity/Duration columns |
+| `--kind <prefix>` | Filter v2 rows by kind/subject prefix (e.g., `mailbox`, `agent.lifecycle`) |
+| `--severity <level>` | Filter v2 rows by severity (`debug`\|`info`\|`warn`\|`error`\|`fatal`) |
+
+```bash
+genie events list --since 30m --errors-only
+genie events list --v2 --kind agent.lifecycle --severity warn
+```
+
+### `genie events stream`
+
+Stream audit + runtime events in real-time (tail -f style). Reach for this when you want a live firehose across both the legacy `audit_events` and the enriched `genie_runtime_events` surfaces — for example, while watching a wish execute or debugging a noisy agent.
+
+```bash
+genie events stream [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--type <type>` | Filter by `event_type` |
+| `--entity <entity>` | Filter by entity type or entity ID |
+| `--errors-only` | Show only error events |
+| `--kind <kind>` | Filter runtime events by kind (`tool_call`, `message`, `prompt`, etc.) |
+| `--agent <agent>` | Filter runtime events by agent |
+| `--audit-only` | Stream only `audit_events` (skip runtime) |
+| `--runtime-only` | Stream only runtime events (skip audit) |
+| `--all` | Show all events including noisy ones (`command_success`, etc.) |
+| `--json` | Output as JSON |
+
+```bash
+genie events stream --runtime-only --kind tool_call
+genie events stream --errors-only --agent engineer-1
+```
+
+### `genie events stream-follow`
+
+Follow-stream enriched `genie_runtime_events` via PostgreSQL `LISTEN/NOTIFY` with an id-cursor for resumable consumption (v2). Unlike `stream`, this command is built for long-running sidecars that need to survive reconnects — pass `--consumer-id` and it picks up where it left off.
+
+The `--kind` flag accepts `*` globs for subject-tree subscriptions. For example, `--kind 'detector.*'` follows every event emitted by the detector subsystem. See [Detectors](./observability/detectors.mdx) for the catalog of kinds (sibling PR — page lands alongside this one).
+
+```bash
+genie events stream-follow [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--follow` | Continuously follow the stream (default: `true`) |
+| `--kind <prefix>` | Filter by subject/kind prefix — supports `*` globs (e.g., `detector.*`) |
+| `--severity <level>` | Filter by severity (`debug`\|`info`\|`warn`\|`error`\|`fatal`) |
+| `--since <duration>` | Seed window (e.g., `5m`, `1h`) |
+| `--consumer-id <id>` | Persistent consumer id for cursor resume |
+| `--json` | Output as NDJSON |
+
+```bash
+# Follow all detector events at warn-or-higher severity
+genie events stream-follow --kind 'detector.*' --severity warn
+
+# Resume from a previous cursor under a stable consumer id
+genie events stream-follow --consumer-id sentinel-ingest --since 5m --json
+```
+
+### `genie events subscribe`
+
+Mint a signed subscription token for `genie events stream --follow`. Tokens carry an RBAC role and optional restrictions on event types, LISTEN channels, TTL, and tenant — letting subscriber agents connect without sharing long-lived credentials.
+
+<Note>
+`subscribe` requires a running scheduler/issuer with HMAC keys configured. The `--types` and `--channels` flags narrow (never widen) the role's default permissions.
+</Note>
+
+```bash
+genie events subscribe [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--role <role>` | RBAC role: `events:admin`\|`events:operator`\|`events:subscriber`\|`events:audit` |
+| `--types <csv>` | Comma-separated allowed event types (subset of role defaults) |
+| `--channels <csv>` | Comma-separated allowed LISTEN channels (subset of role defaults) |
+| `--ttl <duration>` | Token time-to-live (e.g., `30m`, `1h`, `24h`). Defaults to `1h`. |
+| `--tenant <id>` | Tenant id. Defaults to `default`. |
+| `--subscriber-id <id>` | Stable id for the subscriber agent |
+| `--json` | Output as JSON |
+
+```bash
+genie events subscribe \
+  --role events:operator \
+  --subscriber-id sentinel-ingest \
+  --ttl 24h \
+  --json
+```
 
 ### `genie events errors`
 
@@ -87,6 +180,22 @@ genie events timeline task-6c3a2cf2
 genie events timeline engineer-1
 ```
 
+### `genie events timeline-v2`
+
+Render a causal tree for a `trace_id` from the enriched `genie_runtime_events` surface. Unlike `timeline`, which walks any entity type, `timeline-v2` expects a trace id and reconstructs spans with OTel-style parent/child relationships — use it when chasing causality across agent/tool boundaries.
+
+```bash
+genie events timeline-v2 <trace-id> [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--json` | Output as JSON |
+
+```bash
+genie events timeline-v2 01JABCDEF0123456789GHJKMN --json
+```
+
 ### `genie events summary`
 
 High-level stats: agents spawned, tasks moved, costs, errors.
@@ -113,6 +222,66 @@ genie events scan [options]
 genie events scan
 genie events scan --since 20260330 --breakdown
 ```
+
+### `genie events migrate`
+
+Backfill legacy `audit_events` rows into `genie_runtime_events` as a one-shot migration. Useful when adopting the v2 enriched surface on an existing installation or recovering from a gap in the ingestion pipeline.
+
+<Note>
+Run with `--dry-run` first to inspect row deltas; re-run without `--dry-run` to commit.
+</Note>
+
+```bash
+genie events migrate [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--audit` | Migrate `audit_events` → `genie_runtime_events` with sentinel source tag |
+| `--dry-run` | Report row deltas without writing |
+| `--since <duration>` | Only migrate rows created within this window |
+| `--limit <n>` | Cap the number of rows migrated per run |
+| `--json` | Output summary as JSON |
+
+```bash
+genie events migrate --audit --since 7d --dry-run
+genie events migrate --audit --since 7d --limit 10000 --json
+```
+
+### `genie events admin`
+
+Incident-response admin commands (sentinel H6 audited). Every subcommand emits its own audit event so operator actions remain traceable in the chain.
+
+```bash
+genie events admin <subcommand> [options]
+```
+
+| Subcommand | Description |
+|------------|-------------|
+| `export-audit` | Produce a signed audit-chain bundle (emits `audit.export`) |
+| `list-revocations` | List revoked token ids for a tenant |
+| `revoke-subscriber` | Add a subscription token to the revocation list |
+| `rotate-redaction-keys` | Rotate redaction + audit HMAC keys, preserving prior versions for lookup |
+| `un-hash` | Admin reverse-lookup for a Tier-A hash (emits `audit.un_hash`) |
+| `verify-chain` | Quick chain-integrity check (no export) |
+
+```bash
+genie events admin verify-chain
+genie events admin export-audit --tenant default
+```
+
+Run `genie events admin <subcommand> --help` for per-subcommand flags.
+
+### Enriched (v2) surface
+
+"Enriched" refers to the `genie_runtime_events` table — a v2 superset of the legacy `audit_events` stream that adds OTel-style columns (`trace_id`, `span_id`, `severity`, `duration_ms`) plus a hierarchical `kind` taxonomy. It has no dedicated subcommand; instead, the enriched surface is reached via:
+
+- [`genie events list --v2`](#genie-events-list) — table listing with enriched columns and `--kind`/`--severity` filters
+- [`genie events stream-follow`](#genie-events-stream-follow) — resumable `LISTEN/NOTIFY` stream with glob-enabled `--kind`
+- [`genie events timeline-v2`](#genie-events-timeline-v2) — causal-tree rendering for a `trace_id`
+- [`genie events migrate --audit`](#genie-events-migrate) — backfill legacy rows into the enriched surface
+
+Use the v2 surface whenever you need trace/span correlation or subject-tree subscriptions; fall back to the legacy commands for simple audit queries.
 
 ---
 
