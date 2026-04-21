@@ -1,0 +1,97 @@
+---
+title: "Detectors"
+sidebarTitle: "Detectors"
+description: "Stream rot/detector events to catch state drift, orphaned executors, and session-reuse ghosts in real time."
+icon: "radar"
+---
+
+# Detectors
+
+Detectors emit `rot.*` and `detector.*` events when genie observes anomalies in its own state — worktree drift, tmux/PG disagreements, orphaned executors, silently-dropped broadcasts, and more. Each detector is read-only: it inspects PostgreSQL, tmux, and the filesystem on a scheduler tick and publishes an event you can stream, filter, and triage. You decide what to do about it.
+
+<Note>
+Detectors surface anomalies, not errors — not every event requires action. Many patterns have known false-positive sources (mid-transaction races, transient network mounts) that clear themselves on the next tick.
+</Note>
+
+## Listing active detectors
+
+Eight `rot.*` pattern families ship in the current scheduler. Use `genie events list --kind 'detector.*'` (see [Observability](/genie/cli/observability)) to pull recent fires for any of them.
+
+| Pattern | Risk | What it detects |
+|---------|------|-----------------|
+| `rot.backfill-no-worktree` | low | A `teams` row claims a `worktree_path` that no longer exists on disk. |
+| `rot.team-ls-drift` | medium | `genie team ls` and `genie team disband` disagree about what a team is. |
+| `rot.anchor-orphan` | high | An agent row is alive but the tmux pane is dead and its worktree transcript is missing. |
+| `rot.duplicate-agents` | low | Two non-archived agents share the same `(custom_name, team)` pair. |
+| `rot.zombie-team-lead` | low | A live team-lead has not seen any team activity event in 5+ minutes. |
+| `rot.subagent-cascade` | high | A parent agent is in `error` together with two or more of its direct children. |
+| `rot.dispatch-silent-drop` | high | A `@team` broadcast landed in PG but zero prompt events reached idle members. |
+| `rot.session-reuse-ghost` | high | A fresh agent has bound to an archived peer's transcript via a `custom_name` collision. |
+
+## Streaming in real time
+
+`genie events stream-follow` tails enriched `genie_runtime_events` via LISTEN/NOTIFY. The `--kind` flag accepts `*`-glob prefixes, so you can watch every detector fire with one pattern.
+
+```bash
+# Follow every detector event as it fires, seeded with the last 5 minutes.
+genie events stream-follow --kind 'detector.*' --since 5m
+
+# Only show warnings or worse.
+genie events stream-follow --kind 'detector.*' --severity warn
+
+# Machine-readable stream for alerting pipelines.
+genie events stream-follow --kind 'rot.*' --json
+```
+
+The first page is a seed window (`--since`), then the stream follows new events as they arrive. Use `--consumer-id` if you want a persistent cursor that resumes where it left off.
+
+## Triage procedure
+
+<Steps>
+  <Step title="Identify">
+    Read the event payload. `observed_state_json` names the first offender and carries enough context (counts, IDs, timestamps) to judge scope without a follow-up query.
+  </Step>
+  <Step title="Classify">
+    Check the pattern's known false-positive sources in the [runbook](https://github.com/automagik-dev/genie/blob/main/docs/detectors/runbook.md). A single fire during a mid-disband tick or tmux restart is usually noise.
+  </Step>
+  <Step title="Escalate">
+    If the detector fires repeatedly for the same entity or the scope count is above the pattern's threshold (e.g., `drop_count > 2`, `ghost_count > 3`), treat it as a real incident and follow the runbook's per-pattern action box.
+  </Step>
+  <Step title="Verify">
+    Re-run the detector's probes by hand (`genie team show`, `genie agent show`, `psql` snippets in the runbook) and confirm the anomaly persists before mutating state.
+  </Step>
+</Steps>
+
+<Warning>
+Never act on a detector event alone — always reconfirm with a live probe. Detector evidence is one scheduler tick old and can race with concurrent lifecycle transitions.
+</Warning>
+
+## Self-healing groups
+
+The detectors and their substrate shipped in four upstream groups. Each card links back to the authoritative runbook in the `genie` repo.
+
+<CardGroup cols={2}>
+  <Card title="Group 3a — low-risk detectors" icon="shield-check" href="https://github.com/automagik-dev/genie/blob/main/docs/detectors/runbook.md#pattern-1--rotbackfill-no-worktree">
+    Patterns 1, 4, 5 (`rot.backfill-no-worktree`, `rot.duplicate-agents`, `rot.zombie-team-lead`) — low false-positive surfaces safe to watch on every tick.
+  </Card>
+  <Card title="Group 3c — high-risk detectors" icon="triangle-exclamation" href="https://github.com/automagik-dev/genie/blob/main/docs/detectors/runbook.md#pattern-3--rotanchor-orphan">
+    Patterns 3, 6, 7, 8 (`rot.anchor-orphan`, `rot.subagent-cascade`, `rot.dispatch-silent-drop`, `rot.session-reuse-ghost`) — high-stakes failures that need careful payload review before remediation.
+  </Card>
+  <Card title="Group 4 — tail filter" icon="filter" href="https://github.com/automagik-dev/genie/blob/main/docs/detectors/runbook.md">
+    The `--kind '*'`-glob predicate on `genie events stream-follow` — runtime filtering for `rot.*` and `detector.*` prefixes without per-subject flags.
+  </Card>
+  <Card title="Group 5 — runbook seed" icon="book" href="https://github.com/automagik-dev/genie/blob/main/docs/detectors/runbook.md">
+    The authoritative triage guide — one section per pattern with description, root cause, false-positive sources, and concrete action boxes.
+  </Card>
+</CardGroup>
+
+## See also
+
+<CardGroup cols={2}>
+  <Card title="Observability commands" icon="terminal" href="/genie/cli/observability">
+    Full reference for `genie events`, `log`, `metrics`, and related CLI verbs.
+  </Card>
+  <Card title="State management" icon="database" href="/genie/architecture/state">
+    Wish, agent, team, and mailbox state — the tables detectors read from.
+  </Card>
+</CardGroup>

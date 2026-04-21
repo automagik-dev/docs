@@ -40,6 +40,10 @@ genie events list --since 30m --errors-only
 genie events list --v2 --kind agent.lifecycle --severity warn
 ```
 
+<Tip>
+  For a walkthrough of `rot.*` and `detector.*` events and triage, see [Detectors](/genie/observability/detectors).
+</Tip>
+
 ### `genie events stream`
 
 Stream audit + runtime events in real-time (tail -f style). Reach for this when you want a live firehose across both the legacy `audit_events` and the enriched `genie_runtime_events` surfaces — for example, while watching a wish execute or debugging a noisy agent.
