@@ -8,6 +8,10 @@ description: "Embedded PostgreSQL database, migrations, and the task service"
 
 Genie embeds pgserve as a persistent database. One PostgreSQL instance runs per machine on port 19642, auto-started on demand. The connection is a lazy singleton — pgserve only starts when something actually needs the database.
 
+<Note>
+Genie requires pgserve >=1.1.10 (bumped 2026-04-20).
+</Note>
+
 ## How pgserve Works
 
 ```text
