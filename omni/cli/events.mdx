@@ -67,6 +67,10 @@ omni events stream --ndjson | jq 'select(.type == "message.received")'
 omni events stream --since 1h
 ```
 
+<Tip>
+`--ndjson` is the right output mode for piping. The default human-readable stream renders ANSI colors and is hard to parse; `--ndjson` (or the global `--json`) emits one event per line, ready for `jq` / `awk` / your event-bus consumer.
+</Tip>
+
 ---
 
 ## `omni events search`
@@ -167,3 +171,18 @@ omni events replay --status <session-id>
 # Cancel a running replay
 omni events replay --cancel <session-id>
 ```
+
+<Warning>
+`omni events replay --start` re-runs every matching event through the live automation pipeline by default. Always run with `--dry-run` first on production instances — replays send real messages, call real webhooks, and can spam customers if filters are wrong.
+</Warning>
+
+## See also
+
+<CardGroup cols={2}>
+  <Card title="Automations" icon="robot" href="/omni/cli/automations">
+    Trigger actions on the events surfaced here.
+  </Card>
+  <Card title="Webhooks" icon="webhook" href="/omni/cli/webhooks">
+    Push events to external services for custom processing.
+  </Card>
+</CardGroup>

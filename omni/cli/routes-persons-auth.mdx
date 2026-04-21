@@ -373,3 +373,32 @@ Permanently delete an API key.
 ```bash
 omni keys delete <id>
 ```
+
+<Warning>
+`omni keys delete` is irreversible — there is no soft-delete or undo. Prefer `omni keys revoke <id>` for routine deactivation; revoked keys retain their audit trail and can still appear in `omni keys list`.
+</Warning>
+
+<Note>
+`omni persons merge` and `omni persons link` rewrite the canonical person identity. Downstream automations keyed on the merged-away `personId` will start receiving events under the surviving ID — coordinate with anyone who built dashboards or alerts on those IDs before merging.
+</Note>
+
+<Tip>
+Bulk-restrict a key to specific instances by passing a comma list: `omni keys update <id> --instances "wa-prod,wa-staging"`. Pass an empty string `--instances ""` to remove the restriction.
+</Tip>
+
+## See also
+
+<CardGroup cols={2}>
+  <Card title="Routes (concept)" icon="diagram-project" href="/omni/concepts/routes">
+    Routing rules, priorities, and resolution order.
+  </Card>
+  <Card title="Auth & API keys" icon="key" href="/omni/cli/agents">
+    `omni keys` quick reference and agent-side key usage.
+  </Card>
+  <Card title="Webhooks" icon="webhook" href="/omni/cli/webhooks">
+    Inbound auth surfaces for custom integrations.
+  </Card>
+  <Card title="Instances" icon="server" href="/omni/concepts/instances">
+    Per-instance access and identity model.
+  </Card>
+</CardGroup>

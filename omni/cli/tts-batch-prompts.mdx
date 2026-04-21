@@ -224,3 +224,22 @@ omni prompts reset <name>
 ```bash
 omni prompts reset image
 ```
+
+<Warning>
+`omni prompts set` overrides the global default for **every** instance, agent, and incoming media of that type until reset. Test on a non-production instance first — a bad transcription prompt can silently corrupt downstream agent context for hours before anyone notices.
+</Warning>
+
+<Tip>
+Use `--reason` on every `prompts set` so the next operator can tell why an override exists. The reason is surfaced in `omni prompts list`.
+</Tip>
+
+## See also
+
+<CardGroup cols={2}>
+  <Card title="Messaging" icon="message" href="/omni/cli/messaging">
+    Inline TTS via `omni send --tts` and the `omni speak` verb.
+  </Card>
+  <Card title="Media architecture" icon="image" href="/omni/architecture/media">
+    How media flows through transcription, description, and extraction.
+  </Card>
+</CardGroup>

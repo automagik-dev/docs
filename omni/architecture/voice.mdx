@@ -69,7 +69,23 @@ omni voice leave --instance my-discord
 - DAVE is **mandatory** for any guild that has it enabled. The voice client negotiates the protocol version automatically and rejects sessions that fail the handshake rather than falling back to plaintext.
 - Audio frames are **never persisted** by the gateway itself. Use `--save <dir>` on `omni voice stream` if you need on-disk artefacts; otherwise the bus is in-memory only.
 
+<Note>
+DAVE rejection is loud — when a session fails handshake the gateway emits a `voice.handshake_failed` event. Check `omni events list --type voice.handshake_failed --since 1h` if voice goes dark in a DAVE-enabled guild.
+</Note>
+
 ## See also
 
-- [`omni voice` CLI reference](/omni/cli/messaging) (verb commands and channel ops)
-- [Instances](/omni/concepts/instances) for setting up the Discord bot token
+<CardGroup cols={2}>
+  <Card title="Voice CLI verbs" icon="microphone" href="/omni/cli/messaging">
+    `omni voice join`, `leave`, `stream` and the speak/listen verbs.
+  </Card>
+  <Card title="Instances" icon="puzzle-piece" href="/omni/concepts/instances">
+    Discord bot token configuration and per-instance setup.
+  </Card>
+  <Card title="Media architecture" icon="image" href="/omni/architecture/media">
+    Media storage, transcription, and batch backfills.
+  </Card>
+  <Card title="Events" icon="rss" href="/omni/cli/events">
+    Stream `voice.*` events for live monitoring.
+  </Card>
+</CardGroup>

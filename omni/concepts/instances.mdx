@@ -119,3 +119,25 @@ omni instances blocklist <id>
 # Check if a number is on WhatsApp
 omni instances check <id> +5511999999999
 ```
+
+<Warning>
+`omni instances delete` and `omni instances logout` both invalidate the channel session — `delete` removes the row and history, `logout` keeps the row but clears credentials. Neither is recoverable; re-pairing requires going through QR/pair flow again.
+</Warning>
+
+<Tip>
+Run `omni instances whoami <id>` right after pairing to confirm the connected phone/identity matches what you expect — pairing a wrong number is the most common silent setup failure.
+</Tip>
+
+## See also
+
+<CardGroup cols={2}>
+  <Card title="Management CLI" icon="terminal" href="/omni/cli/management">
+    Full `omni instances` reference + WhatsApp pairing, sync, group management.
+  </Card>
+  <Card title="AI agent integration" icon="robot" href="/omni/concepts/agents">
+    Bind agents to instances via providers and routes.
+  </Card>
+  <Card title="Routes" icon="diagram-project" href="/omni/concepts/routes">
+    Filter which messages reach the agent on each instance.
+  </Card>
+</CardGroup>
