@@ -126,6 +126,12 @@
             ]
           },
           {
+            "group": "Observability",
+            "pages": [
+              "genie/observability/detectors"
+            ]
+          },
+          {
             "group": "Hacks & Tips",
             "pages": [
               "genie/hacks"
