@@ -90,6 +90,44 @@ $ genie done add-oauth#1
   Notified team-lead: "Wave 1 complete"
 ```
 
+## Turn-closing commands
+
+Called from inside an agent session to close the current turn with a non-success outcome. Both write the outcome (and optional reason) to the turn's event log so the team lead and downstream tooling can act on it.
+
+### genie blocked
+
+Close the current turn with `outcome=blocked` — use when the work cannot proceed because of an external dependency or missing information.
+
+```bash
+genie blocked [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--reason <message>` | Why the turn is blocked |
+| `-h, --help` | Display help for command |
+
+```bash Terminal
+$ genie blocked --reason "waiting on DB credentials from ops"
+```
+
+### genie failed
+
+Close the current turn with `outcome=failed` — use when execution hit an error that cannot be recovered in this turn.
+
+```bash
+genie failed [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--reason <message>` | Why the turn failed |
+| `-h, --help` | Display help for command |
+
+```bash Terminal
+$ genie failed --reason "migration reverted — schema mismatch on dev"
+```
+
 ## `genie status`
 
 Pretty-print wish state overview.
