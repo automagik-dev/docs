@@ -150,3 +150,44 @@ spawn → running → stop → suspended → resume → running
 | **suspended** | Stopped gracefully, session preserved for resume |
 | **terminated** | Force-killed, session lost |
 
+## Auto-resume
+
+When an agent's tmux pane dies unexpectedly (crash, OOM, terminal close), the scheduler daemon restores it by respawning against the saved Claude session ID. This keeps the "one name = one true Claude session UUID" invariant across crashes and is why `--no-auto-resume` (see the [spawn flag table](#genie-spawn)) exists as an escape hatch.
+
+<Steps>
+  <Step title="Detect dead pane">
+    The daemon polls heartbeats. Two consecutive dead cycles mark the worker as resumable. On daemon startup, `recoverOnStartup()` sweeps any panes that died while the daemon was down.
+  </Step>
+  <Step title="Match session">
+    An agent is eligible when it has a `claudeSessionId` (Claude provider only), its state is not `done`, and `autoResume` is not `false`. Spawn-time resume additionally requires a matching role and team.
+  </Step>
+  <Step title="Respawn with budget">
+    Resumes are capped at `maxResumeAttempts = 3` with a 60-second cooldown. Exceeding the budget marks the agent permanently failed; `resumeAttempts` is visible in `genie ls`.
+  </Step>
+  <Step title="Opt out">
+    Pass `--no-auto-resume` at spawn time to set `autoResume=false`. The daemon then skips the agent in `reconcileOrphans()` — manual `genie resume <name>` still works and does not consume the budget.
+  </Step>
+</Steps>
+
+Full behavior spec: [`automagik-dev/genie/docs/SPAWN-AUTO-RESUME.md`](https://github.com/automagik-dev/genie/blob/dev/docs/SPAWN-AUTO-RESUME.md).
+
+## Team resolution
+
+`genie spawn` resolves the effective team via a five-tier precedence chain before it decides whether to create, resume, or fork a parallel. When `--team` (see the [spawn flag table](#genie-spawn)) is set, the team's configured `tmuxSessionName` is used automatically — you rarely need `--session`.
+
+| Tier | Source | Notes |
+|------|--------|-------|
+| 1 | `--team` flag | Explicit user intent — only tier that flips `teamWasExplicit`. |
+| 2 | `agent_templates.team` | Template-pinned team in PG. |
+| 3 | `$GENIE_TEAM` | Shell / automation context. |
+| 4 | `discoverTeamName()` | JSONL `leadSessionId` match, then tmux session name. |
+| 5 | `findTeamsContainingAgent()` | On-disk scan of `~/.claude/teams/*/config.json` — errors on ambiguity. |
+
+If every tier yields nothing and the agent is globally registered, an auto team-of-one is materialized downstream by `ensureNativeTeam`, named after the agent.
+
+<Note>
+  Passing `--session <team-name>` to `genie spawn` overrides the team's configured `tmuxSessionName` and lands the worker in a separate tmux session, breaking the topology. When `--team` is set, let Genie resolve the session — only pass `--session` for rare manual overrides.
+</Note>
+
+Full resolution spec: [`automagik-dev/genie/docs/SPAWN-TEAM-RESOLUTION.md`](https://github.com/automagik-dev/genie/blob/dev/docs/SPAWN-TEAM-RESOLUTION.md).
+

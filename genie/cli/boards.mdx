@@ -134,6 +134,30 @@ genie board reconcile <name> [--project <project>] [--json]
 
 Templates are reusable board blueprints. The built-in `software` template defines the default 7-stage pipeline.
 
+### Templates
+
+`genie template` is the top-level shortcut for board template management. It exposes read-only and deletion operations on the same templates managed by the `genie board template` subcommands below. Use `genie template` for quick inspection; use `genie board template` for authoring (`create`, `edit`, `rename`).
+
+```bash
+genie template <subcommand>
+```
+
+| Subcommand | Description |
+|------------|-------------|
+| `list` | List available templates. Supports `--json`. |
+| `show <name>` | Show template details. Supports `--json`. |
+| `delete <name>` | Delete a template. |
+
+```bash
+genie template list
+genie template show software
+genie template delete my-old-template
+```
+
+<Note>
+  `genie template` does not include `create`, `edit`, or `rename`. Reach for `genie board template` (documented below) for authoring operations.
+</Note>
+
 ### `genie board template list`
 
 List all available templates.

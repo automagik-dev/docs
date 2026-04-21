@@ -112,3 +112,51 @@ postgresql://genie:genie@localhost:19642/genie
 # Use with psql
 psql $(genie db url)
 ```
+
+## Danger zone
+
+### `genie-wipe`
+
+Fresh-start local Genie state — wipes the embedded PostgreSQL data directory (and optionally worktrees, teams, state, logs, wishes, brainstorms, and/or user config) to emulate a new-user experience.
+
+`genie-wipe` is a repo-local script, not a top-level `genie` subcommand. Invoke it with `bun` from a Genie checkout:
+
+```bash
+bun scripts/genie-wipe.ts [--apply] [--full] [--config]
+```
+
+<Warning>
+This is destructive. Running with `--apply` permanently deletes `~/.genie/data/pgserve` — the full database — and anything else covered by the flags you pass. There is no undo. Back up first with `genie db backup` if you need to preserve state.
+</Warning>
+
+| Flag | Description |
+|------|-------------|
+| _(none)_ | Dry-run (default). Prints the wipe manifest with sizes; no writes. |
+| `--apply` | Actually wipe. Requires typing the interlock phrase `I UNDERSTAND FRESH INSTALL` at the prompt. |
+| `--full` | Also wipe `~/.genie/{worktrees,teams,state,spawn-scripts,logs,wishes,brainstorms}`. |
+| `--config` | Also wipe `~/.genie/config.json`, `pgserve.port`, `serve.pid`, and `brain-version-check.json`. |
+| `--help`, `-h` | Show the built-in help. |
+
+**What gets wiped**
+
+- Always: `~/.genie/data/pgserve` (full DB reset — migrations re-run on next connect).
+- With `--full`: `~/.genie/worktrees`, `teams`, `state`, `spawn-scripts`, `logs`, `wishes`, `brainstorms`.
+- With `--config`: `~/.genie/config.json`, `pgserve.port`, `serve.pid`, `brain-version-check.json`.
+
+**What is preserved** (unless `--config` is passed): `~/.genie/config.json`, `tmux.conf`, installer-owned scripts, shell history, and any repos outside `~/.genie/worktrees`.
+
+```bash
+# Preview what would be wiped (DB only)
+bun scripts/genie-wipe.ts
+
+# Preview a full wipe (everything except config)
+bun scripts/genie-wipe.ts --full
+
+# Wipe just the database
+bun scripts/genie-wipe.ts --apply
+
+# Nuke everything back to post-install defaults
+bun scripts/genie-wipe.ts --apply --full --config
+```
+
+**Recovery:** the script itself does not restart anything. The next `genie <verb>` call (e.g. `genie serve start`) auto-starts a fresh `pgserve` and re-runs all migrations. If `--full` was used, `genie team ls` and `genie task list` will come up empty — you are effectively a new user.
