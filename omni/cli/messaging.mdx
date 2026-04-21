@@ -384,3 +384,24 @@ omni see photo.jpg
 omni see screenshot.png "What error is shown?"
 omni see receipt.jpg "Extract the total amount" --reply
 ```
+
+---
+
+## Session verbs
+
+These verbs operate on the **active conversation** — the chat you previously selected with `omni use <instance>` and `omni open <chat>`. They infer `--instance` and `--chat` from that context, so they're convenient inside an automation handler or an interactive session.
+
+| Verb | Description |
+|------|-------------|
+| `omni use <instance>` | Set the active instance for verb commands. Accepts an instance name, ID, or unique prefix. |
+| `omni open` | Open a chat in the active instance (sets the active chat for subsequent verbs). |
+| `omni close` | Close the open chat without sending anything (clears active-chat context). |
+| `omni done` | Mark the current verb interaction as complete (used by automation handlers to signal end of a turn). |
+| `omni where` | Show the current conversation context — instance, chat, and last message. Handy for "what am I about to send to?" sanity checks. |
+| `omni history [chat]` | Show recent message history for the active chat (or a chat passed explicitly). |
+
+<Note>
+Session verbs are most useful inside an `omni automations` `call_agent` handler — the active context is set automatically by the trigger, so the agent can run `omni react`, `omni say`, and `omni done` without needing to know the chat ID.
+</Note>
+
+Run `omni <verb> --help` for the full flag table.

@@ -162,7 +162,7 @@ Configure the **idle-chat follow-up sequence** — when a customer goes quiet af
 
 Config is layered with **closest scope wins** at runtime:
 
-```
+```text
 chat  →  instance  →  agent  →  (no config)
 ```
 
@@ -273,3 +273,26 @@ omni persons search <query>     # Search by name or phone
 omni persons get <id>           # Get full person profile
 omni persons presence <id>      # Check online presence and activity
 ```
+
+---
+
+## Server lifecycle
+
+These commands manage the embedded Omni server itself rather than its conversation state. Use them when bringing a host online, recovering from a crash, or upgrading.
+
+| Command | Description |
+|---------|-------------|
+| `omni install` | Bootstrap the server (non-interactive, reinstall-safe). Flags: `--port` (API port, default `8882`), `--database-url` (external PostgreSQL; defaults to embedded pgserve). |
+| `omni start` | Start the server (idempotent — no-op if already running). |
+| `omni stop` | Stop the server gracefully. |
+| `omni restart` | Stop, then start. Use after env changes that need a fresh process. |
+| `omni resync` | Re-pull external state (channels, contacts) without bouncing the process. |
+| `omni status` | Show API health and connection info. |
+| `omni doctor [--fix]` | Diagnose env drift, stale keys, version mismatch. `--fix` repairs WARN/FAIL checks in-place; never touches `~/.omni/data/pgserve`. |
+| `omni update [-y] [--no-restart]` | Update `@automagik/omni` to the latest version. By default restarts services that were already running; `--no-restart` updates the CLI only. |
+
+<Tip>
+Run `omni doctor` after every reinstall and before opening a support ticket — it surfaces misconfigured env vars, dangling keys, and version skew between CLI and server in one pass.
+</Tip>
+
+Run `omni <command> --help` for the full flag table.
