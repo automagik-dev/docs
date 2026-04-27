@@ -115,6 +115,16 @@
             ]
           },
           {
+            "group": "Security & Trust",
+            "pages": [
+              "genie/security/index",
+              "genie/security/distribution-sovereignty",
+              "genie/security/verifying-installs",
+              "genie/security/key-rotation",
+              "genie/incident-response/canisterworm"
+            ]
+          },
+          {
             "group": "Architecture",
             "pages": [
               "genie/architecture/overview",

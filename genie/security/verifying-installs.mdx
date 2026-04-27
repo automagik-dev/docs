@@ -1,0 +1,129 @@
+---
+title: "Verifying Installs"
+sidebarTitle: "Verifying Installs"
+icon: "badge-check"
+description: "Step-by-step walkthrough of `genie sec verify-install`, what each verification stage proves, and how to manually cross-check the four pinning channels."
+---
+
+## The one-line check
+
+```bash
+genie sec verify-install
+```
+
+Run from any shell after Genie is installed. Output on a clean install:
+
+```text
+Genie sec verify-install — checking the running binary
+
+✅ sha256:    0bd5f5… matches manifest.json
+✅ cosign:    keyless signature valid against expected identity
+✅ fulcio:    certificate identity matches pinned value
+✅ slsa:      Level 3 provenance valid; built from automagik-dev/genie@<sha>
+✅ source:    binary path resolves to ~/.local/bin/genie
+
+Verified: this binary was built and signed by Namastex's release pipeline.
+```
+
+Exit codes:
+
+| Code | Meaning |
+|------|---------|
+| `0` | All verification stages pass |
+| `2` | Cosign signature does not match the binary |
+| `3` | Cosign certificate identity does not match the pin (workflow path / OIDC issuer / source-uri) |
+| `4` | SLSA provenance attestation invalid or missing |
+| `5` | No signature material found alongside the binary |
+
+Any non-zero exit means **stop using the binary** until the cause is understood. Re-run with `--verbose` to see the raw cosign + slsa-verifier output for ticket purposes.
+
+## What each stage actually proves
+
+<AccordionGroup>
+  <Accordion title="SHA256 against manifest.json" icon="hash">
+    Confirms the binary on disk matches the bytes Namastex published. This protects against transit corruption and naive substitution but **proves nothing about who produced the binary** — any attacker who controls the CDN can rewrite both the binary and the manifest. The sha256 stage is a defense-in-depth gate, not the trust anchor.
+  </Accordion>
+  <Accordion title="Cosign keyless signature" icon="signature">
+    Verifies that the binary's bytes were signed during a GitHub Actions run. The Sigstore certificate (`genie.cert`) records *which* workflow signed it (path + branch/tag + commit SHA + OIDC issuer). This proves a real GitHub Actions job produced the binary — a CDN attacker without GitHub Actions access cannot forge a valid signature.
+  </Accordion>
+  <Accordion title="Fulcio certificate identity match" icon="id-card">
+    Compares the workflow path / OIDC issuer / source-uri inside the Fulcio cert against the **pinned identity** Genie embeds at compile time. This is the load-bearing check: it prevents an attacker who took over a *different* Namastex repo from publishing valid-looking signatures. The identity pin is documented across [four independent channels](/genie/security#the-trust-contract); the bundled value matches the install-time channel.
+  </Accordion>
+  <Accordion title="SLSA Level 3 provenance" icon="file-shield">
+    Verifies the build occurred on a hardened isolated GitHub-hosted runner using the documented `slsa-github-generator` workflow. SLSA L3 means: build script + build inputs are recorded, the build environment is non-falsifiable, the provenance attestation is generated outside the user-controlled workflow body. Confirms the binary you have was built from the source commit it claims.
+  </Accordion>
+  <Accordion title="Source path resolution" icon="route">
+    Sanity-check that `genie` on `$PATH` actually resolves to the binary that was just verified — not a different binary earlier in `$PATH` that happens to also run. Catches operator misconfiguration, not adversarial behavior.
+  </Accordion>
+</AccordionGroup>
+
+## Manually cross-checking the four pinning channels
+
+When `genie sec verify-install` reports identity-mismatch (exit `3`), the quickest way to triage is to look at all four pinning channels yourself and see which one disagrees:
+
+```bash
+# 1. The install.sh that bootstrapped the install
+curl -fsSL https://get.automagik.dev/genie | grep EXPECTED_COSIGN_IDENTITY
+```
+
+```bash
+# 2. The repo-root SECURITY.md
+curl -fsSL https://raw.githubusercontent.com/automagik-dev/genie/main/SECURITY.md \
+  | grep -A1 "## Cosign certificate identity"
+```
+
+```bash
+# 3. The .well-known/security.txt published from automagik.dev
+curl -fsSL https://automagik.dev/.well-known/security.txt | grep cosign-identity
+```
+
+```bash
+# 4. The pinned GitHub issue
+gh issue list --repo automagik-dev/genie --state open --label signing-key-fingerprint --limit 1
+```
+
+All four should produce the **byte-identical** identity string (a regex over `https://github.com/automagik-dev/genie/.github/workflows/<workflow>.yml@<branch-or-tag>` with the OIDC issuer set to `https://token.actions.githubusercontent.com`).
+
+If any one disagrees:
+- **One channel different, three match the binary's claim:** the disagreeing channel is stale or compromised. File an issue with the four values + the `--verbose` output of `genie sec verify-install`.
+- **Three channels match each other but not the binary:** the binary is suspect. Do not run mutating subcommands. Re-install from a different network/region to rule out a regional compromise.
+- **Two-vs-two split:** stop and email `security@namastex.io`. This pattern indicates a sophisticated attacker who compromised at least two distribution points.
+
+## Offline verification
+
+`genie sec verify-install` runs **offline by default** — every check uses material already on disk (the binary, its signature, the certificate, the provenance file, and the inlined identity pin). No transparency-log call to Sigstore is required.
+
+For an extra check, pass `--online`:
+
+```bash
+genie sec verify-install --online
+```
+
+`--online` queries the Rekor transparency log to confirm the signature was logged at signing time. This catches a narrow class of attacks where the attacker has the signing keys but couldn't write to Rekor. Useful in incident response; not required for routine operation.
+
+## When to refuse to run anything
+
+`genie sec verify-install` should be run:
+
+- ✅ Immediately after a fresh install
+- ✅ Before running any `genie sec remediate --apply` or other mutating subcommand (Genie does this automatically; the manual run is just to know in advance)
+- ✅ After every `genie self-update` (also automatic post-update; manual recheck adds confidence)
+- ✅ Whenever you suspect a regression — fresh `which genie` and verify
+
+If the verifier reports exit `2`, `3`, or `4` and you can't find a benign explanation in the four-channel cross-check, treat the host as compromised: stop running `genie`, isolate, and follow [/genie/incident-response/canisterworm](/genie/incident-response/canisterworm) for the response runbook.
+
+## What `--unsafe-unverified` is for
+
+In incident response, you may need to run `genie sec remediate --apply` *before* signing infrastructure is restored. The override:
+
+```bash
+genie sec remediate --apply --unsafe-unverified BURNED_KEY_2026_04_27
+```
+
+The `INCIDENT_ID` argument matches a strict regex (documented in [/genie/security/key-rotation#incident-id-contract](/genie/security/key-rotation)) and is recorded in the audit log. Three contexts are documented as legitimate:
+
+- `BURNED_KEY_<date>` — public key compromise confirmed by Namastex security
+- `CI_PRE_SIGNING_<date>_<job>` — CI pipeline before signing ships
+- `TEST_HARNESS_<date>` — integration tests
+
+Every other use is an audit finding. The override exists so incident response is not blocked by signing infrastructure being part of the incident; it is not a routine bypass.

@@ -1,0 +1,105 @@
+---
+title: "Distribution Sovereignty"
+sidebarTitle: "Distribution Sovereignty"
+icon: "shield-halved"
+description: "Why Genie ships through its own signed CDN instead of relying on npmjs.com — the threat model, the verification flow, and the soft-deprecate path for the npm channel."
+---
+
+<Note>
+  This page describes the *direction* Genie's distribution is moving toward, anchored by the [`aegis-distribution-sovereignty`](https://github.com/automagik-dev/genie/blob/main/.genie/brainstorms/aegis-distribution-sovereignty/DESIGN.md) umbrella merged in PR #1425. Some of the install paths described below ship in 2026-Q2/Q3 — see the per-component status notes.
+</Note>
+
+## The threat we're closing
+
+In April 2026, the [`@automagik/genie` npm package was weaponized as part of the CanisterWorm/TeamPCP compromise](/genie/incident-response/canisterworm). The detection-and-response runbook ships through the same npm pipe that carried the malicious payload. As long as Genie is acquired through `npm install -g @automagik/genie`, three structural exposures remain:
+
+1. **No cosign enforcement at install time.** npm verifies a tarball checksum but knows nothing about Sigstore certificates. A compromised publish token bypasses every cryptographic control upstream of npm.
+2. **Arbitrary `postinstall` scripts in transitive deps.** A single compromised dependency anywhere in the resolved tree runs arbitrary code on the operator's machine before Genie's own code executes.
+3. **Threat-intel cadence locked to npm publish.** The signature packs Genie uses to detect new IOCs are tied to whatever release rhythm npm allows. Worms propagate in hours; signature updates need to arrive in minutes.
+
+This page documents how Genie sidesteps all three.
+
+## The new install path
+
+```bash
+curl -fsSL https://get.automagik.dev/genie | bash
+```
+
+This single line is the canonical install. Internally it:
+
+1. **Detects your platform** (`uname -s` / `uname -m`, with Rosetta 2 awareness on Apple Silicon and libc detection on Linux). Mirrors Claude Code's bootstrap pattern.
+2. **Downloads the platform-appropriate static binary** from `cdn.automagik.dev/genie/<channel>/<version>/<platform>/genie`. The binary is a single file produced by `bun build --compile` — no Node, no npm, no transitive dep tree.
+3. **Verifies SHA256, cosign, and SLSA L3 provenance.** Three independent gates. Tamper at any layer fails the install with a clear exit code.
+4. **Hands off to the binary's own `install` subcommand** to wire shell integration, install completions, and create `~/.genie/`.
+
+Operators on networks that block `cdn.automagik.dev` can fall back to the GitHub Releases mirror — same artifacts, same signatures, different transport.
+
+<CardGroup cols={2}>
+  <Card title="Linux x86_64" icon="linux">
+    glibc + musl, both supported.
+  </Card>
+  <Card title="Linux ARM64" icon="microchip">
+    Native ARM64 binary, glibc.
+  </Card>
+  <Card title="macOS x86_64" icon="apple">
+    Intel Macs.
+  </Card>
+  <Card title="macOS ARM64" icon="apple">
+    Apple Silicon, with Rosetta detection so the right binary is picked even when running under emulation.
+  </Card>
+</CardGroup>
+
+Native Windows is **not yet on the matrix** — WSL2 with the Linux x86_64 binary works today; native Windows distribution is a v2 deliverable.
+
+## The verification stack
+
+Each release publishes:
+
+| Artifact | Purpose | Verifier |
+|----------|---------|----------|
+| `genie` (per platform) | The binary itself | `shasum -a 256` against `manifest.json` |
+| `genie.sig` | Cosign signature, keyless via OIDC | `cosign verify-blob` |
+| `genie.cert` | Fulcio certificate identifying the workflow + commit | embedded in `cosign verify-blob` check |
+| `provenance.intoto.jsonl` | SLSA Level 3 provenance attestation | `slsa-verifier verify-artifact` |
+| `manifest.json` | Schema-versioned envelope listing all of the above | JSON Schema validation against `docs/security/manifest.schema.json` |
+
+`install.sh` bundles tiny static portable verifiers (`sigstore-rs` + `slsa-verifier`, ≤2 MB each) so an operator with no preinstalled cryptographic tooling can still run the full chain. The verifiers are themselves cosign-signed by the same OIDC identity, with their SHA256 inlined in `install.sh` to defeat verifier-substitution attacks.
+
+The cosign certificate identity is pinned across [four independent channels](/genie/security#the-trust-contract). Cross-check before you run.
+
+## What about npm?
+
+`@automagik/genie` on npm is being **soft-deprecated**, not yanked. Existing operators on `npm install -g @automagik/genie` continue to work — but the package contents shrink to a ≤50-LOC `postinstall.js` shim that:
+
+1. Detects the platform (mirroring `install.sh`'s logic).
+2. Downloads `install.sh` from the CDN, verifying an inlined SHA256.
+3. Runs `bash install.sh` with platform pre-set.
+4. Prints a loud deprecation banner pointing at the canonical install path and the sunset date.
+
+The shim's own postinstall is what enforces the trust chain — even an operator who never updates their muscle memory ends up with a cosign-verified binary on disk. After the sunset window (90 days post-v1 GA), the npm package is `npm deprecate`-flagged with a stronger message; existing pinned versions continue to install via the shim, but the package itself is no longer the recommended path.
+
+We do not unpublish. Forensic tooling and dependency graphs benefit from the package's continued existence; the shim's loudness handles the rest.
+
+## What this does NOT solve (yet)
+
+Distribution sovereignty closes the *acquisition* exposure. Three larger exposures remain in flight:
+
+- **Build-time supply chain.** Genie itself is built from `bun install`. A compromised dependency in our build environment defeats every downstream control. Tracked under a separate future umbrella (`genie-build-sovereignty`); not in scope here.
+- **Runtime privilege boundary.** Once Genie runs, it has full host permissions. The [Aegis runtime sandbox](https://github.com/automagik-dev/genie/blob/main/.genie/wishes/aegis-runtime/WISH.md) (in flight) adds default-deny network egress and continuous workspace scanning. v1 is observe-only; v2 graduates to kernel-level enforcement.
+- **Content inspection at the prompt boundary.** Prompt-injection / PII / data-leak detection lives in our enterprise tier (`@khal-os`), not in the OSS distribution covered by this page.
+
+The CanisterWorm response covers what to do if the *current* boundary is breached: see [/genie/incident-response/canisterworm](/genie/incident-response/canisterworm).
+
+## Status
+
+| Component | Status | Tracker |
+|-----------|--------|---------|
+| Cosign keyless + SLSA L3 signing | ✅ Shipped | `genie-supply-chain-signing` |
+| Signature packs + version-gated matching | ✅ Shipped | `sec-signature-registry` (`@automagik/genie-signatures`) |
+| `cdn.automagik.dev` + per-platform binaries + `install.sh` | 🚧 Wave 1 | `distribution-exodus` (Wave 1 of the umbrella) |
+| `genie self-update` | 🚧 Wave 2 | `genie-self-update` |
+| Aegis runtime sandbox | 🚧 Wave 2 | `aegis-runtime` |
+| Aegis continuous scanner | 🚧 Wave 3 | `aegis-scanner` |
+| npm soft-deprecate + sunset | 🚧 Wave 1 finale | `distribution-exodus` Group 5 |
+
+The umbrella DESIGN.md sits at [.genie/brainstorms/aegis-distribution-sovereignty/DESIGN.md](https://github.com/automagik-dev/genie/blob/main/.genie/brainstorms/aegis-distribution-sovereignty/DESIGN.md) on the genie repo.
