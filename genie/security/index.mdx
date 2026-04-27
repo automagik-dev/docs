@@ -1,0 +1,74 @@
+---
+title: "Security & Trust"
+sidebarTitle: "Overview"
+icon: "shield-check"
+description: "How Genie is signed, distributed, and verified — the trust contract operators inherit at install time."
+---
+
+Genie ships software that runs with full host privileges. We treat its supply chain as a security boundary, not a logistics problem. This section documents the trust contract you inherit when you install Genie, the verification machinery you can run yourself, and the runbooks for the moments when something goes wrong.
+
+## The trust contract
+
+Every released Genie artifact (per-platform binary, signature pack, installer script) is signed via **cosign keyless** through GitHub Actions OIDC and accompanied by **SLSA Level 3** provenance. There is no long-lived private key, no hardware-backed offline ceremony — instead, every release artifact embeds a Sigstore certificate identifying the workflow path, OIDC issuer, and source-uri that produced it.
+
+Operators verify that identity, not a fingerprint. The pin is **byte-identical across four independent channels**, so an attacker would need to compromise all four to forge a release without detection:
+
+<CardGroup cols={2}>
+  <Card title="install.sh inlined" icon="code">
+    The bootstrap script that runs `curl -fsSL get.automagik.dev/genie | bash` carries the expected certificate identity at the top of the file. Read it before piping to bash.
+  </Card>
+  <Card title="SECURITY.md" icon="file-shield">
+    The repo-root [SECURITY.md](https://github.com/automagik-dev/genie/blob/main/SECURITY.md) lists the same identity verbatim. Cross-checks the script.
+  </Card>
+  <Card title=".well-known/security.txt" icon="globe">
+    Published at `automagik.dev/.well-known/security.txt` over HTTPS — independent of the GitHub repo. A third pinning channel.
+  </Card>
+  <Card title="Pinned GitHub issue" icon="github">
+    A pinned issue in `automagik-dev/genie` titled `SIGNING_KEY_FINGERPRINT_<YYYYMMDD>` carries the same identity. Updated only via the [key-rotation runbook](/genie/security/key-rotation).
+  </Card>
+</CardGroup>
+
+If you ever see a mismatch across these four channels, **do not install**. File an issue and we'll investigate before anyone runs anything.
+
+## Verifying an install yourself
+
+```bash
+# Verify the running binary against the pinned cosign identity:
+genie sec verify-install
+
+# Output:
+# ✅ cosign:  signature matches certificate identity
+# ✅ slsa:    Level 3 provenance attestation valid
+# ✅ source:  binary built from automagik-dev/genie@<commit-sha>
+```
+
+The verifier runs offline — no calls to Sigstore's transparency log unless you pass `--online` for an extra check. Mismatch produces a structured exit code (`2` = signature-invalid, `3` = identity-mismatch, `4` = provenance-invalid, `5` = no signature material).
+
+For mutating subcommands (`genie sec remediate --apply`), Genie refuses to run on an unverified binary. Override only via the documented `--unsafe-unverified <INCIDENT_ID>` ack contract; every override is recorded in `~/.genie/audit/sec-scan/<scan_id>.jsonl` for forensic review.
+
+## What lives in this section
+
+<CardGroup cols={2}>
+  <Card title="Distribution Sovereignty" icon="shield-halved" href="/genie/security/distribution-sovereignty">
+    Why Genie ships through its own CDN with cosign + SLSA verification instead of relying on `npmjs.com`. The threat model + the verification flow.
+  </Card>
+  <Card title="Verifying Installs" icon="badge-check" href="/genie/security/verifying-installs">
+    Step-by-step walkthrough of `genie sec verify-install`, what each verification stage proves, and how to manually cross-check the four pinning channels.
+  </Card>
+  <Card title="Key Rotation" icon="key" href="/genie/security/key-rotation">
+    When and how Namastex rotates the cosign certificate identity — the runbook operators follow if our signing surface changes.
+  </Card>
+  <Card title="CanisterWorm Incident Response" icon="shield-virus" href="/genie/incident-response/canisterworm">
+    Public 2026-04-23 runbook for the npm supply-chain compromise that motivated much of the work documented here.
+  </Card>
+</CardGroup>
+
+## Reporting a vulnerability
+
+Email `security@namastex.io` with a clear reproduction. We commit to:
+
+- **Acknowledge within 24 hours.**
+- **Confirm or reject within 7 days.**
+- **Coordinate disclosure on a 90-day timeline by default.** Earlier if exploitation is observed.
+
+Do not file public GitHub issues for security reports; we'll open the public tracking issue together once mitigation is in flight.
