@@ -5,3 +5,10 @@
 # Draft content
 drafts/
 *.draft.mdx
+
+# Internal engineering docs — surfaced inside automagik-dev/genie via
+# git submodule + symlink (genie/docs/_internal/...) but excluded from
+# the public Mintlify build at automagik.dev. Engineers reading the
+# genie repo see these as if they were native; operators on the public
+# site don't.
+**/_internal/
