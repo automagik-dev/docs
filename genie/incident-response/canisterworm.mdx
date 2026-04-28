@@ -354,9 +354,9 @@ find ~/workspace ~ -maxdepth 5 -name ".env*" -not -path "*/node_modules/*" 2>/de
 
 **LLM API keys**
 
-- Anthropic: <https://console.anthropic.com> → API Keys → revogar e emitir nova
-- OpenAI: <https://platform.openai.com/api-keys> → revogar e emitir nova
-- Google: <https://aistudio.google.com/apikey> → revogar e emitir nova
+- Anthropic: https://console.anthropic.com → API Keys → revogar e emitir nova
+- OpenAI: https://platform.openai.com/api-keys → revogar e emitir nova
+- Google: https://aistudio.google.com/apikey → revogar e emitir nova
 - Verifique o faturamento das últimas 72h para identificar uso anômalo.
 
 **Carteiras crypto (crítico)**
@@ -365,7 +365,7 @@ Se MetaMask, Phantom, Exodus, Atomic ou qualquer carteira estava instalada na m�
 
 1. Gere uma nova seed phrase
 2. Mova todos os fundos para a nova carteira imediatamente
-3. Revogue approvals ativas (use <https://revoke.cash> ou equivalente)
+3. Revogue approvals ativas (use https://revoke.cash ou equivalente)
 
 Roubos de carteira são **irreversíveis**. Não existe recuperação.
 
@@ -674,13 +674,13 @@ Any credential the host could read at install time was exfiltrated. Rotation = *
 
 | # | Target | Rotate URL | Verification |
 |---|--------|------------|--------------|
-| 1 | npm token | <https://www.npmjs.com/settings/~/tokens> | `npm whoami` with new token |
-| 2 | GitHub PAT + gh CLI | <https://github.com/settings/tokens> | `gh auth status` |
+| 1 | npm token | https://www.npmjs.com/settings/~/tokens | `npm whoami` with new token |
+| 2 | GitHub PAT + gh CLI | https://github.com/settings/tokens | `gh auth status` |
 | 3 | AWS access keys | AWS IAM Console | `aws sts get-caller-identity` |
 | 4 | GCP | `gcloud auth revoke --all && gcloud auth login` | `gcloud auth list` |
 | 5 | Azure | `az logout && az login` + rotate service principals | `az account show` |
 | 6 | Kubernetes | Rotate service-account tokens + kubeconfig contexts | `kubectl auth whoami` |
-| 7 | Docker registries | <https://hub.docker.com/settings/security> (and ECR/GCR/GHCR) | `docker login <registry>` |
+| 7 | Docker registries | https://hub.docker.com/settings/security (and ECR/GCR/GHCR) | `docker login <registry>` |
 | 8 | AI provider keys (Anthropic / OpenAI / Google) | Provider console | Audit billing last 72h |
 | 9 | Crypto wallets | New seed on a clean device; move funds | revoke.cash approvals audit |
 | 10 | TLS private keys on host | Re-issue via your CA | Verify cert chain on endpoint |
