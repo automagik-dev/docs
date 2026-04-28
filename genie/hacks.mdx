@@ -320,6 +320,101 @@ See the [Hooks reference](/genie/config/hooks) for the full list of NATS subject
 
 ---
 
+### Hack 9: Omni + Genie-NATS — Context Isolation for Multi-User Agents
+
+**Problem:** A genie-nats agent connected to a Telegram/WhatsApp/Discord instance via `omni connect` gets spoken to by multiple users in parallel. The omni CLI exposes global-state verbs (`omni say`, `omni open`, `omni use`, `omni react`, `omni history`, ...) that operate on an "active chat". If the agent calls any of them, replies leak to the wrong user — classic context poisoning. Prompt discipline alone won't hold; you need a harness-enforced permission boundary.
+
+**Solution:** Classify omni commands into **explicit-scope** (safe) and **global-state** (unsafe). Whitelist only explicit-scope commands in the agent's `.claude/settings.local.json`. Teach the agent to derive `chat_id` from the NATS turn payload (env vars) or `omni where --json` — never from enumeration like `omni chats list`.
+
+**Safe commands** (scope always explicit):
+
+| Command | Why safe |
+|---|---|
+| `omni send --to <chat-id> ...` | Destination mandatory, ignores global state — use instead of `say` |
+| `omni where --json` | Read-only; process-scoped by turn dispatcher |
+| `omni turns get <turn-id>` | Explicit turn ID |
+| `omni turns list --chat <id>` / `--agent <id>` | Filter binds scope |
+| `omni chats get <id>` / `omni chats messages <id>` | Explicit chat ID |
+| `omni messages get <id>` / `omni events get <id>` | Explicit resource ID |
+| `omni done --text "..."` | Closes only the current turn |
+
+**Unsafe commands** (global state, enumeration, or destructive admin):
+
+- Global-state verbs: `open`, `close`, `use`, `say`, `react`, `listen`, `imagine`, `film`, `speak`, `see`, `history`
+- Unfiltered enumeration: `chats list`, `events list/search/timeline`, `turns list` (no filter), `persons list/search`
+- Destructive/admin: `turns close-all`, `chats delete/archive/hide/mute`, `instances`, `channels`, `agents`, `providers`, `routes`, `keys`, `access`, `webhooks`, `settings`, `automations`, `start/stop/restart/install/doctor/resync/replay`, `batch`, `dead-letters`, `payloads`, `logs`, `auth`, `config`
+
+**`say` vs `send`** — the canonical example:
+
+| | `omni say <text>` | `omni send --to <id> ...` |
+|---|---|---|
+| Destination | Implicit (active chat) | Explicit (`--to`) |
+| Message types | Text only | Text, media, TTS, poll, reaction, forward, location, sticker, contact |
+| Stateful | Yes (global CLI context) | No |
+| Safe for parallel agents | ❌ | ✅ |
+
+**Discovering `chat_id` mid-conversation** (never enumerate):
+
+```bash
+# Option A — NATS payload env vars (preferred)
+env | grep -i omni   # inspect your connector once
+# Typical: OMNI_CHAT_ID, OMNI_TURN_ID, OMNI_INSTANCE_ID, OMNI_PERSON_ID
+omni send --to "$OMNI_CHAT_ID" --instance "$OMNI_INSTANCE_ID" --media ./img.png
+
+# Option B — omni where (safe because the process is turn-scoped)
+CTX=$(omni where --json)
+CHAT_ID=$(echo "$CTX" | jq -r '.chat.id')
+INSTANCE_ID=$(echo "$CTX" | jq -r '.instance.id')
+[ -n "$CHAT_ID" ] && [ "$CHAT_ID" != "null" ] || { echo "no active turn" >&2; exit 1; }
+omni send --to "$CHAT_ID" --instance "$INSTANCE_ID" --media ./img.png --caption "..."
+```
+
+**Where the permissions live** — `.claude/settings.local.json`, not `agent.yaml`:
+
+```jsonc
+{
+  "agentName": "telegram-bot",
+  "autoMemoryEnabled": true,
+  "autoMemoryDirectory": "./brain/memory",
+  "permissions": {
+    "defaultMode": "default",
+    "allow": [
+      "Bash(omni send --to *)",
+      "Bash(omni where --json)",
+      "Bash(omni where --json*)",
+      "Bash(omni turns get *)",
+      "Bash(omni turns list --chat *)",
+      "Bash(omni turns list --agent *)",
+      "Bash(omni chats get *)",
+      "Bash(omni chats messages *)",
+      "Bash(omni messages get *)",
+      "Bash(omni events get *)",
+      "Bash(omni done*)",
+      "Bash(jq *)",
+      "Bash(env)"
+    ],
+    "deny": [
+      "Bash(omni send *--forward*)",
+      "Bash(omni turns close-all*)"
+    ]
+  }
+}
+```
+
+**Benefit:** Zero cross-user poisoning even with many concurrent Telegram chats hitting the same agent. Defense in depth — the LLM can't leak a reply into another user's conversation even if its reasoning slips.
+
+**When to use:** Any genie-nats agent on a channel with more than one concurrent user. Production Telegram/WhatsApp/Discord bots. Any scenario where a CLI with global state (`active chat`, `active instance`) is exposed to an autonomous LLM.
+
+<Warning>
+Claude Code evaluates permissions in order **`deny → ask → allow`** — **deny always wins**, regardless of specificity. Do **not** write `"deny": ["Bash(omni *)"]` expecting a narrow `allow` to override it; it won't. Use a restrictive `defaultMode` and an explicit `allow` list instead. Reserve `deny` for closing variant-based bypasses (e.g. `omni send *--forward*`).
+</Warning>
+
+<Info>
+Also document the contract in `AGENTS.md` so the LLM self-limits and you see fewer approval prompts during autonomous loops. List the allowed commands and explicitly forbid the verb commands — this reduces fricton even before the harness layer kicks in.
+</Info>
+
+---
+
 ## Contributing
 
 Have a hack that's not here? We want it. The best docs come from people who actually hit the problem.
