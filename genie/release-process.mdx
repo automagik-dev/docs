@@ -1,0 +1,127 @@
+---
+title: "Release process"
+sidebarTitle: "Release process"
+icon: "rocket"
+description: "How Genie ships: GitHub Releases is the only distribution channel; npm is discontinued. Includes the npm deprecate runbook and operator migration path."
+---
+
+<Note>
+  **Hard cutover, 2026-05-09.** New `@automagik/genie` versions no longer land on npm. The only canonical install path is `install.sh`. The only canonical update path is `genie update`. There is no soft-deprecate, no `GENIE_INSTALL_LEGACY` env var, no fallback to `npm install -g`.
+</Note>
+
+## Distribution posture
+
+| Channel | Status | Notes |
+|---------|--------|-------|
+| GitHub Releases (`v<version>` tags + signed tarballs) | **Primary** | Per-platform `bun build --compile` binaries, cosign keyless OIDC + SLSA L3 attested, listed in `.well-known/latest.json`. |
+| `install.sh` | **Primary** | Reads `latest.json`, downloads the platform tarball, runs `gh attestation verify` (or cosign verify-blob fallback), extracts to `~/.genie/bin/`. |
+| `genie update` | **Primary** | Same primitives as `install.sh`; atomic binary swap with rollback. |
+| npm (`@automagik/genie`) | **Discontinued** | No new versions published. Existing versions carry an `npm deprecate` redirect message (see runbook below). The operator-side runbook is the only path that touches npm. |
+| Custom CDN (`cdn.automagik.dev` / R2 / Fastly) | **Out of scope** | GitHub Releases + `raw.githubusercontent.com` is the single distribution path. Per Felipe directive 2026-05-08. |
+
+The `Publish to npm via OIDC` step in `.github/workflows/version.yml` was deleted in wish `genie-distribution-cutover` G6. The npm OIDC trusted-publisher entry on npmjs.com and the org-level `NPM_TOKEN` secret are no longer used by this repo and are safe to remove.
+
+## Release pipeline (current)
+
+```text
+push to dev → CI green → version.yml derives version, commits + tags + pushes
+                              ↓
+                         tag push to origin
+                              ↓
+        build-tarballs.yml (matrix: 5 platforms via bun build --compile)
+                              ↓
+        sign-attest.yml (cosign keyless + actions/attest-build-provenance + SLSA L3)
+                              ↓
+        release-publish.yml (gh release create + commits .well-known/latest.json)
+                              ↓
+        operators: install.sh / genie update consume from the new release
+```
+
+`version.yml` no longer touches the npm registry. The pipeline is npm-free end to end.
+
+## npm deprecation runbook
+
+Run **once**, post-merge of the G6 PR. Subsequent releases do not need to re-run this.
+
+<Warning>
+  `npm deprecate` requires a long-lived classic npm token, **not** the npm OIDC trusted-publisher token (publish-only). The operator-side token is held by Felipe and is the same token used by `genie-supply-chain-signing` for off-CI operations. Do **not** add this token to repo or org secrets — it must remain operator-side.
+</Warning>
+
+### Pre-merge gate
+
+The G6 PR cannot merge until both checks pass:
+
+1. This runbook page (`release-process.mdx`) is committed and visible in the PR diff.
+2. The operator (Felipe) confirms current access to the operator npm token (e.g. via `npm whoami` against the `automagik` org from the operator's machine).
+
+### Steps
+
+1. **Operator machine setup** — Felipe authenticates to npm with the operator-side token:
+   ```bash
+   npm whoami                              # confirms identity (expect: an org owner of @automagik)
+   ```
+2. **Determine the final published version** — read `npm view @automagik/genie version` and pin it. As of 2026-05-09, the last published version is `4.260509.3`.
+3. **Run `npm deprecate` against every published version**:
+   ```bash
+   npm deprecate '@automagik/genie@<=4.260509.3' \
+     "npm distribution discontinued 2026-05-09. Install via install.sh: \
+   curl -fsSL https://raw.githubusercontent.com/automagik-dev/genie/main/install.sh | bash. \
+   See https://github.com/automagik-dev/genie/releases for signed tarballs."
+   ```
+   Replace `<=4.260509.3` with whatever `npm view @automagik/genie version` returned at runbook execution time.
+4. **Verify the deprecate message is visible**:
+   ```bash
+   npm view @automagik/genie deprecated   # expect: the migration message above
+   npm install -g @automagik/genie 2>&1 | grep -i deprecat   # expect: warning surfaces during install
+   ```
+5. **Record the runbook execution** — comment on the G6 PR with the command output, version pinned, and date/time of execution.
+
+### Failure modes
+
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| `npm deprecate` exits 401 / 403 | Operator token expired or scope mismatch | Refresh the classic token in npm UI; re-run from operator machine. |
+| `npm view ... deprecated` returns empty after deprecate | npm registry indexing lag (sub-second to a few seconds) | Wait 30s and re-run. If still empty after 5min, check `npm view @automagik/genie@<version>` for that specific version. |
+| Operator wants to add npm publish back | Out of scope for this runbook | Open a new wish (`genie-npm-redistribution`) with a fresh decision record + threat-model update; do not patch this runbook. |
+
+## Operator migration path
+
+For operators currently running `npm install -g @automagik/genie`:
+
+```bash
+# 1. Remove the old npm-installed binary.
+npm uninstall -g @automagik/genie
+
+# 2. Install via the canonical path.
+curl -fsSL https://raw.githubusercontent.com/automagik-dev/genie/main/install.sh | bash
+
+# 3. Verify.
+genie --version
+genie doctor
+```
+
+`genie update` is now the canonical update method. The `bun add -g @automagik/genie` flow inside `update.ts` was deleted in wish `genie-distribution-cutover` G5 — `genie update` reads `.well-known/latest.json` and atomically swaps the binary from a verified GitHub Release tarball.
+
+## Maintainer guidance
+
+If a future need arises to revive npm distribution (e.g. plugin ecosystem requirements, mirror parity), this is **not** a config flip:
+
+- File a new wish (`genie-npm-redistribution` or similar) with a fresh decision record explaining why npm is needed *in addition to* GitHub Releases.
+- Update the supply-chain threat model — the trust roots are different (Sigstore Rekor for GH Releases vs npm Trusted Publishing for npm), and operators verifying via either path need a clear story for which is canonical.
+- Re-add the `Publish to npm via OIDC` step to `version.yml` explicitly as part of the new wish; do not gate it behind an env var.
+- Re-add the npm trusted-publisher entry on npmjs.com.
+- If the new wish lands, undo the `npm deprecate` message via `npm undeprecate` from the operator machine.
+
+The minimum viable bar for a redistribution wish is: a decision record explaining why dual-publishing is worth the maintenance + audit surface, plus a runbook for keeping the two channels' versions in sync.
+
+## Related wishes + workflows
+
+| Reference | Where |
+|-----------|-------|
+| Hard-cutover wish | `.genie/wishes/genie-distribution-cutover/WISH.md` |
+| Tarball builder | `.github/workflows/build-tarballs.yml` (G1) |
+| Sign + attest | `.github/workflows/sign-attest.yml` (G2) |
+| Release publisher | `.github/workflows/release-publish.yml` (G3) |
+| Operator install | `install.sh` (G4) |
+| Operator update | `src/genie-commands/update.ts` (G5) |
+| Smoke test | `tests/integration/install-from-gh-releases.sh` (G7) |
