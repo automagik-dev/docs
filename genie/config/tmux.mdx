@@ -193,3 +193,43 @@ If `genie read` or state detection fails, check:
 - `terminal.readLines` is sufficient (increase if prompts are far from bottom)
 - The pane ID in the agent registry matches an actual tmux pane
 - tmux server hasn't been restarted since agents were spawned
+
+## TUI clipboard semantics in v5
+
+Starting with v5, the Genie TUI uses **terminal-native selection** for highlighting
+and copying. The terminal owns the entire selection lifecycle — tmux's automatic
+OSC 52 emit is disabled.
+
+| Action | Behavior |
+|--------|----------|
+| Drag in the Nav or any pane | Terminal-native drag-select highlights the text |
+| Release | Nothing fires automatically — no auto-clipboard write |
+| Cmd+C (macOS) / Ctrl+Shift+C (Linux) | Terminal copies the highlighted text via its normal clipboard hotkey |
+| Click on Nav rows | Click events still route to OpenTUI for navigation |
+
+### What changed under the hood
+
+- `set-clipboard` is now `off` in both `genie.tmux.conf` and `tui-tmux.conf`
+  (was `external` in v4). tmux no longer translates copy actions into OSC 52
+  escape sequences.
+- The `Ms=...` `terminal-overrides` cap that emitted OSC 52 is removed.
+- Vi copy-mode (`prefix+[`) and `MouseDragEnd1Pane` now use
+  `copy-selection-and-cancel` (was `copy-pipe-and-cancel "~/.genie/scripts/osc52-copy.sh"`).
+  Selections land in the tmux paste buffer; the terminal handles real clipboard.
+- The `osc52-copy.sh` helper remains on disk for ad-hoc operator use
+  (e.g. `cat file.txt | ~/.genie/scripts/osc52-copy.sh` from a non-TUI shell);
+  it is simply no longer invoked from the tmux config.
+
+### Escape hatch — `GENIE_TUI_MOUSE=0`
+
+If your terminal misbehaves with the new mouse override (drag does not
+highlight, or clicks misroute), launch the TUI with mouse handling disabled:
+
+```bash
+GENIE_TUI_MOUSE=0 genie tui
+```
+
+Then use tmux copy-mode (`prefix+[`) for keyboard-driven drag-select. This is
+the supported fallback for terminals that diverge from xterm-spec mouse
+sequences. Smoke gate covers Warp and Terminal.app on macOS; other terminals
+are best-effort.
