@@ -17,7 +17,7 @@ description: "Public incident-response runbook for the @automagik/genie + pgserv
 
 ## Sobre este documento
 
-Entre 21 e 22 de abril de 2026, versões maliciosas dos pacotes npm `@automagik/genie` e `pgserve` (publicados pela Namastex Labs) foram carregadas no registro público após o comprometimento de um token de desenvolvedor interno. Assumimos responsabilidade por este incidente. Este manual existe para ajudar **qualquer pessoa ou organização** que tenha instalado as versões afetadas a verificar se foi comprometida e, em caso afirmativo, remediar de forma estruturada.
+Entre 21 e 22 de abril de 2026, versões maliciosas dos pacotes npm `@automagik/genie` e `pgserve` (publicados pela Namastex Labs) foram carregadas no registro público como parte da campanha CanisterWorm — um worm de supply-chain auto-propagante atribuído ao ator TeamPCP que afetou múltiplos publishers npm. Assumimos responsabilidade por este incidente. Este manual existe para ajudar **qualquer pessoa ou organização** que tenha instalado as versões afetadas a verificar se foi comprometida e, em caso afirmativo, remediar de forma estruturada.
 
 Se você instalou qualquer versão listada abaixo entre **2026-04-21 e 2026-04-22**, leia este documento do início ao fim antes de executar qualquer comando.
 
@@ -31,7 +31,7 @@ O caminho preferencial agora é começar com `genie sec scan`. Os checks manuais
 
 - **Família de malware:** CanisterWorm
 - **Ator atribuído:** TeamPCP
-- **Vetor primário:** token GitHub OAuth de um desenvolvedor Namastex foi exfiltrado e utilizado para publicar versões contaminadas.
+- **Vetor primário:** credencial GitHub OAuth de publish em ambiente Namastex foi comprometida pelo worm CanisterWorm e utilizada para publicar versões contaminadas.
 - **Mecanismo:** hook `postinstall` roda no momento da instalação do pacote, coleta credenciais locais e exfiltra para infraestrutura de comando e controle via HTTPS.
 - **Propagação (worm):** utiliza o token npm roubado para republicar versões contaminadas de outros pacotes em que a vítima tenha permissão de publish.
 
