@@ -49,7 +49,7 @@ O caminho preferencial agora é começar com `genie sec scan`. Os checks manuais
 | `@automagik/genie` | `4.260422.4` ou posterior |
 | `pgserve` | `1.1.10` |
 
-> ⚠️ A partir de 2026-04-23 toda publicação Namastex é assinada com `npm --provenance`. Prefira verificar proveniência antes de instalar: `npm view <pacote> --json | jq '.dist.attestations'`.
+> ⚠️ A distribuição via `npmjs.com` foi descontinuada após este incidente. Pacotes Namastex agora são shipados via **[Aegis](https://github.com/automagik-dev/aegis)** — GitHub Releases assinados com cosign keyless (OIDC) + atestação SLSA L3 de proveniência. Veja §5.6 para o trust model completo e §4.3 para o caminho de install.
 
 ### 1.4 O que o malware coleta
 
@@ -264,10 +264,22 @@ Nenhuma saída = limpo.
 
 ### 4.3 Reinstalar versões limpas
 
+A remediação de hosts afetados é tratada pela **Aegis** ([automagik-dev/aegis](https://github.com/automagik-dev/aegis)) — read-only scanner + auditable remediator, spun out de `@automagik/genie sec` após este incidente. Veja §5.6 para o trust model.
+
 ```bash
-bun install -g @automagik/genie@4.260422.4
-bun install -g pgserve@1.1.10
+# 1. Instale a Aegis (cosign + SLSA L3 verificados antes de tocar qualquer arquivo)
+curl -fsSL https://raw.githubusercontent.com/automagik-dev/aegis/main/install.sh | bash
+
+# 2. Scan read-only do host
+aegis scan --all-homes --root "$PWD"
+
+# 3. Remediação (dry-run por default; --apply requer consent tipado por ação)
+aegis fix
 ```
+
+A Aegis purga versões comprometidas dos caches bun/npm, quarentena artefatos maliciosos (`env-compat.cjs`, `public.pem`, `check-env.js`), remove persistência (`pgmon.service`, `/tmp/pglog`), e produz audit log append-only. Se algo der errado, `aegis rollback <scan-id>` desfaz a operação inteira via sha256-verified restore.
+
+Para ambientes não-interativos (CI, Dockerfiles), o instalador aceita `-s -- --auto-install-deps`. Para air-gapped, veja `docs/install/` no repositório da Aegis.
 
 ### 4.4 Rotacionar TODAS as credenciais
 
@@ -450,6 +462,18 @@ Se encontrar: pinar na versão limpa conhecida **antes** de reabilitar.
 ### 5.5 Segregar credenciais de produção
 
 Credenciais de produção **nunca** devem estar em máquinas de desenvolvimento. Use workstations dedicadas, bastions, ou cofres temporários (HashiCorp Vault, Doppler, AWS Secrets Manager com sessões efêmeras).
+
+### 5.6 Como a Namastex se defende hoje
+
+A resposta a este incidente levou a três mudanças estruturais na nossa postura de segurança. Documentamos aqui porque outras equipes podem querer adotar o mesmo padrão.
+
+**Trust-level — saída da rede pública npm.** O vetor primário deste incidente foi o próprio `npmjs.com`: tokens de publish com escopo amplo, sem verificação de identidade do publisher no install-time, propagação self-spread via dependências. Concluímos que registries com publish-by-token não são uma base de trust segura para shipping de software crítico. Os pacotes `@automagik/genie` e `pgserve` foram movidos para distribuição própria — GitHub Releases assinados, sem dependência do registro npm para o caminho default de install.
+
+**Distribution-level — Aegis ([automagik-dev/aegis](https://github.com/automagik-dev/aegis)).** Novo módulo do bundle Automagik, spun out de `@automagik/genie sec`, dedicado a shipping seguro de AI. Cada release é assinada com cosign keyless (OIDC via GitHub Actions) e atestada com SLSA L3 provenance. O instalador (`curl -fsSL .../install.sh | bash`) verifica assinatura e proveniência antes de tocar qualquer arquivo. `~/.npmrc` do usuário nunca é tocado. Verificação em runtime via `aegis verify-install`.
+
+**Host-level — `aegis scan`.** Scanner read-only que roda em workspaces de desenvolvimento e em CI antes de operações sensíveis. Detecta versões comprometidas instaladas/cacheadas, payloads conhecidos, persistência (`pgmon.service`, `.pth`), conexões a C2 conhecido, e enumera material local em risco. Roda como gate contínuo, não só em resposta a incidente.
+
+Aegis evolui em ciclos curtos. Phase 2 (`@automagik/aegis-signatures`) traz definições de incidentes adicionais via package separado com release cadence independente — operadores rodam `aegis signatures update` em cron, novas worm definitions chegam em minutos. Detalhes técnicos completos: [github.com/automagik-dev/aegis](https://github.com/automagik-dev/aegis).
 
 ---
 
