@@ -49,7 +49,7 @@ O caminho preferencial agora é começar com `genie sec scan`. Os checks manuais
 | `@automagik/genie` | `4.260422.4` ou posterior |
 | `pgserve` | `1.1.10` |
 
-> ⚠️ A distribuição via `npmjs.com` foi descontinuada após este incidente. Pacotes Namastex agora são shipados via **[Aegis](https://github.com/automagik-dev/aegis)** — GitHub Releases assinados com cosign keyless (OIDC) + atestação SLSA L3 de proveniência. Veja §5.6 para o trust model completo e §4.3 para o caminho de install.
+> ⚠️ A distribuição via `npmjs.com` foi descontinuada após este incidente. Pacotes Namastex agora são shipados via [Aegis](https://github.com/automagik-dev/aegis) — GitHub Releases assinados com cosign keyless (OIDC) + atestação SLSA L3 de proveniência. Veja §5.6 para o trust model completo e §4.3 para o caminho de install.
 
 ### 1.4 O que o malware coleta
 
@@ -262,22 +262,27 @@ ls ~/.cache/.bun/install/cache/ 2>/dev/null | grep -E "pgserve@1\.1\.1[1-4]"
 
 Nenhuma saída = limpo.
 
-### 4.3 Reinstalar versões limpas
+### 4.3 Remediar via Aegis
 
-A remediação de hosts afetados é tratada pela **Aegis** ([automagik-dev/aegis](https://github.com/automagik-dev/aegis)) — read-only scanner + auditable remediator, spun out de `@automagik/genie sec` após este incidente. Veja §5.6 para o trust model.
+A remediação de hosts afetados é tratada pela [Aegis](https://github.com/automagik-dev/aegis) — read-only scanner + auditable remediator, derivado de `@automagik/genie sec` após este incidente. Veja §5.6 para o trust model.
 
 ```bash
-# 1. Instale a Aegis (cosign + SLSA L3 verificados antes de tocar qualquer arquivo)
+# 1. Instale a Aegis (o instalador verifica cosign + SLSA L3 antes de tocar qualquer arquivo)
 curl -fsSL https://raw.githubusercontent.com/automagik-dev/aegis/main/install.sh | bash
 
-# 2. Scan read-only do host
+# 2. Confirme que o binário instalado é genuíno antes de confiar nele
+aegis verify-install
+
+# 3. Scan read-only do host
 aegis scan --all-homes --root "$PWD"
 
-# 3. Remediação (dry-run por default; --apply requer consent tipado por ação)
+# 4. Remediação interativa — aplica a limpeza pedindo confirmação por ação (use --yes em CI)
 aegis fix
 ```
 
-A Aegis purga versões comprometidas dos caches bun/npm, quarentena artefatos maliciosos (`env-compat.cjs`, `public.pem`, `check-env.js`), remove persistência (`pgmon.service`, `/tmp/pglog`), e produz audit log append-only. Se algo der errado, `aegis rollback <scan-id>` desfaz a operação inteira via sha256-verified restore.
+A Aegis purga versões comprometidas dos caches bun/npm e quarentena artefatos maliciosos (`env-compat.cjs`, `public.pem`, `check-env.js`). Remove persistência (`pgmon.service`, `/tmp/pglog`) e produz audit log append-only. Se algo der errado, `aegis rollback <scan-id>` desfaz a operação inteira via sha256-verified restore.
+
+Após a remediação, reinstale as versões limpas de `@automagik/genie` e `pgserve` seguindo o guia de install atual de cada projeto (pós-saída do npm — veja §5.6). A Aegis cuida da detecção e limpeza, não da reinstalação dos pacotes.
 
 Para ambientes não-interativos (CI, Dockerfiles), o instalador aceita `-s -- --auto-install-deps`. Para air-gapped, veja `docs/install/` no repositório da Aegis.
 
@@ -467,9 +472,9 @@ Credenciais de produção **nunca** devem estar em máquinas de desenvolvimento.
 
 A resposta a este incidente levou a três mudanças estruturais na nossa postura de segurança. Documentamos aqui porque outras equipes podem querer adotar o mesmo padrão.
 
-**Trust-level — saída da rede pública npm.** O vetor primário deste incidente foi o próprio `npmjs.com`: tokens de publish com escopo amplo, sem verificação de identidade do publisher no install-time, propagação self-spread via dependências. Concluímos que registries com publish-by-token não são uma base de trust segura para shipping de software crítico. Os pacotes `@automagik/genie` e `pgserve` foram movidos para distribuição própria — GitHub Releases assinados, sem dependência do registro npm para o caminho default de install.
+**Trust-level — saída da rede pública npm.** O vetor primário deste incidente foi o próprio `npmjs.com`: tokens de publish com escopo amplo, sem verificação de identidade do publisher no install-time, propagação self-spread via dependências. Concluímos que registries com publish-by-token não são uma base de trust segura para shipping de software crítico. Por isso, os pacotes `@automagik/genie` e `pgserve` foram movidos para distribuição própria. Agora usamos GitHub Releases assinados, sem dependência do registro npm para o caminho default de install.
 
-**Distribution-level — Aegis ([automagik-dev/aegis](https://github.com/automagik-dev/aegis)).** Novo módulo do bundle Automagik, spun out de `@automagik/genie sec`, dedicado a shipping seguro de AI. Cada release é assinada com cosign keyless (OIDC via GitHub Actions) e atestada com SLSA L3 provenance. O instalador (`curl -fsSL .../install.sh | bash`) verifica assinatura e proveniência antes de tocar qualquer arquivo. `~/.npmrc` do usuário nunca é tocado. Verificação em runtime via `aegis verify-install`.
+**Distribution-level — Aegis ([automagik-dev/aegis](https://github.com/automagik-dev/aegis)).** Novo módulo do bundle Automagik, derivado de `@automagik/genie sec`, dedicado a shipping seguro de AI. Cada release é assinada com cosign keyless (OIDC via GitHub Actions) e atestada com SLSA L3 provenance. O instalador (`curl -fsSL .../install.sh | bash`) verifica assinatura e proveniência antes de tocar qualquer arquivo. `~/.npmrc` do usuário nunca é tocado. Verificação em runtime via `aegis verify-install`.
 
 **Host-level — `aegis scan`.** Scanner read-only que roda em workspaces de desenvolvimento e em CI antes de operações sensíveis. Detecta versões comprometidas instaladas/cacheadas, payloads conhecidos, persistência (`pgmon.service`, `.pth`), conexões a C2 conhecido, e enumera material local em risco. Roda como gate contínuo, não só em resposta a incidente.
 
