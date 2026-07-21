@@ -1,0 +1,108 @@
+# genie-ui — The Two Faces Contract
+
+This page pins the ratified design contract for `packages/genie-ui`: the **two channels**, the **Model-B** two-faces resolution, the **four isolation walls** enforced by the shipped module boundaries, and the **OUT extension points** that must be added as deliberate, documented changes — never as silent behavior drift.
+
+It is a *contract* document: it describes the boundaries the code already enforces (G1–G3, shipped through commit `8c1e9589`) so a later engineer extending the system knows which walls are load-bearing. Where this page and the source disagree, the source (`packages/genie-ui/server/*`) wins — but they are meant to agree, and the walls below are each backed by a greppable test.
+
+---
+
+## The two channels
+
+genie-ui is deliberately **two channels, not one abstracted thread**. Every surveyed agent host (Zed, Newio, Tidewave, native-mac) collapses the agent into a thread UI; genie-ui keeps the real agent visible and adds a machine-readable control plane alongside it.
+
+### 1. PTY viewing channel (the fleet floor)
+
+Each fleet member is a browser pane running its **real** terminal surface — `claude`, `hermes -p <profile> --tui`, `codex`, the rlmx/pi TUI — over a local PTY or plain `ssh -t`. Zero rendering abstraction: you watch the actual agent. PTY-over-SSH is native, so the network pain disappears for *viewing*.
+
+- **Server:** `server/pty-session.ts` (`PtySession` + `PtySessionManager`) owns the fleet of real terminals; `server/transport.ts` is the pure `ws` codec; `server/index.ts` is the thin composition root that runs **under node** (bun's `node-pty` `onData` never fires — see the package README).
+- **Replay:** `server/reused/TerminalMirror.ts` (salvaged, MIT) is a headless-xterm snapshot engine that lets a late-joining or reconnecting client replay the exact screen state.
+- **Client:** `client/*` — vanilla-TS `@xterm/xterm` panes, tabs + horizontal splits + maximize, talking to the server *only* over `transport`.
+
+The wire protocol (`server/transport.ts`) is a small fixed codec so swapping `ws` for SSE/WebTransport later reimplements only send/recv, not the schema:
+
+- **Client → Server:** `input`, `resize`, `spawn`, `kill`, `restart`, `list`.
+- **Server → Client:** `fleet` (roster + statuses), `replay` (snapshot on attach), `data` (live pty bytes), `status` (`idle` | `running` | `exited`), `exit`.
+
+### 2. ACP control channel (the conductor substrate)
+
+genie's role graph needs machine-readable events, not pixels. Each hired agent has a sibling **lazily-spawned, read-only ACP chat face** — one `ClientSideConnection` per agent (`server/chat-backend.ts`, over `server/acp.ts`). A chat `@agent` becomes an ACP `session/prompt` seeded with the wish context + room transcript; replies stream back as chat events assembled from `session/update`. Delivery is **@-mention-only** — the *designed* contract, not a temporary limit; undelivered chat is visible drawer history, never implicit agent context.
+
+Three adapters ship today (`@agentclientprotocol/claude-agent-acp`, `@agentclientprotocol/codex-acp`, `hermes acp`); `rlmx acp` is in flight (wish `rlmx-acp-adapter`) and is exempt (AC4b) — an unavailable adapter surfaces as a named fail-loud event, so v1 never blocks on it.
+
+---
+
+## The Model-B contract (ratified)
+
+The one hard knot is **one agent, two faces**. The PTY tab (the agent's real TUI, pixels) and the chat-drawer participation (structured text/events) *cannot* be the same OS process. The council (verdict 4-0, RATIFIED 2026-07-21) resolved it by reframing the identity problem away: the two faces of one agent do not share a *session*; they share **that agent's worktree + git artifacts** — genie's existing git-as-truth model.
+
+The ratified one-sentence contract, verbatim:
+
+> **"Each hired agent is one real terminal plus one lazily-spawned, read-only ACP chat face in the same wish worktree; git artifacts are the shared memory, @-mentions route the chat, and Hermes-style session bridging is a demonstrated bonus, never a gate."**
+
+"Same wish worktree" resolves **per agent** to the `genie launch` per-group worktree that agent is hired onto — not a single wish-wide path (see the worktree wall). Model A (chat renders the ACP stream, deleting the PTY the user forked dash to keep) and Model C (keystroke injection + output scraping) were both rejected.
+
+---
+
+## The four isolation walls
+
+Each wall is a shipped module boundary, backed by a greppable test — not an aspiration. These are the load-bearing invariants a later change must not quietly breach.
+
+### 1. PTY wall — `pty-session` is the only `node-pty` importer
+
+`server/pty-session.ts` is the sole importer of `node-pty`, and the sole importer of `TerminalMirror`. Nothing above it knows about `node-pty`; it imports no ACP and no `genie.db` code. `server/transport.ts` knows only `PtySessionManager`'s event shape, not `node-pty` or ACP. This keeps the PTY IO concern in exactly one module, so the runtime-under-node constraint and the pty lifecycle stay contained.
+
+*Enforced by:* `grep -rn "node-pty"` resolves to `pty-session.ts` only (plus doc-comment mentions in `TerminalMirror.ts`, `transport.ts`, `index.ts`, `genie-lane.ts` that name it precisely to state they do **not** import it).
+
+### 2. Chat wall — `chat-backend` imports nothing from the PTY/pane layer
+
+`server/chat-backend.ts` imports **nothing** from `pty-session`, `TerminalMirror`, `transport`, or `client`. Its entire surface is *deliver message / stream reply* — `deliverMessage(agentId, text, transcript) → void`, `streamReply(agentId) → AsyncGenerator<ChatEvent>`, `capabilities(harness) → CapabilityRow`, plus named events `spawn-failed` / `delivery-failed`. The only cross-module imports are the `Harness` **type** (erased at runtime) from `genie-lane`, the checked-in `capability-table`, and the `acp` transport.
+
+This is the load-bearing wall: that surface is *structurally identical* to the future conductor's hub (a `ClientSideConnection`-per-child router with a routing policy on top), so this wish is the **literal substrate** of the conductor wish — which is why the conductor is a cheap addition, not a rewrite.
+
+*Enforced by:* the greppable isolation test — `grep -rnE "from ['\"].*(pty-session|TerminalMirror|transport|client)" server/chat-backend.ts` returns nothing (G3 validation).
+
+### 3. State wall — `genie-lane` is read-only, never a write path
+
+`server/genie-lane.ts` reads wishes from `.genie/wishes` (git-tracked markdown) and board/task state from `.genie/genie.db`, and **never opens a write path**. The DB read is a SELECT-only replica selecting the sqlite engine at call time (`node:sqlite` readOnly under the node server; `bun:sqlite` readonly under `bun test`), using only the `.prepare(sql).get()/.all()` surface both engines share. It degrades to empty when `.genie/genie.db` is absent (the `genie mcp` precedent) and resolves the worktree-shared DB via `git rev-parse --git-common-dir`. Hiring a fleet member is a **roster entry only** — no process, no DB write. No new writer races the CLI/skills.
+
+*Enforced by:* `grep -RnE "new Database\(.*readonly:\s*false|openSqlite\(" server/genie-lane.ts` returns nothing (G2 validation).
+
+### 4. Worktree wall — faces reuse `genie launch` group worktrees, never mint
+
+The coherence contract binds **per hired agent, not per wish**. An agent's two faces (its terminal + its read-only chat face) `cd` into the **same** worktree, and that worktree **is** the `genie launch` per-group worktree for the ready group that agent is hired onto (`warp-launch.ts` = one worktree per ready group) — reused, never a parallel wish-level worktree minted alongside it. So `worktreeFor(rosterEntry)` resolves against a **roster entry** (agent + its ready group), not a bare wish: a wish with N ready groups fans out into N group worktrees, and `worktreeFor` returns `null`/unbound before that group is launched.
+
+Two coherence layers make this consistent:
+1. **Per-agent (filesystem):** the terminal face is the sole mutator; the chat face reads; both in that agent's one group worktree.
+2. **Wish-level (git):** across all group worktrees the `.genie` artifacts are the shared truth — git-tracked `.genie/wishes/<slug>/` plus the worktree-shared `.genie/genie.db`. This shared `.genie`, not a filesystem path, is what makes the group chat *wish-scoped* even when participants sit in different group worktrees.
+
+The chat face being non-mutating (below) plus this wall together **define the two-writers-one-worktree race out of existence**.
+
+---
+
+## OUT — designed extension points
+
+These are deliberately not in v1. Each is a **documented extension point** so that adding it later is a visible, reviewed behavior change — never a silent one. Each rides an interface the shipped code already exposes.
+
+### Conductor auto-advance (the reason chat-backend is separable)
+
+The policy layer that advances the pipeline automatically (Fable wish → Hermes review → Codex execute → Opus fix → Fable gate) instead of by human @-mentions. It is a **follow-up wish**, built as a routing-policy layer *on top of* `chat-backend`'s `deliver message / stream reply` surface. The chat wall (above) is exactly what makes this cheap: the substrate is already the conductor's hub. Adding it must not weaken the chat wall.
+
+### Write-promotion toggle (chat face read-only → mutating)
+
+The ability to promote a chat face from read-only to worktree-mutating. The council split 2-2 (Dissent); the synthesis defers it. In v1 the chat face advertises no filesystem write capability and **cancels every ACP permission request** — the terminal face is the sole mutator. Keeping write-promotion OUT is precisely what preserves the two-writers-one-worktree race being defined out of existence (D5 / AC4a / R3). Adding it later requires a per-harness permission-mapping matrix + modal state per chat face, and must revisit the worktree wall's single-mutator invariant.
+
+### Broadcast routing (all-messages-to-all-agents)
+
+Deferred as a later routing policy on the **same @-mention bus**. Broadcast fans every chat line into N inference calls, invites reply cascades, and makes room behavior emergent and unteachable — so @-mention-only is the *designed* contract, not a stopgap. Adding broadcast is a new delivery policy on the existing bus, and changes the token/noise profile of every room; it must land as an explicit, documented policy, not a default.
+
+---
+
+## Known limitations (v1)
+
+- **A re-@-mention of an already-spawn-failed chat face silently no-ops.** The *first* spawn failure is loud (a named `spawn-failed` event — e.g. `@codex could not start: codex exited (code 127); check PATH`), but once a face is marked failed, mentioning it again does not retry or re-surface the error; recovery currently needs a server restart. This is a conductor-wish follow-up (a retry/recovery policy on the same `chat-backend` surface), not a v1 code fix. Recorded here so a later change to spawn-recovery is a deliberate behavior change.
+
+---
+
+## Residue note
+
+The removed v4-era UI (`packages/genie-app`, `src/tui/`) was fully deleted by the `v5-demolition` wish; genie-ui is a fresh package that inherits none of it. No **live** code reference to those paths remains under `src/`. The only surviving textual matches are **historical record** — `CHANGELOG.md` and `.genie/wishes/v5-demolition/WISH.md` (plus this wish's own brainstorm/design/wish docs describing the check) — and are preserved, never scrubbed.
