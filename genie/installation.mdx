@@ -105,7 +105,7 @@ genie setup
 
 ## Skills for any agent
 
-Genie's skills are published through [skills.sh](https://skills.sh), so any agent that reads skills can use them — Claude Code, Codex, Cursor, and the rest. To install them machine-wide, for every agent detected on the machine, with no prompts:
+Genie's skills are published through [skills.sh](https://skills.sh), so any agent that reads skills can use them — Claude Code, Codex, Cursor, and the rest. To install them machine-wide, for every agent skills.sh supports, with no prompts:
 
 ```bash
 npx skills add automagik-dev/genie -g --all
@@ -114,10 +114,10 @@ npx skills add automagik-dev/genie -g --all
 The flags matter:
 
 - `-g` installs at global scope, under your home directory. Without it the bare `npx skills add automagik-dev/genie` is **project-scoped**: it writes the skills into the current working directory and leaves nothing machine-wide.
-- `--all` answers the agent picker for you and installs into every detected agent instead of prompting.
+- `--all` answers both the agent picker and the skill picker for you — it is shorthand for `--skill '*' --agent '*' -y` — and installs every Genie skill into every agent skills.sh supports for global installs, rather than prompting. Agents skills.sh does not support at global scope (currently Eve and PromptScript) are skipped.
 - `--copy` writes plain files instead of symlinks — add it when your agent or sandbox does not follow links.
 
-If you use the Genie CLI you do not need to run this yourself: `genie update` already performs the global, all-agents install as part of delivering a new version. The `npx skills add` command is for people who want Genie's skills without the Genie CLI, or who want a project-scoped copy inside a single repository.
+Starting with the release that ships the skills.sh channel (Genie 5.2609xx and later), `genie update` performs this global install itself, so you do not need to run the command by hand. On earlier versions, run the command above once and again after each update. The `npx skills add` command is also how people who want Genie's skills without the Genie CLI install them, and how you get a project-scoped copy inside a single repository.
 
 ## Verify your install
 
