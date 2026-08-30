@@ -103,6 +103,22 @@ genie setup
   </Card>
 </CardGroup>
 
+## Skills for any agent
+
+Genie's skills are published through [skills.sh](https://skills.sh), so any agent that reads skills can use them — Claude Code, Codex, Cursor, and the rest. The public install is two lines:
+
+```bash
+genie update                          # signed Genie binary
+npx skills add automagik-dev/genie    # skills into every detected agent
+```
+
+`npx skills add automagik-dev/genie` detects the agents installed on your machine and writes the Genie skills into each one. Two flags are worth knowing:
+
+- `-g` installs at global scope instead of the current project.
+- `--copy` writes plain files instead of symlinks — use it when your agent or sandbox does not follow links.
+
+Re-run the same command after `genie update` to pick up new or changed skills.
+
 ## Verify your install
 
 Run the diagnostic tool to confirm the CLI, prerequisites, and local config are wired up:
