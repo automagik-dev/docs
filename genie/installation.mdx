@@ -43,20 +43,23 @@ The bootstrap script detects your system and installs via the best available met
 curl -fsSL https://raw.githubusercontent.com/automagik-dev/genie/main/install.sh | bash
 ```
 
+Installing Genie is **two steps and a check** — there is no plugin registration step:
+
 <Steps>
-  <Step title="Install the package">
-    Downloads and installs `@automagik/genie` globally using your system's package manager.
+  <Step title="Install the signed binary">
+    Downloads and installs the signed `genie` release for your platform and links it onto your `PATH`.
   </Step>
-  <Step title="Register the Claude Code plugin">
-    Runs `claude plugin marketplace add automagik-dev/genie` and `claude plugin install genie@automagik`, which registers Genie in Claude Code's plugin marketplace system (`~/.claude/plugins/installed_plugins.json`) so its skills — `/wish`, `/work`, `/review`, `/brainstorm`, and friends — are discoverable.
-  </Step>
-  <Step title="Configure git hooks">
-    Wires up hooks for agent identity injection and event capture.
+  <Step title="Install the skills">
+    The binary then runs the pinned [skills.sh](https://skills.sh) CLI against its own delivered skill tree, which writes Genie's skills — `wish`, `work`, `review`, `brainstorm`, and the rest — into every agent skill home skills.sh supports on this machine. `genie update` repeats this step on every update, so the skills on disk always match the binary you are running.
   </Step>
   <Step title="Run genie doctor">
-    Verifies prerequisites and config, then prints a green checklist (or tells you what's missing).
+    Verifies prerequisites, config, and the skills channel, then prints a green checklist (or tells you what's missing).
   </Step>
 </Steps>
+
+<Note>
+  **Genie ships exactly one plugin, and it is the Orca plugin.** There is no Claude Code plugin, no plugin marketplace registration, and no editor-specific integration to install. Skills reach your agent through skills.sh; everything else is the signed binary.
+</Note>
 
 ### npm
 
@@ -98,8 +101,8 @@ genie setup
   <Card title="Shell integration" icon="keyboard">
     Shell aliases and tmux keybindings to keep the hot-path commands a keystroke away.
   </Card>
-  <Card title="Codex integration" icon="plug">
-    Optional — wire up OpenAI Codex alongside Claude Code for mixed-provider teams.
+  <Card title="Orchestration mode" icon="plug">
+    `genie setup --orchestration-mode standalone|orca` selects which lifecycle authority owns your board state.
   </Card>
 </CardGroup>
 
@@ -118,6 +121,14 @@ The flags matter:
 - `--copy` writes plain files instead of symlinks — add it when your agent or sandbox does not follow links.
 
 Starting with the release that ships the skills.sh channel, `genie update` performs this global install itself — run `genie doctor` to see whether your version reports the skills surface. On earlier versions, run the command above once and again after each update. The `npx skills add` command is also how people who want Genie's skills without the Genie CLI install them, and how you get a project-scoped copy inside a single repository.
+
+### The public command tracks `main`, not a release
+
+<Warning>
+  `npx skills add automagik-dev/genie -g --all` installs the **repository's default branch (`main`)** — and it does so **regardless of any `@<ref>` suffix you add**. Writing `automagik-dev/genie@v5.260830.21` does not pin the tag: skills.sh 1.5.23 binds the third segment of its source spec to the *skill filter*, not to a git ref, so that spec resolves to `main`'s tree with a skill filter applied. A `#fragment` is the only ref form the CLI honours.
+
+  The consequence: the public command tracks `main`, which can be ahead of or behind any published release. **`genie update` installs the exact delivered release** — Genie points the same CLI at the signed tarball's own skill tree under `$GENIE_HOME/skills`, a local path source that skills.sh does resolve correctly. If you need the skills that match your binary, use `genie update`, not the public command.
+</Warning>
 
 ## Verify your install
 
@@ -143,43 +154,31 @@ Installer Resolution:
 Configuration:
   ✓ Genie config exists ~/.genie/config.json
   ✓ Setup complete
-  ✓ Claude settings exists ~/.claude/settings.json
+
+Skills channel:
+  ✓ skills: claude    25/25 @ v5.260831.6
+  ✓ skills: agents    25/25 @ v5.260831.6
+  ✓ skills: goose     not detected
+  ✓ skills: windsurf  not detected
 
 ────────────────────────────────────────
 ```
 
-<Warning>
-  `genie doctor` checks the CLI and local config — it does **not** currently verify that the Claude Code plugin is registered. Use the plugin check below as well; a green `genie doctor` does not by itself mean your slash commands will work.
-</Warning>
+### Reading the skills lines
 
-### Verify the plugin is registered
+`genie doctor` is a **read-only observer** of the skills channel. It compares the install record Genie wrote at `~/.genie/skills-install.json` against what is actually on disk under each agent's skill home, and reports the drift. It never installs, retires, or repairs anything — not even under `--fix`. `genie update` owns every mutation on this surface.
 
-`genie doctor` doesn't check plugin registration, so confirm it separately with Claude Code's own CLI:
-
-```bash
-claude plugin list
-```
-
-You should see:
-
-```text
-Installed plugins:
-
-  ❯ genie@automagik
-    Version: 5.x.x
-    Scope: user
-    Status: ✔ enabled
-```
-
-If it's missing, register it manually:
-
-```bash
-claude plugin marketplace add automagik-dev/genie
-claude plugin install genie@automagik
-```
+| Line | Meaning | What to do |
+|------|---------|------------|
+| `skills: <agent> <n>/<n> @ v<version>` | Every recorded skill is present in that agent's home, installed from release `v<version>` | Nothing |
+| `skills: <agent> not detected` | That agent's config home does not exist on this machine — a perfectly healthy state, reported as a pass | Nothing |
+| `skills: <agent> <n>/<m> @ v<version>` (warn) | Skills are missing from that home | `genie update` |
+| `skills: <agent> <n>/<n> @ v<version> (stale, binary is v<newer>)` (warn) | The skills on disk came from an older release than the binary you are running | `genie update` |
+| `skills: <agent> <n>/<n> @ v<version> (unrecorded)` (warn) | Skills are on disk but no install record exists, so Genie cannot say which release put them there | `genie update` |
+| `skills: channel — no install record` (warn) | Genie has never installed the skills channel on this host | `genie update` |
 
 <Note>
-  **Restart required.** After any install or update, Claude Code only picks up plugin changes ("skills"/slash commands like `/wish`, `/work`, `/review`) on the *next* session start. If a slash command doesn't autocomplete, restart your `claude` session before assuming the install failed.
+  **Restart required.** After any install or update, most agents only pick up new skills on the *next* session start. If a skill doesn't autocomplete, restart your agent session before assuming the install failed.
 </Note>
 
 ## Environment variables
@@ -187,7 +186,7 @@ claude plugin install genie@automagik
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `GENIE_HOME` | `~/.genie` | Relocates all global state |
-| `GENIE_AGENT_NAME` | — | Agent identity for hook dispatch |
+| `GENIE_AGENT_NAME` | — | Agent identity used by the CLI |
 | `GENIE_TEAM` | — | Default team when `--team` omitted |
 | `GENIE_IDLE_TIMEOUT_MS` | — | Auto-suspend idle agents |
 
@@ -198,16 +197,9 @@ genie update          # Stable channel
 genie update --next   # Development builds
 ```
 
-<Warning>
-  `genie update` pulls the CLI from npm/Bun's dist-tag, which can lag behind the plugin marketplace source on GitHub. If `genie update` reports an older version than what `claude plugin list` shows, it can overwrite the plugin's marketplace metadata down to the older version as a side effect. Recover with:
-
-  ```bash
-  claude plugin marketplace update automagik
-  claude plugin update genie@automagik
-  ```
-
-  Then restart your Claude Code session.
-</Warning>
+<Note>
+  `genie update` swaps the signed binary and then reinstalls the skills channel from the tree that shipped inside that release, so the skills on disk always match the binary. A failed skills install never rolls the binary back: the command prints the exact remedy, exits non-zero, and stays retryable. Run `genie doctor` afterwards to confirm the skills lines are green.
+</Note>
 
 ## Uninstalling
 
@@ -215,7 +207,20 @@ genie update --next   # Development builds
 genie uninstall
 ```
 
-This removes the hook script, orchestration rules, `~/.local/bin` CLI symlinks, and the global `~/.genie` directory. It does **not** remove the npm/Bun package itself — the command will remind you to also run `bun remove -g @automagik/genie` or `npm uninstall -g @automagik/genie`. It also does **not** unregister the Claude Code plugin; run `claude plugin uninstall genie@automagik` separately if you want that removed too. Your project's local `.genie/` state directory is preserved.
+Uninstall is **record-driven and digest-verified**. It reads `~/.genie/skills-install.json` and, for each agent skill home that record names, deletes only the skill directories that record named *and* whose content still hashes to the digest recorded at install time. Then it removes the install record, runs the legacy collectors for assets older Genie releases left behind, removes the `~/.local/bin` CLI symlinks, and removes the global `~/.genie` directory.
+
+What that means in practice:
+
+- **Skills you added yourself are left alone.** A skill the record never named is structurally out of reach of the removal.
+- **A directory Genie cannot prove is still its own is preserved, not deleted.** If you edited a Genie skill in place, or the record predates content digests, the directory stays and `genie uninstall` reports it. Data safety beats cleanliness.
+- **A foreign directory that `--copy` overwrote at install time is not restored.** The install snapshots and backs up any foreign same-named skill directory before overwriting it, and tells you where the backup went — but uninstall does not put it back. Restoring it is a manual step.
+- **If anything could not be removed cleanly**, uninstall keeps `~/.genie` and the install record so the whole operation stays retryable.
+- It does **not** remove the npm/Bun package itself — the command will remind you to also run `bun remove -g @automagik/genie` or `npm uninstall -g @automagik/genie`.
+- Your project's local `.genie/` state directory is preserved.
+
+<Note>
+  There is no plugin to unregister. Genie ships one plugin, the Orca plugin, and it is installed and removed through Orca — not through `genie uninstall`.
+</Note>
 
 ## What's next
 

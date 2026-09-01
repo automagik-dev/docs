@@ -57,15 +57,20 @@ Configure terminal behavior:
 | `terminal.readLines` | `100` | Lines to capture from pane |
 | `terminal.worktreeBase` | `~/.genie/worktrees` | Base directory for team worktrees |
 
-### 4. Codex Integration
+### 4. Orchestration Mode
 
-If Codex is detected, setup configures the OpenTelemetry bridge:
+Select which lifecycle authority owns board and task state:
 
 ```bash
-genie setup --codex
+genie setup --orchestration-mode standalone   # default — local .genie/genie.db
+genie setup --orchestration-mode orca         # Orca owns the lifecycle
 ```
 
-This writes the Codex OTel config to enable structured log output that Genie's transcript system can parse.
+`standalone` is the default, including when the setting is absent. Switching to `orca` probes the shipped plugin payload and a compatible Orca runtime before it switches; after that, Genie refuses local lifecycle reads and writes. Switching back imports no Orca state.
+
+<Note>
+  There is no per-agent integration step. Genie's skills reach Codex, Claude Code, and every other agent skills.sh supports through the skills channel that `genie update` installs — see [Installation](/genie/installation#skills-for-any-agent).
+</Note>
 
 ### 5. Keyboard Shortcuts
 
@@ -86,7 +91,6 @@ Run only the section you need:
 
 ```bash
 genie setup --shortcuts  # Only install shortcuts
-genie setup --codex      # Only configure Codex
 genie setup --terminal   # Only terminal settings
 genie setup --session    # Only session settings
 ```

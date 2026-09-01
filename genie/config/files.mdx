@@ -239,25 +239,31 @@ For each tool use, the auto-approve engine:
 | `CLAUDECODE` | — | Set to `1` to enable Claude Code features |
 | `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` | — | Set to `1` for native teammate UI |
 
-## Claude Code Settings
+## Agent skill homes
 
-Genie integrates with Claude Code's settings at `~/.claude/settings.json`. The hook system is registered there:
+Genie does not write into any agent's settings file. The one place it puts content inside an agent's configuration is the agent's **skill home**, and it gets there through the [skills.sh](https://skills.sh) channel — run by the bootstrap script on first install, and by `genie update` on every update:
+
+| Agent | Skill home |
+|-------|------------|
+| Claude Code | `~/.claude/skills/` |
+| Codex (and every agent that reads the shared home) | `~/.agents/skills/` |
+| Goose | `~/.config/goose/skills/` |
+| Windsurf | `~/.codeium/windsurf/skills/` |
+
+Genie records what it installed, and where, at `~/.genie/skills-install.json`:
 
 ```json
 {
-  "hooks": {
-    "PreToolUse": [{
-      "matcher": ".*",
-      "hooks": ["genie hook dispatch"]
-    }],
-    "PostToolUse": [{
-      "matcher": "SendMessage",
-      "hooks": ["genie hook dispatch"]
-    }]
-  }
+  "ref": "v5.260831.6",
+  "source": "local:/home/you/.genie/skills",
+  "cliVersion": "1.5.23",
+  "inventory": ["wish", "work", "review", "..."],
+  "agentDirs": ["/home/you/.claude/skills", "/home/you/.agents/skills"],
+  "dirDigests": { "/home/you/.claude/skills/wish": "…" },
+  "installedAt": "2026-08-31T12:00:00.000Z"
 }
 ```
 
 <Note>
-Genie never modifies `~/.claude/settings.json` directly. Hook registration is done during `genie setup` with user confirmation.
+`agentDirs` is a post-install discovery scan of your home directory, not a fixed table — it names every directory the skills CLI actually wrote. `genie doctor` reads this record to report drift, and `genie uninstall` reads it (and re-verifies `dirDigests`) to decide what it may safely delete. Genie never modifies `~/.claude/settings.json`.
 </Note>

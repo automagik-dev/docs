@@ -19,11 +19,11 @@ The Genie codebase internally uses "worker" in some identifiers (e.g., `workerPr
 │                     genie CLI                           │
 │  (commander.js entry point → src/genie.ts)              │
 ├─────────────┬──────────────┬────────────────────────────┤
-│  Skills     │  Commands    │  Hooks                     │
-│  /brainstorm│  team create │  PreToolUse → identity     │
-│  /wish      │  spawn       │  PreToolUse → auto-spawn   │
-│  /work      │  send        │  PostToolUse → nats-emit   │
-│  /review    │  status      │  Stop → nats-emit          │
+│  Skills     │  Commands    │  State                     │
+│  brainstorm │  team create │  .genie/genie.db (SQLite)  │
+│  wish       │  spawn       │  .genie/wishes/ (git)      │
+│  work       │  send        │  ~/.genie/ (global)        │
+│  review     │  status      │                            │
 └──────┬──────┴──────┬───────┴──────────┬─────────────────┘
        │             │                  │
        ▼             ▼                  ▼
@@ -75,7 +75,7 @@ The Genie codebase internally uses "worker" in some identifiers (e.g., `workerPr
     The team-lead spawns agents into tmux panes via `genie spawn`. Each agent gets a worktree clone and a group assignment.
   </Step>
   <Step title="Execute">
-    Agents work autonomously. Hooks inject identity into messages, auto-spawn offline agents, and emit events to NATS.
+    Agents work autonomously in their own worktrees, reading and writing wish and task state through the CLI.
   </Step>
   <Step title="Converge">
     As groups complete (`genie done`), the wish state machine recalculates dependent groups. Blocked groups become ready.
@@ -103,7 +103,7 @@ Worktrees share the main repo's `.genie/` via `git rev-parse --git-common-dir`. 
 | Variable | Effect |
 |----------|--------|
 | `GENIE_HOME` | Relocates all global state from `~/.genie` |
-| `GENIE_AGENT_NAME` | Agent identity for hook dispatch (must be set for auto-spawn) |
+| `GENIE_AGENT_NAME` | Agent identity used by the CLI (must be set for auto-spawn) |
 | `GENIE_TEAM` | Default team when `--team` not provided |
 | `GENIE_NATS_URL` | NATS server URL (default: `nats://localhost:4222`) |
 | `GENIE_PG_PORT` | pgserve port (default: `19642`) |

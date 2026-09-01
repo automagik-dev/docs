@@ -71,8 +71,8 @@ Genie has opinions about orchestration. It has zero opinions about which AI you 
 
 | Agent | Setup | Best For |
 |-------|-------|----------|
-| **Claude Code** | Works out of the box | Deepest integration — native plugin, team support, hooks |
-| **Codex** | `genie setup --codex` | OpenAI's agent — full transcript and team support |
+| **Claude Code** | Works out of the box | Deepest integration — full transcript and team support |
+| **Codex** | Works out of the box | OpenAI's agent — reads Genie's skills from the shared `~/.agents/skills` home |
 | **Open Claw** | `genie setup --open-claw` | Open-source option, community-maintained adapter |
 | **Custom (BYOA)** | `genie setup --custom` | Any CLI agent with stdout/stderr — bring your own |
 
@@ -100,7 +100,7 @@ Your agents are interchangeable. Switch mid-project, mix on a team, or write you
 | **Boards & Pipelines** | Kanban-style task management | Configurable columns with gates and action skills. Project-scoped. |
 | **Observability** | OTel-structured event logging | Cost breakdown, tool analytics, session replay, error patterns — all from the CLI. |
 | **BYOA** | Provider-agnostic orchestration | Claude, Codex, Open Claw, your custom thing. We don't care. |
-| **Hooks** | Event-driven automation on every tool call | Auto-spawn, identity injection, NATS. Things happen when things happen. |
+| **Skills channel** | One install path to every agent | Genie's skills ship through skills.sh into every agent skill home on the box — `~/.claude/skills`, the shared `~/.agents/skills` that Codex reads, `~/.config/goose/skills`, `~/.codeium/windsurf/skills`. Nothing Genie installs runs inside your agent's event loop. |
 
 ## How it works
 

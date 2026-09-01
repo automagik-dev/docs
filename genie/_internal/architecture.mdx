@@ -1,6 +1,6 @@
 # Genie Architecture
 
-This document describes the internal architecture of the Genie CLI, including the unified serve model, service topology, agent lifecycle, data flow, and hook system.
+This document describes the internal architecture of the Genie CLI, including the unified serve model, service topology, agent lifecycle, and data flow.
 
 ## Serve/Daemon Unification
 
@@ -33,14 +33,11 @@ genie serve (PID file: ~/.genie/serve.pid)
 ├── 3. tmux -L genie-tui    TUI session (only in non-headless mode)
 │     └── session: genie-tui (left=nav, right=agent display)
 │
-├── 4. Agent sync           Watches agents/ directory for AGENTS.md changes
-│     └── src/lib/agent-sync.ts
-│
-├── 5. Scheduler daemon     Claims and fires triggers from PG
+├── 4. Scheduler daemon     Claims and fires triggers from PG
 │     ├── Event router      Routes PG NOTIFY events to team members
 │     └── Inbox watcher     Polls native inboxes, auto-spawns offline leads
 │
-└── 6. Service registry     In-memory PID tracker for graceful shutdown
+└── 5. Service registry     In-memory PID tracker for graceful shutdown
 ```
 
 ### Service Details
@@ -180,25 +177,6 @@ When a pane dies unexpectedly, the scheduler's heartbeat collector detects the d
                                      └─────────────────────────────┘
 
 ┌──────────────────────────────────────────────────────────────────┐
-│                         Hook System                               │
-│                                                                   │
-│  Claude Code invokes: genie hook dispatch                        │
-│  Reads JSON from stdin, runs handler chain, writes JSON to stdout │
-│                                                                   │
-│  Blocking hooks (PreToolUse):                                    │
-│    branch-guard        — Blocks pushes to main/master            │
-│    orchestration-guard — Blocks tmux scraping                    │
-│    identity-inject     — Injects agent name into SendMessage     │
-│    auto-spawn          — Auto-spawns teammates on SendMessage    │
-│    runtime-emit-tool   — Emits tool_call events to PG            │
-│                                                                   │
-│  Non-blocking hooks:                                             │
-│    runtime-emit-msg    — Emits message events (PostToolUse)      │
-│    runtime-emit-user   — Emits user prompt events                │
-│    runtime-emit-asst   — Emits assistant response events (Stop)  │
-└──────────────────────────────────────────────────────────────────┘
-
-┌──────────────────────────────────────────────────────────────────┐
 │                      Agent Sessions (tmux)                        │
 │                                                                   │
 │  tmux -L genie         Agent socket (eternal, survives restarts) │
@@ -211,6 +189,10 @@ When a pane dies unexpectedly, the scheduler's heartbeat collector detects the d
 │         └── window 0: left=nav (OpenTUI), right=agent display   │
 └──────────────────────────────────────────────────────────────────┘
 ```
+
+<Warning>
+**The hook system is gone.** Genie once ran an in-process handler chain, blocking and non-blocking — branch guard, git-freeze guard, identity injection, Omni approval, audit context, and SessionStart context/freshness injection. All of it was deleted in the `skills-everywhere` wish: there is no hook command, no handler chain, and no lifecycle hook of any kind in a Genie release. The controls those handlers approximated now live where they are actually enforceable — server-side branch protection on `main`, worktree isolation, sandbox permissions, and operator policy carried in briefs and `AGENTS.md`. Passages below that describe hook handlers as live (identity injection during spawn, `runtime-emit-*` event emission) are historical. See the [release notes](/genie/release-notes) for what is gone and what to do instead.
+</Warning>
 
 ### Event Flow Example: Agent Completes a Task
 
@@ -259,12 +241,6 @@ src/
 │   ├── omni-bridge.ts          NATS → agent session routing (WhatsApp, etc.)
 │   ├── executor.ts             IExecutor interface for Omni bridge
 │   └── executors/              Executor implementations (claude-code, claude-sdk)
-├── hooks/                      Git hook system
-│   ├── index.ts                Handler registry + dispatch logic
-│   ├── types.ts                Hook payload/result types
-│   ├── inject.ts               Hook installation into Claude Code settings
-│   ├── dispatch-command.ts     `genie hook dispatch` CLI command
-│   └── resolve-agent-name.ts   Agent name resolution from env
 ├── tui/                        Terminal UI (OpenTUI-based) — a skin over the CLI, not an alternate control plane. Every action shows its `genie …` command before executing. See [`SPAWN-TEAM-RESOLUTION.md`](SPAWN-TEAM-RESOLUTION.md).
 │   ├── app.tsx                 TUI application root
 │   └── ...                     TUI components

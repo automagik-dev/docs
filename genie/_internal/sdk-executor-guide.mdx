@@ -518,7 +518,7 @@ AGENTS.md frontmatter (source of truth)
     ▼ parseFrontmatter()
 AgentFrontmatter { sdk: Record<string, unknown> }
     │
-    ▼ agent-sync.ts → directory.add()/edit()
+    ▼ frontmatter sync → directory.add()/edit()
 PG agents.metadata JSONB { sdk: SdkDirectoryConfig }
     │
     ▼ directory.resolve() → roleToEntry()
@@ -555,7 +555,6 @@ src/lib/
 ├── agent-directory.ts              # DirectoryEntry.sdk field + PG CRUD
 ├── frontmatter.ts                  # YAML parsing (sdk: block)
 ├── frontmatter-writer.ts           # YAML writing (PG → AGENTS.md)
-├── agent-sync.ts                   # Frontmatter → PG sync
 ├── providers/
 │   ├── claude-sdk.ts               # ExecutorProvider + translateSdkConfig()
 │   ├── claude-sdk-events.ts        # SDKMessage → audit event routing

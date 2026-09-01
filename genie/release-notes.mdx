@@ -1,0 +1,95 @@
+---
+title: "Release Notes"
+sidebarTitle: "Release Notes"
+icon: "megaphone"
+description: "Behavior changes that need an operator decision — what is gone, what still works, and what to do instead."
+---
+
+This page records the changes that **remove a capability you may have been relying on**. It is not a changelog; ordinary features and fixes ship without an entry here. Every entry states three things: what is gone, what still works, and what to do instead.
+
+## The hook system is gone
+
+Genie used to install lifecycle hooks into your agent — a handler chain that ran on every tool call, every session start, and every permission prompt. That whole subsystem has been removed. There is no hook command, no handler registry, and no lifecycle hook of any kind in a Genie release; nothing Genie installs runs inside your agent's event loop any more.
+
+The four capabilities that chain provided are gone with it. Each is covered below.
+
+Two things this **buys** you, and they are why the trade was made:
+
+- **Nothing Genie ships executes on your agent's hot path.** A Genie release can no longer block, rewrite, or delay a tool call.
+- **Genie's skills reach every agent the same way** — through the [skills.sh](https://skills.sh) channel — instead of through a per-agent hook and plugin integration that only ever worked properly on one agent.
+
+<Note>
+  Genie now ships exactly **one plugin, the Orca plugin**, and exactly **one skills channel, skills.sh**. If you had a Claude Code plugin registration from an older Genie, nothing on your machine will update or remove it automatically on hosts older than `v5.260711.6` — remove it by hand if you want it gone.
+</Note>
+
+---
+
+## 1. The client-side branch guard is gone
+
+**What is gone.** Genie used to intercept `git push` inside your agent session and refuse a push that targeted `main` or `master`. That guard no longer exists — an agent can now attempt a push to any branch and Genie will not stop it locally.
+
+**What still works.** Branch protection on `main`, enforced **server-side** by GitHub rulesets: pull requests are required, direct pushes are blocked, and a review from someone who is not the author is required before merge. This is strictly stronger than the old client-side check, because it cannot be bypassed by an agent that never loaded a Genie hook, and it applies to every actor including humans.
+
+**What to do instead.** Confirm your repository's ruleset actually enforces the three rules above (`gh api repos/<owner>/<repo>/rulesets`). If it does not, configure it — the client-side guard is no longer standing behind it.
+
+<Warning>
+  **Accepted gap: the actor gap.** Server-side protection authenticates the *credential*, not the *operator*. An agent running under your `gh` credentials is you, as far as the ruleset is concerned — so a required reviewer who is not "the author" is satisfied by any second credential, and an agent acting with a maintainer's token has a maintainer's powers. This gap existed before the guard was removed and is not closed by anything Genie ships. If it matters to you, give agents their own scoped credentials.
+</Warning>
+
+---
+
+## 2. The git-state freeze guard is gone
+
+**What is gone.** In a shared workspace, Genie used to block agents from mutating git state — switching branches, stashing, resetting — while another agent was working in the same checkout. That guard no longer exists.
+
+**What still works.** The rule itself. The git-state freeze and the "agents merge to `dev`; `main` is humans-only" convention are **operator policy**, carried in every agent brief and in the repository's `AGENTS.md`, enforced by server-side branch protection on `main` and by nothing client-side.
+
+**What to do instead.** Rely on the structural mitigation rather than the guard: **give each agent its own worktree**. Worktree isolation removes the shared-state hazard entirely instead of policing it, and it is what Genie's own orchestration does. Keep the freeze sentence in your `AGENTS.md` so it lands in every brief.
+
+---
+
+## 3. Omni in-session permission approvals are gone
+
+**What is gone.** A permission prompt raised by an agent mid-session can no longer be approved from a chat. The path that pushed a live prompt out to an Omni channel and fed the reply back into the session ran inside the hook chain, and went with it.
+
+**What still works.** `genie omni serve` is unchanged in every other respect: it is still the resident NATS bridge, it still drains the approval queue, and the queue and inbox still persist in the global `~/.genie/genie.db`. `genie omni status` and `genie omni inbox` read them without touching the network. CLI-originated approvals still flow through the queue exactly as before.
+
+**What to do instead.** Approve in the session, or avoid the prompt. Configure the agent's sandbox permissions so the operations you trust do not prompt at all — sandbox permission configuration is where a hard control belongs, and it works whether or not anyone is watching a chat. For unattended runs, pre-authorize the tool surface rather than expecting to answer a prompt remotely.
+
+---
+
+## 4. SessionStart context injection is gone
+
+**What is gone.** Three things Genie used to inject into the start of every agent session:
+
+- the **stale-wish freshness warning** — a notice when the wish you were resuming had moved on disk since it was last read;
+- the **injected agent identity** — `GENIE_AGENT_NAME` / `GENIE_AGENT_ID` written into the session's opening context;
+- the **audit context lines** appended to session starts.
+
+None of them are emitted any more. In particular, **nothing will warn you that a wish is stale.**
+
+**What still works.** `GENIE_AGENT_NAME` and `GENIE_AGENT_ID` are still real environment variables and still configure the CLI — only the injection into session context is gone. Wish state itself is unchanged: it lives in git under `.genie/wishes/` and in `.genie/genie.db`, and every Genie skill reads it explicitly at the point of use rather than trusting an injected preamble.
+
+**What to do instead.** Read the state, do not wait to be told about it. `genie board` and `genie task status <id>` are the authoritative views, and a skill that resumes a wish opens `WISH.md` itself. If you resume long-running work, make re-reading the wish the first step of the session rather than assuming a warning would have fired.
+
+---
+
+## Installing and updating after these changes
+
+The install surface has no registration step left in it:
+
+```bash
+# First install — the bootstrap script fetches the signed binary,
+# which then installs the skills channel itself
+curl -fsSL https://raw.githubusercontent.com/automagik-dev/genie/main/install.sh | bash
+
+# Every update afterwards — swaps the binary and reinstalls its skills
+genie update
+
+# Skills machine-wide without the Genie CLI (drop -g for a project-scoped copy)
+npx skills add automagik-dev/genie -g --all
+```
+
+`genie update` installs the exact skills that shipped inside the release you are running. The public `npx skills add` command installs the repository's **default branch**, regardless of any `@<ref>` suffix — see [Installation](/genie/installation#the-public-command-tracks-main-not-a-release) for why, and use `genie update` when you need the version that matches your binary.
+
+Run `genie doctor` after either one: its `skills:` lines report, per agent home, how many of the recorded skills are present and which release they came from.
