@@ -238,7 +238,7 @@ See [Skills concept guide](/genie/concepts/skills) for frontmatter options and t
 
 **Problem:** After creating a wish with `/wish`, you still have to manually create a team and spawn agents. That's 2-3 extra commands before work begins.
 
-**Solution:** Genie's hook system fires events on every tool use. The `auto-spawn` handler already restarts crashed agents — you can extend this pattern by adding a hook that listens for wish file creation and automatically kicks off a team.
+**Solution:** Use **your agent's own** hook system — Genie ships none of its own. Claude Code fires `PostToolUse` on every tool call, so a hook you add to your `~/.claude/settings.json` can watch for a wish file being written and kick off a team automatically.
 
 ```bash
 # In your Claude Code settings (~/.claude/settings.json), add a hook:

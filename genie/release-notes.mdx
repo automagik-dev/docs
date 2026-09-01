@@ -76,13 +76,17 @@ None of them are emitted any more. In particular, **nothing will warn you that a
 
 ## Installing and updating after these changes
 
-The install surface is now two commands and no registration step:
+The install surface has no registration step left in it:
 
 ```bash
-# The signed binary — installs and updates the skills channel itself
+# First install — the bootstrap script fetches the signed binary,
+# which then installs the skills channel itself
+curl -fsSL https://raw.githubusercontent.com/automagik-dev/genie/main/install.sh | bash
+
+# Every update afterwards — swaps the binary and reinstalls its skills
 genie update
 
-# Skills without the Genie CLI, or a project-scoped copy
+# Skills machine-wide without the Genie CLI (drop -g for a project-scoped copy)
 npx skills add automagik-dev/genie -g --all
 ```
 

@@ -241,7 +241,7 @@ For each tool use, the auto-approve engine:
 
 ## Agent skill homes
 
-Genie does not write into any agent's settings file. The one place it puts content inside an agent's configuration is the agent's **skill home**, and it gets there through the [skills.sh](https://skills.sh) channel that `genie install` and `genie update` run:
+Genie does not write into any agent's settings file. The one place it puts content inside an agent's configuration is the agent's **skill home**, and it gets there through the [skills.sh](https://skills.sh) channel — run by the bootstrap script on first install, and by `genie update` on every update:
 
 | Agent | Skill home |
 |-------|------------|
