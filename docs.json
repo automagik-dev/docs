@@ -110,7 +110,6 @@
               "genie/config/setup",
               "genie/config/files",
               "genie/config/worktrees",
-              "genie/config/hooks",
               "genie/config/tmux"
             ]
           },
@@ -145,6 +144,12 @@
             "group": "Hacks & Tips",
             "pages": [
               "genie/hacks"
+            ]
+          },
+          {
+            "group": "Release Notes",
+            "pages": [
+              "genie/release-notes"
             ]
           },
           {
