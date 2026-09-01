@@ -30,8 +30,8 @@ Five minutes. One PR. Whatever agent you already use.
     ✓ genie CLI found
     ✓ Agent detected
     ✓ tmux available
-    ✓ Plugin symlink active
-    ✓ Git hooks configured
+    ✓ skills: claude 25/25 @ v5.x.x
+    ✓ skills: agents 25/25 @ v5.x.x
     ```
   </Step>
 
@@ -40,8 +40,8 @@ Five minutes. One PR. Whatever agent you already use.
 
     | Agent | Setup | Notes |
     |-------|-------|-------|
-    | **Claude Code** | Installed by default | Deepest integration — native plugin, hooks, teams |
-    | **Codex** | `genie setup --codex` | OpenAI's agent. Full transcript + team support |
+    | **Claude Code** | Installed by default | Deepest integration — full transcript + team support |
+    | **Codex** | Works out of the box | OpenAI's agent. Reads Genie's skills from the shared `~/.agents/skills` home |
     | **Open Claw** | `genie setup --open-claw` | Open-source. Community-maintained adapter |
     | **Custom (BYOA)** | `genie setup --custom` | Any CLI agent with stdout/stderr. Seriously, anything. |
 

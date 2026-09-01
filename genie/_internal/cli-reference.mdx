@@ -29,7 +29,6 @@ Complete command reference generated from `src/term-commands/`. Organized by cat
 - [Templates](#templates) -- genie template list/show/delete
 - [Metrics](#metrics) -- genie metrics now/history/agents
 - [Notifications](#notifications) -- genie notify set/list/remove
-- [Hooks](#hooks) -- genie hook dispatch
 - [Utility Commands](#utility-commands) -- genie setup/doctor/update/uninstall/init/shortcuts/app
 
 ---
@@ -1386,16 +1385,6 @@ Remove a notification preference.
 | Option | Type | Description |
 |--------|------|-------------|
 | `--channel <channel>` | string | **required** -- Channel to remove |
-
----
-
-## Hooks
-
-Commands under `genie hook`. Hook middleware for Claude Code integration.
-
-### `genie hook dispatch`
-
-Dispatch a CC hook event. Reads JSON from stdin, writes decision to stdout.
 
 ---
 
