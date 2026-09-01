@@ -24,30 +24,20 @@ NATS provides real-time observability across the entire agent fleet. The client 
 
 ### Subject Hierarchy
 
-Hook handlers emit events to structured NATS subjects:
+<Warning>
+**The lifecycle-event subjects below are historical.** Genie once emitted `genie.tool.*`, `genie.msg.*`, `genie.user.*` and `genie.agent.*` from an in-process hook handler chain. That chain was deleted in the `skills-everywhere` wish — there is no hook command and no lifecycle hook of any kind in a Genie release, so nothing publishes those subjects any more. See the [release notes](/genie/release-notes) for what is gone and what to do instead.
+</Warning>
 
-| Subject Pattern | Event Source | Data |
-|----------------|--------------|------|
-| `genie.tool.{agent}.call` | PreToolUse (all tools) | Tool name, input, agent, team |
-| `genie.msg.{recipient}` | PostToolUse:SendMessage | From, to, message content |
-| `genie.user.{agent}.prompt` | UserPromptSubmit | Agent name, prompt text |
-| `genie.agent.{agent}.response` | Stop | Agent name, response summary |
+The NATS path that survives is the **Omni bridge**: `genie omni serve` is a foreground runner that subscribes to the Omni subjects configured by `OMNI_NATS_URL` and drains inbound messages into the global approval queue and inbox (`~/.genie/genie.db`). It is the only optional daemon Genie ships; everything else forks and exits.
+
+| Behavior | Detail |
+|----------|--------|
+| Publisher | The Omni server, not Genie |
+| Subscriber | `genie omni serve` (foreground, opt-in) |
+| Sink | Approval queue + inbox in the global `genie.db` |
+| Inspect | `genie omni status`, `genie omni inbox` (both offline) |
 
 All NATS emissions are fire-and-forget — they never block execution. If NATS is unavailable, events are silently dropped.
-
-### Hook Integration
-
-Four hook handlers power the NATS event stream:
-
-```typescript
-// From src/hooks/index.ts
-const handlers = [
-  { name: 'nats-emit-tool',     event: 'PreToolUse',       priority: 30 },
-  { name: 'nats-emit-msg',      event: 'PostToolUse',      priority: 30 },
-  { name: 'nats-emit-user-prompt', event: 'UserPromptSubmit', priority: 30 },
-  { name: 'nats-emit-assistant-response', event: 'Stop',    priority: 30 },
-];
-```
 
 ## Protocol Router
 
