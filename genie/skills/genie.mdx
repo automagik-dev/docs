@@ -20,6 +20,10 @@ The entry point skill that transforms any Claude Code session into an Automagik 
 Every piece of work follows this flow:
 
 ```text
+One decided task:  /wish → PR → Ship
+                  (admit, build, gate, review, publish)
+
+Bigger than one task:
 Idea → /brainstorm → /wish → /review → /work → /review → PR → Ship
         (explore)    (plan)   (gate)   (build)  (verify)
 ```
@@ -29,7 +33,8 @@ Idea → /brainstorm → /wish → /review → /work → /review → PR → Ship
 | Situation | Action |
 |-----------|--------|
 | Idea is fuzzy, scope unclear | Run `/brainstorm` |
-| Idea is concrete, needs a plan | Run `/wish` |
+| One decided task, deliver it now | Run `/wish` — it comes back with a merge-ready PR, or a refusal naming the route it needs |
+| Work is bigger than one task, needs a plan | Run `/wish` (plan entry) |
 | Wish exists but not reviewed | Run `/review` |
 | Wish is SHIP-approved | Run `genie team create` to execute |
 | Work is done, needs verification | Run `/review` |
@@ -41,7 +46,7 @@ Idea → /brainstorm → /wish → /review → /work → /review → PR → Ship
 
 1. **Brainstorm** (`/brainstorm`) — Explore ambiguous ideas. Tracks WRS across 5 dimensions. Auto-crystallizes at WRS 100.
 
-2. **Wish** (`/wish`) — Convert design into structured plan with scope IN/OUT, execution groups, acceptance criteria, and validation commands.
+2. **Wish** (`/wish`) — Deliver one decided task end to end, to a merge-ready PR. When the work is bigger than one task, its plan entry converts the design into a structured plan instead, with scope IN/OUT, execution groups, acceptance criteria, and validation commands.
 
 3. **Review** (`/review`) — Universal gate. Returns SHIP / FIX-FIRST / BLOCKED. Runs before and after `/work`.
 

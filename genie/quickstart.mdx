@@ -123,6 +123,10 @@ Next: run /wizard for guided onboarding.
     /wish
     ```
 
+    <Note>
+      For **one decided task**, `/wish` skips the plan entirely: it admits the task, builds it in its own worktree, gates it, has a different agent review the commit, and opens a merge-ready PR. The walkthrough below shows the other path — work that is bigger than one task, which becomes a `WISH.md` for `/work`.
+    </Note>
+
     This produces a `WISH.md` — the contract between you and your agents:
     - Summary and scope (so nobody wanders off)
     - Acceptance criteria (checkboxes — unambiguous "done")
@@ -227,7 +231,8 @@ Creating pull request...
 | Step | Skill | Output |
 |------|-------|--------|
 | Explore | `/brainstorm` | Design document |
-| Plan | `/wish` | WISH.md with criteria |
+| Deliver one task | `/wish` | A merge-ready PR (no plan needed) |
+| Plan bigger work | `/wish` (plan entry) | WISH.md with criteria |
 | Build | `/work` | Code changes across execution groups (tracked as PG tasks) |
 | Validate | `/review` | SHIP or FIX-FIRST verdict |
 | Ship | PR created | Ready for you to merge (agents don't push to production — that's your job) |

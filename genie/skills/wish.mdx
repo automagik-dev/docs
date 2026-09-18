@@ -2,31 +2,59 @@
 title: "/wish"
 sidebarTitle: "/wish"
 icon: "sparkles"
-description: "Convert an idea into a structured wish plan with scope, acceptance criteria, and execution groups for /work."
+description: "Deliver one decided task end to end — or plan a multi-group wish when the work is bigger than one task."
 ---
 
-# /wish — Plan Before You Build
+# /wish — One Task Delivered
 
-Convert a validated idea into an executable wish document at `.genie/wishes/<slug>/WISH.md`.
+Give `/wish` a decided, bounded objective and it comes back with a merge-ready pull request against your integration branch — or with a refusal that names the route the request needs instead. When the work is bigger than one task, the same skill writes the plan at `.genie/wishes/<slug>/WISH.md` for `/work` to execute.
+
+<Note>
+  `/wish` used to mean "write a plan". It now means "deliver one task", and the planning path lives on as its plan entry. `/quick` is retired; `/wish` replaces it.
+</Note>
 
 ## When to Use
 
-- User describes non-trivial work that needs planning before implementation
-- User wants to scope, decompose, or formalize a feature/change
-- Prior `/brainstorm` output exists and needs to become actionable
+- One decided change that should become a green PR in a single pass
+- A multi-group effort that needs a durable plan first (the plan entry below)
+- Prior `/brainstorm` output that is settled enough to build
 
-## Flow
+Not for work whose cause is unknown (`/report` first) or whose product decision is still open (`/brainstorm` first). `/wish` refuses both, by name.
 
-1. **Gate check** — if the request is fuzzy, auto-trigger `/brainstorm` first.
-2. **Align intent** — ask one question at a time until success criteria are clear.
-3. **Define scope** — explicit IN and OUT lists (OUT cannot be empty).
-4. **Decompose into groups** — split into small, loosely coupled execution groups.
-5. **Write wish** — create `.genie/wishes/<slug>/WISH.md`.
-6. **Add verification** — every group gets acceptance criteria + a validation command.
-7. **Declare dependencies** — `depends-on` between groups and cross-wish dependencies.
-8. **Handoff** — auto-invoke `/review` on the WISH.md.
+## Delivering one task
 
-## Wish Document Sections
+| Stage | What happens |
+|-------|--------------|
+| **Admit** | A read-only scout reads the repository and estimates the change; a blind judge that never sees the code decides the route and writes the contract — core outcome, declared file set, acceptance criteria — before any code exists |
+| **Work** | One executor works in its own worktree on `wish/<slug>`, edits only the declared files, and makes one conventional commit |
+| **Gate** | The repository's full check runs once; a push never happens over dead git hooks |
+| **Review** | A different, read-only agent scores the exact commit against the criteria written at admission, and blocks if the diff leaves the declared file set |
+| **Repair** | Bounded repair rounds, each re-gated and re-reviewed |
+| **Publish** | One agent pushes the branch, opens the PR, and reads the remote back — base, head, file set and checks |
+
+Merging is never part of it. `/wish` reports `merge-ready`; you merge.
+
+### Admission band
+
+The scout's estimate is measured against the size band from the wish-duration study: **maximum 25 files, 2,000 insertions, 3 independently reviewable units** (ideal: 10, 800, 2). Anything larger, anything touching a trust-boundary path (CI workflows, git hooks, settings, release scripts, permission surfaces), an open product decision, or an unknown cause comes back **refused**, with the route it needs — `plan`, `brainstorm` or `report` — and nothing created.
+
+### What a run returns
+
+| State | Meaning |
+|-------|---------|
+| `merge-ready` | Checks pass, the remote matches the local head, the PR's base, head and file set match the contract, and the verdict is SHIP |
+| `pr-open` | The PR exists, but its checks had not concluded — re-read them before acting |
+| `refused` | Admission chose another route; nothing was created |
+| `blocked` | A worktree, hook, denylist or read-back mismatch stopped the run; the reason names which |
+| `missed` | The repair budget ran out, or a stage returned nothing; the branch, commit, worktree and any PR are preserved and named |
+
+A rerun with the same objective adopts the worktree it left behind when that worktree is clean and nothing has diverged from the remote. `/wish` never deletes a worktree or a branch — after you merge, `git worktree remove <path> && git branch -d wish/<slug>`.
+
+## Plan a multi-group wish
+
+The direct entry for work bigger than one task: no admission, just the plan. Write `.genie/wishes/<slug>/WISH.md`, then `/review` it, then `/work` executes the approved groups.
+
+### Wish Document Sections
 
 | Section | Required | Notes |
 |---------|----------|-------|
@@ -41,9 +69,9 @@ Convert a validated idea into an executable wish document at `.genie/wishes/<slu
 | QA Criteria | No | Post-merge verification |
 | Assumptions / Risks | No | Flag what could invalidate the plan |
 
-## Execution Strategy
+### Execution Strategy
 
-Every wish must define waves — this forces the planner to think about ordering, parallelism, and dependencies upfront:
+Every wish defines waves — this forces the planner to think about ordering, parallelism, and dependencies upfront:
 
 ```markdown
 ### Wave 1 (parallel)
@@ -59,10 +87,12 @@ Every wish must define waves — this forces the planner to think about ordering
 | review | reviewer | Review Groups 1+2 |
 ```
 
+Size the plan by the same band: a group that would exceed the admission maxima is a sibling wish, not a bigger group.
+
 ## Rules
 
-- No implementation during `/wish` — planning only
+- The objective is frozen: no stage re-asks it, narrows it, or widens it
 - No vague tasks ("improve everything") — every task must be testable
-- Keep tasks bite-sized and independently shippable
-- Declare cross-wish dependencies early
+- The executor edits only the declared file set; a diff that leaves it is blocked
 - OUT scope must contain at least one concrete exclusion
+- Merge, `SHIPPED`, promotion and worktree removal stay with the operator
