@@ -28,10 +28,9 @@ Five minutes. One PR. Whatever agent you already use.
     Expected output:
     ```text
     ✓ genie CLI found
-    ✓ Agent detected
-    ✓ tmux available
-    ✓ skills: claude 25/25 @ v5.x.x
-    ✓ skills: agents 25/25 @ v5.x.x
+    ✓ authority: standalone
+    ✓ skills: claude 19/19 @ v6.x.x
+    ✓ skills: agents 19/19 @ v6.x.x
     ```
   </Step>
 
@@ -40,55 +39,41 @@ Five minutes. One PR. Whatever agent you already use.
 
     | Agent | Setup | Notes |
     |-------|-------|-------|
-    | **Claude Code** | Installed by default | Deepest integration — full transcript + team support |
-    | **Codex** | Works out of the box | OpenAI's agent. Reads Genie's skills from the shared `~/.agents/skills` home |
-    | **Open Claw** | `genie setup --open-claw` | Open-source. Community-maintained adapter |
-    | **Custom (BYOA)** | `genie setup --custom` | Any CLI agent with stdout/stderr. Seriously, anything. |
+    | **Claude Code** | Nothing to do | Skills become slash commands, plus the saved-workflow catalog in `~/.claude/workflows` |
+    | **Codex** | Nothing to do | OpenAI's agent. Reads Genie's skills from the shared `~/.agents/skills` home |
+    | **Goose, Windsurf, and the rest** | Nothing to do | Any agent skills.sh supports gets the same skills in its own skill home |
+    | **Custom (BYOA)** | Nothing to do | Any CLI agent that reads a skills directory. Seriously, anything. |
 
-    Claude Code works out of the box. For others, run the setup command and Genie configures the adapter.
+    There is nothing per-agent to configure: Genie installs to the agents it **detects**, and the skills are
+    runtime-neutral, so the same body works everywhere.
 
     <Tip>
-      **You're never locked in.** Switch agents mid-project, mix them on the same team, or write your own adapter.
-      See the [adapter docs](/genie/architecture/overview) if you're the kind of person who builds their own tools.
+      **You're never locked in.** Switch agents mid-project or mix them on the same wish.
+      See the [architecture overview](/genie/architecture/overview) if you're the kind of person who builds their own tools.
     </Tip>
   </Step>
 
-  <Step title="Paste Into Your Agent">
-    Open your agent in your project directory and paste:
+  <Step title="Scaffold the repository">
+    From inside the repository you want to work in:
 
-    ```text
-    You are now a Genie-powered agent. Run `genie` to initialize,
-    then use /wizard for guided onboarding.
+    ```bash
+    genie init
     ```
 
-    Genie detects a fresh project and scaffolds everything:
+    It scaffolds the per-repo state and retires the historical MCP registrations Genie can prove it owns — backup-first,
+    leaving every unrelated key byte-for-byte intact.
 
-    <Frame>
-      <CodeGroup>
-```bash Scaffold Flow
-$ genie
-🔍 Scanning project...
+    ```text
+    .genie/
+      wishes/       → WISH.md per slug, tracked in git
+      brainstorms/  → DESIGN.md per slug, tracked in git
+      INDEX.md      → the hand-written index
+      roadmap.json  → the canonical board snapshot, tracked in git
+      genie.db      → tasks, lanes, dependency edges (SQLite, gitignored)
+    ```
 
-⚠ No AGENTS.md found — this looks like a fresh project.
-
-Scaffolding your agent workspace...
-  Creating AGENTS.md...        ✓
-  Creating SOUL.md...          ✓
-  Creating .genie/wishes/...   ✓
-  Creating .genie/state/...    ✓
-  Configuring git hooks...     ✓
-
-✨ Project scaffolded successfully!
-
-Your agent workspace is ready:
-  AGENTS.md    → agent directory and roles
-  SOUL.md      → agent identity and principles
-  .genie/      → wishes, state, mailbox, chat
-
-Next: run /wizard for guided onboarding.
-```
-      </CodeGroup>
-    </Frame>
+    Then open your agent in that directory. The skills are already in its skill home — nothing to paste, nothing to
+    register.
   </Step>
 
   <Step title="Brainstorm Your First Idea">
@@ -233,12 +218,14 @@ Creating pull request...
 | Explore | `/brainstorm` | Design document |
 | Deliver one task | `/wish` | A merge-ready PR (no plan needed) |
 | Plan bigger work | `/wish` (plan entry) | WISH.md with criteria |
-| Build | `/work` | Code changes across execution groups (tracked as PG tasks) |
-| Validate | `/review` | SHIP or FIX-FIRST verdict |
+| Build | `/work` | Code changes across execution groups (tracked as tasks in `.genie/genie.db`) |
+| Validate | `/review` | SHIP, FIX-FIRST, or BLOCKED verdict |
 | Ship | PR created | Ready for you to merge (agents don't push to production — that's your job) |
 
 <Note>
-  Under the hood, Genie tracks every task, board, audit event, and session in an embedded PostgreSQL database. Query it with `genie events summary --today` or `genie task list --by-column` for a Kanban view.
+  Under the hood, Genie tracks every task, lane, and dependency edge in **one per-repo SQLite file** — no daemon, no
+  server, no port. `genie board` renders the kanban live by query, and `genie task status <id>` shows one card's detail
+  and stage log. The plan documents themselves stay in git, so you review them like code.
 </Note>
 
 ## What's next

@@ -6,7 +6,9 @@ description: "Install Genie CLI, configure prerequisites, and verify your setup.
 ---
 
 <Note>
-  Genie runs on **Linux** and **macOS**. Windows is not supported today (WSL2 works but is not on the tested matrix). You'll also need Node.js 18+ or Bun, Claude Code (or another agent), tmux, Git, and — recommended — the GitHub CLI.
+  **Stable is declared for Linux and macOS.** Both are covered by the release gate, so a change that breaks either one
+  does not ship. Windows is not supported (WSL2 works but is not on the tested matrix). You'll also need Node.js 18+ or
+  Bun, an agent that reads skills, Git, and — optionally — the GitHub CLI.
 </Note>
 
 ## Prerequisites
@@ -14,10 +16,10 @@ description: "Install Genie CLI, configure prerequisites, and verify your setup.
 | Tool | Required | Purpose |
 |------|----------|---------|
 | [Node.js](https://nodejs.org/) 18+ or [Bun](https://bun.sh/) | Yes | Runtime for the CLI |
-| [Claude Code](https://docs.anthropic.com/en/docs/claude-code) | Yes | AI agent backend (or swap for [Codex, Open Claw, or a BYOA adapter](/genie/concepts/byoa)) |
-| [tmux](https://github.com/tmux/tmux) | Yes | Agent process management |
+| [Claude Code](https://docs.anthropic.com/en/docs/claude-code) | Yes | AI agent backend (or swap for [Codex, Goose, or any other skills-reading agent](/genie/concepts/byoa)) |
 | [Git](https://git-scm.com/) | Yes | Version control and worktrees |
-| [GitHub CLI](https://cli.github.com/) (`gh`) | Recommended | PR creation and issue tracking |
+| [tmux](https://github.com/tmux/tmux) | Optional | Only for `genie shortcuts` keybindings — Genie spawns no panes of its own |
+| [GitHub CLI](https://cli.github.com/) (`gh`) | Optional | PR creation. `genie update` verifies and downloads releases **without** it |
 
 ## Install Genie
 
@@ -47,18 +49,32 @@ Installing Genie is **two steps and a check** — there is no plugin registratio
 
 <Steps>
   <Step title="Install the signed binary">
-    Downloads and installs the signed `genie` release for your platform and links it onto your `PATH`.
+    Downloads and installs the signed `genie` release for your platform and links it onto your `PATH`. The release is
+    verified **offline**, from its own signed delivery evidence, before anything is extracted — see
+    [Verifying installs](/genie/security/verifying-installs).
   </Step>
-  <Step title="Install the skills">
-    The binary then runs the pinned [skills.sh](https://skills.sh) CLI against its own delivered skill tree, which writes Genie's skills — `wish`, `work`, `review`, `brainstorm`, and the rest — into every agent skill home skills.sh supports on this machine. `genie update` repeats this step on every update, so the skills on disk always match the binary you are running.
+  <Step title="Install the skills and workflows">
+    The binary then runs the pinned [skills.sh](https://skills.sh) CLI against its own delivered skill tree, which writes
+    Genie's skills — `wish`, `work`, `review`, `brainstorm`, and the rest — into every detected agent skill home on this
+    machine, and delivers the saved-workflow catalog to `~/.claude/workflows`. `genie update` repeats this step on every
+    update, so what is on disk always matches the binary you are running.
   </Step>
   <Step title="Run genie doctor">
-    Verifies prerequisites, config, and the skills channel, then prints a green checklist (or tells you what's missing).
+    Verifies prerequisites, config, the selected lifecycle authority, and the skills channel, then prints a green
+    checklist (or tells you what's missing).
   </Step>
 </Steps>
 
 <Note>
-  **Genie ships exactly one plugin, and it is the Orca plugin.** There is no Claude Code plugin, no plugin marketplace registration, and no editor-specific integration to install. Skills reach your agent through skills.sh; everything else is the signed binary.
+  **Genie ships exactly one plugin, and it is the Orca plugin.** There is no Claude Code plugin, no plugin marketplace
+  registration, no MCP server, and no editor-specific integration to install. Skills reach your agent through skills.sh;
+  everything else is the signed binary.
+</Note>
+
+<Note>
+  **Genie installs to agents you already have.** Detection is Genie's own: it names the agents whose product root
+  (`~/.claude`, `~/.codex`, `~/.cursor`, …) exists, or whose skill home a previous install record already lists. With no
+  agent detected the channel is reported as `skipped` — Genie never invents a product home.
 </Note>
 
 ### npm
@@ -92,43 +108,57 @@ genie setup
 ```
 
 <CardGroup cols={2}>
-  <Card title="Session management" icon="layer-group">
-    tmux session naming and window layout, so every agent lands in a predictable pane.
+  <Card title="Orchestration mode" icon="plug">
+    `genie setup --orchestration-mode standalone|orca` selects which lifecycle authority owns your board state. `standalone` is the default, including when the config omits it.
   </Card>
   <Card title="Terminal preferences" icon="terminal">
     Default shell, timeouts, and read-line counts tuned to your environment.
   </Card>
   <Card title="Shell integration" icon="keyboard">
-    Shell aliases and tmux keybindings to keep the hot-path commands a keystroke away.
+    Shell aliases and tmux keybindings to keep the hot-path commands a keystroke away (`genie setup --shortcuts`).
   </Card>
-  <Card title="Orchestration mode" icon="plug">
-    `genie setup --orchestration-mode standalone|orca` selects which lifecycle authority owns your board state.
+  <Card title="Repository scaffold" icon="folder-tree">
+    Run `genie init` inside a repository to scaffold its `.genie/` state and retire the historical MCP registrations Genie can prove it owns.
   </Card>
 </CardGroup>
 
 ## Skills for any agent
 
-Genie's skills are published through [skills.sh](https://skills.sh), so any agent that reads skills can use them — Claude Code, Codex, Cursor, and the rest. To install them machine-wide, for every agent skills.sh supports, with no prompts:
+Genie's skills are published through [skills.sh](https://skills.sh), so any agent that reads skills can use them — Claude Code, Codex, Cursor, and the rest. If you want the skills **without** the Genie CLI:
 
 ```bash
-npx skills add automagik-dev/genie -g --all
+npx skills add automagik-dev/genie -g
 ```
 
 The flags matter:
 
 - `-g` installs at global scope, under your home directory. Without it the bare `npx skills add automagik-dev/genie` is **project-scoped**: it writes the skills into the current working directory and leaves nothing machine-wide.
-- `--all` answers both the agent picker and the skill picker for you — it is shorthand for `--skill '*' --agent '*' -y` — and installs every Genie skill into every agent skills.sh supports for global installs, rather than prompting. Agents skills.sh does not support at global scope (currently Eve and PromptScript) are skipped.
 - `--copy` writes plain files instead of symlinks — add it when your agent or sandbox does not follow links.
 
-Starting with the release that ships the skills.sh channel, `genie update` performs this global install itself — run `genie doctor` to see whether your version reports the skills surface. On earlier versions, run the command above once and again after each update. The `npx skills add` command is also how people who want Genie's skills without the Genie CLI install them, and how you get a project-scoped copy inside a single repository.
+<Warning>
+  **Do not add `--all`.** It expands to `--skill '*' --agent '*' -y`, and `--agent '*'` *writes* — so creates — every
+  product home in the skills CLI's 77-agent registry: roughly 53 directories on a typical host, for agents you do not
+  have installed. Genie's own channel never passes it; it installs only to agents it detected.
+</Warning>
+
+`genie update` performs this install itself, so on a host with the CLI you never run the command above — run
+`genie doctor` to see what the channel reported. The public command is for people who want Genie's skills without the
+Genie CLI, and for a project-scoped copy inside a single repository.
 
 ### The public command tracks `main`, not a release
 
 <Warning>
-  `npx skills add automagik-dev/genie -g --all` installs the **repository's default branch (`main`)** — and it does so **regardless of any `@<ref>` suffix you add**. Writing `automagik-dev/genie@v5.260830.21` does not pin the tag: skills.sh 1.5.23 binds the third segment of its source spec to the *skill filter*, not to a git ref, so that spec resolves to `main`'s tree with a skill filter applied. A `#fragment` is the only ref form the CLI honours.
+  `npx skills add automagik-dev/genie -g` installs the **repository's default branch (`main`)** — and it does so **regardless of any `@<ref>` suffix you add**. Writing `automagik-dev/genie@v6.260919.1` does not pin the tag: skills.sh 1.5.23 binds the third segment of its source spec to the *skill filter*, not to a git ref, so that spec resolves to `main`'s tree with a skill filter applied. A `#fragment` is the only ref form the CLI honours.
 
   The consequence: the public command tracks `main`, which can be ahead of or behind any published release. **`genie update` installs the exact delivered release** — Genie points the same CLI at the signed tarball's own skill tree under `$GENIE_HOME/skills`, a local path source that skills.sh does resolve correctly. If you need the skills that match your binary, use `genie update`, not the public command.
 </Warning>
+
+## Saved workflows
+
+Alongside the skills, `genie install` and `genie update` deliver the **saved-workflow catalog** into Claude Code's user
+scope at `~/.claude/workflows/`. A workflow is a script the harness executes for a procedure worth running the same way
+every time — the `council` deliberation, the documentation audit, the skill-intake sweep, the research sweep. A
+repository can keep its own copies under `<repo>/.claude/workflows/`; both scopes legitimately carry the same catalog.
 
 ## Verify your install
 
@@ -156,8 +186,8 @@ Configuration:
   ✓ Setup complete
 
 Skills channel:
-  ✓ skills: claude    25/25 @ v5.260831.6
-  ✓ skills: agents    25/25 @ v5.260831.6
+  ✓ skills: claude    19/19 @ v6.260919.1
+  ✓ skills: agents    19/19 @ v6.260919.1
   ✓ skills: goose     not detected
   ✓ skills: windsurf  not detected
 
@@ -185,20 +215,29 @@ Skills channel:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `GENIE_HOME` | `~/.genie` | Relocates all global state |
-| `GENIE_AGENT_NAME` | — | Agent identity used by the CLI |
+| `GENIE_HOME` | `~/.genie` | Relocates **all** global state |
+| `GENIE_AGENT_NAME` | — | Worker identity for task claims and stage-log entries |
+| `GENIE_AGENT_ID` | — | Fallback worker identity when `GENIE_AGENT_NAME` is unset |
 | `GENIE_TEAM` | — | Default team when `--team` omitted |
-| `GENIE_IDLE_TIMEOUT_MS` | — | Auto-suspend idle agents |
+| `GENIE_WORKTREES_DIR` | `<GENIE_HOME>/worktrees` | Override the worktrees base doctor and review snapshots read |
+| `GENIE_CONFIG_FILE` | `<GENIE_HOME>/config.json` | Override the resolved config path |
 
 ## Updating
 
 ```bash
 genie update          # Stable channel
-genie update --next   # Development builds
+genie update --dev    # Pre-release builds
 ```
 
 <Note>
   `genie update` swaps the signed binary and then reinstalls the skills channel from the tree that shipped inside that release, so the skills on disk always match the binary. A failed skills install never rolls the binary back: the command prints the exact remedy, exits non-zero, and stays retryable. Run `genie doctor` afterwards to confirm the skills lines are green.
+</Note>
+
+<Note>
+  **No GitHub credential is required.** The mandatory verification runs in-process against the release's own signed
+  delivery evidence and an embedded trust root; a `gh attestation verify` cross-check runs on top only when a usable
+  `gh` exists, and a host without one prints a single line saying the cross-check was unavailable and updates anyway. A
+  `gh` that ran and says the artifact does not verify still aborts.
 </Note>
 
 ## Uninstalling
@@ -228,8 +267,8 @@ What that means in practice:
   <Card title="Configure your setup" icon="sliders" href="/genie/config/setup">
     Tune session layout, shortcuts, shell integration, and provider adapters.
   </Card>
-  <Card title="Learn the CLI" icon="terminal" href="/genie/cli/agents">
-    Tour the `genie` command surface — agents, spawning, events, and more.
+  <Card title="Learn the CLI" icon="terminal" href="/genie/cli/infrastructure">
+    Tour the `genie` command surface — init, setup, config, context, doctor, update, and uninstall.
   </Card>
   <Card title="Quickstart" icon="rocket" href="/genie/quickstart">
     Five-minute smoke test from install to first pull request.

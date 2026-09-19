@@ -4,6 +4,14 @@ sidebarTitle: "Registry"
 description: "Install, publish, update, and manage reusable Genie items — agents, skills, apps, boards, workflows, stacks, templates, and hooks"
 ---
 
+<Warning>
+  **This page documents the v4 harness and is kept for people still running it.** The commands below do not exist in
+  the current release: v4's PostgreSQL backend, pane-based process orchestration, executor registries, NATS event spine
+  and scheduler were removed in the cutover to the lightweight body. v4 lives on the
+  [`v4` branch](https://github.com/automagik-dev/genie/tree/v4). For the current surface see
+  [Infrastructure](/genie/cli/infrastructure) and [Architecture → Overview](/genie/architecture/overview).
+</Warning>
+
 # Item Registry
 
 The `genie install`, `genie publish`, and `genie item` commands manage the Genie item registry. Items are reusable components distributed via git repositories and described by a `genie.yaml` manifest.
@@ -248,7 +256,7 @@ If no `genie.yaml` exists, Genie infers the manifest from conventions:
 ## See also
 
 <CardGroup cols={2}>
-  <Card title="Directory" icon="address-book" href="/genie/cli/directory">
+  <Card title="Directory" icon="address-book" href="/genie/cli/infrastructure">
     Register and edit agents in the local directory.
   </Card>
   <Card title="Boards" icon="columns-3" href="/genie/cli/boards">

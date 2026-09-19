@@ -1,247 +1,132 @@
 ---
 title: "Configuration Files"
 sidebarTitle: "Config Files"
-description: "config.json schema, PostgreSQL state, environment variables, and auto-approve configuration"
+description: "config.json, the two SQLite databases, the documents in git, and every environment variable."
 ---
 
-Genie uses several configuration files and a PostgreSQL database for state. The main config file is `~/.genie/config.json`, but the primary state store is an embedded PostgreSQL instance managed by pgserve.
+Genie keeps three kinds of state, and they are deliberately separate:
+
+| Kind | Where | Why there |
+|------|-------|-----------|
+| **Configuration** | `~/.genie/config.json` | One file, schema-validated, machine-wide |
+| **Documents** | `<repo>/.genie/wishes/`, `<repo>/.genie/brainstorms/`, `<repo>/.genie/INDEX.md` | Plain markdown in git — you diff, review, and version them like code |
+| **Operational state** | `<repo>/.genie/genie.db` | One SQLite file per repository. No daemon reads it; a command opens it, runs one transaction, and exits |
+
+<Note>
+  There is **no PostgreSQL**, no embedded database server, no port to bind, and nothing resident between invocations.
+  The v4 pgserve backend was removed in the cutover to the lightweight body.
+</Note>
 
 ## config.json
 
-**Location:** `~/.genie/config.json`
+**Location:** `~/.genie/config.json` (relocated wholesale by `GENIE_HOME`).
 
-The primary configuration file, managed by `genie setup` or edited directly. Validated by a Zod schema on every load — invalid configs fall back to defaults with a warning.
-
-### Full Schema
+Managed by `genie setup`, read back by `genie config get`, and validated by a Zod schema on every load. An invalid
+config falls back to defaults with a warning rather than failing the command.
 
 ```json
 {
   "version": 2,
-  "session": {
-    "name": "genie",
-    "defaultWindow": "shell",
-    "autoCreate": true
-  },
-  "terminal": {
-    "execTimeout": 120000,
-    "readLines": 100,
-    "worktreeBase": "~/.genie/worktrees"
-  },
-  "logging": {
-    "tmuxDebug": false,
-    "verbose": false
-  },
-  "shell": {
-    "preference": "auto"
-  },
-  "shortcuts": {
-    "tmuxInstalled": false,
-    "shellInstalled": false
-  },
-  "codex": {
-    "configured": false
-  },
+  "session": { "name": "genie", "defaultWindow": "shell", "autoCreate": true },
+  "terminal": { "execTimeout": 120000, "readLines": 100 },
+  "logging": { "tmuxDebug": false, "verbose": false },
+  "budgets": { "maxFableCallsPerWish": 3, "maxEscalationsPerGroup": 2 },
+  "routing": { "maxAutoEffort": "xhigh", "fableGateMaxAt": 7 },
+  "shell": { "preference": "auto" },
+  "shortcuts": { "tmuxInstalled": false, "shellInstalled": false },
+  "runtime": { "defaultAgent": "auto" },
+  "orchestration": { "mode": "standalone" },
   "installMethod": "bun",
   "updateChannel": "latest",
   "setupComplete": true,
-  "workerProfiles": {
-    "default": {
-      "launcher": "claude",
-      "claudeArgs": ["--dangerously-skip-permissions"]
-    },
-    "safe": {
-      "launcher": "claude",
-      "claudeArgs": []
-    }
-  },
-  "defaultWorkerProfile": "default",
-  "councilPresets": {
-    "default": {
-      "left": "default",
-      "right": "default",
-      "skill": "council"
-    }
-  },
-  "systemPromptMode": "append",
-  "omni": {
-    "apiUrl": "http://localhost:3008",
-    "apiKey": "...",
-    "defaultInstanceId": "..."
-  }
+  "promptMode": "append"
 }
 ```
 
-### Key Sections
+### Key sections
 
 <AccordionGroup>
-  <Accordion title="Agent Profiles">
-    Agent profiles (named `workerProfiles` in config) define how to launch Claude Code agents. Each profile specifies a launcher binary and CLI arguments.
+  <Accordion title="orchestration.mode — the lifecycle authority">
+    `standalone` (the default, including when the key is absent) or `orca`. This is the **only** thing that decides who
+    owns your board state; installing or opening Orca changes nothing on its own. Select it explicitly with
+    `genie setup --orchestration-mode <mode>`, never by hand — the setup path probes the runtime and backs the file up
+    before it switches.
 
-    ```json
-    "workerProfiles": {
-      "default": {
-        "launcher": "claude",
-        "claudeArgs": ["--dangerously-skip-permissions"]
-      },
-      "safe": {
-        "launcher": "claude",
-        "claudeArgs": []
-      }
-    }
-    ```
-
-    Use profiles with: `genie spawn engineer --profile safe`
+    An `orchestration.mode` Genie cannot read refuses at exit 2 with its own message, because Genie cannot prove
+    `standalone` either. `genie setup --orchestration-mode standalone` repairs it: the original bytes are backed up
+    under `~/.genie/backups/orchestration-mode/` first, and every other key it could read is kept.
   </Accordion>
 
-  <Accordion title="Council Presets">
-    Council presets configure dual-model deliberation for the `/council` skill:
+  <Accordion title="budgets — gates may only be tightened">
+    Every `budgets.*` key is a conservative default with a schema ceiling (`maxFableCallsPerWish` 10,
+    `maxEscalationsPerGroup` 5). A budget bounds how much extra work a gate may authorize before a human is asked, so
+    configuration may only **tighten** it. A hand-edited value past the ceiling fails the whole parse, so the resolved
+    value is the default and `genie config get` reports `source: default` — never the out-of-range number.
 
-    ```json
-    "councilPresets": {
-      "default": {
-        "left": "default",
-        "right": "default",
-        "skill": "council"
-      }
-    }
+    Skills read these values through the CLI rather than restating them:
+
+    ```bash
+    genie config get budgets.maxEscalationsPerGroup
     ```
-
-    Each preset pairs two agent profiles (left/right panes) with a skill.
   </Accordion>
 
-  <Accordion title="System Prompt Mode">
-    Controls how Genie injects system prompts into Claude Code agents:
-
-    | Mode | Flag | Behavior |
-    |------|------|----------|
-    | `replace` | `--system-prompt-file` | Replaces Claude Code's default system prompt |
-    | `append` | `--append-system-prompt-file` | Preserves Claude Code default, appends Genie context |
+  <Accordion title="updateChannel — stable or dev">
+    Canonical values are `latest` (stable) and `dev` (pre-release). Two read-time aliases still parse so configs written
+    by older binaries keep working: `next` resolves to `dev`, and the retired `homolog` resolves to `latest` — the
+    conservative direction, because silently subscribing a host to less-vetted dev builds would be a regression nobody
+    consented to. Neither alias round-trips to disk.
   </Accordion>
 
-  <Accordion title="Omni Integration">
-    Connects Genie to the Omni unified messaging platform:
-
-    ```json
-    "omni": {
-      "apiUrl": "http://localhost:3008",
-      "apiKey": "your-api-key",
-      "defaultInstanceId": "instance-uuid"
-    }
-    ```
+  <Accordion title="runtime.defaultAgent">
+    `auto` (detect), `claude`, or `codex`. It selects which agent Genie assumes when a command needs one; it never
+    installs an agent and never writes into an agent's settings file.
   </Accordion>
 </AccordionGroup>
 
-## State Storage — PostgreSQL
+## State storage — two separate SQLite databases
 
-As of v4, Genie's primary state store is an embedded PostgreSQL instance managed by [pgserve](/genie/architecture/postgres). State that was previously stored in JSON files now lives in PG tables.
+Both run on Bun's built-in engine, both use WAL, and they are **wholly separate databases**: different paths, different
+schemas, independent `PRAGMA user_version`. Nothing reaches across.
 
-### State Locations
+| Database | Path | Scope | What lives here |
+|----------|------|-------|-----------------|
+| Per-repo | `<repo>/.genie/genie.db` | One per repository, shared across all its worktrees | Tasks, dependency edges, board lanes, wish-group execution state, stage log |
+| Global | `~/.genie/genie.db` | Machine-wide | Nothing lifecycle-related. v6 opens no machine-scope lifecycle database |
 
-| State | Location | Notes |
-|-------|----------|-------|
-| Tasks, stages, dependencies | PostgreSQL `tasks`, `task_dependencies`, `task_stage_log` | Full lifecycle with audit trail |
-| Boards and pipelines | PostgreSQL `boards`, `board_templates` | Project-scoped column pipelines |
-| Projects | PostgreSQL `projects` | Named task boards |
-| Agents (workers) | PostgreSQL `agents`, `agent_templates` | Replaces `~/.genie/workers.json` |
-| Teams | PostgreSQL `teams` | Replaces `~/.genie/teams/*.json` |
-| Mailbox | PostgreSQL `mailbox` | Replaces `.genie/mailbox/*.json` |
-| Team chat | PostgreSQL `team_chat` | Replaces `.genie/chat/*.jsonl` |
-| Sessions | PostgreSQL `sessions`, `session_content` | Claude Code session metadata and content |
-| Schedules and triggers | PostgreSQL `schedules`, `triggers`, `runs` | Cron-based automation |
-| Audit events | PostgreSQL `audit_events` | OTel-structured immutable log |
-| Heartbeats | PostgreSQL `heartbeats` | Agent liveness tracking |
-| App registry | PostgreSQL `app_store`, `installed_apps` | Unified item registry |
-| Conversations | PostgreSQL `conversations`, `messages` | Task-linked conversations |
-| pgserve data | `~/.genie/data/pgserve/` | PostgreSQL data directory |
+Linked worktrees resolve the per-repo database through `git rev-parse --git-common-dir`, so a task created in one
+worktree is immediately visible in another with **no sync step**.
 
-### Legacy File Locations (deprecated)
+### Documents in git
 
-These locations are no longer the primary state store but may still exist on disk:
+| Document | Location | Tracked |
+|----------|----------|---------|
+| Wishes | `<repo>/.genie/wishes/<slug>/WISH.md` | Yes |
+| Reviewed designs | `<repo>/.genie/brainstorms/<slug>/DESIGN.md` | Yes |
+| Index | `<repo>/.genie/INDEX.md` | Yes |
+| Other brainstorm notes | `<repo>/.genie/brainstorms/<slug>/` | No — machine-local |
+| Board snapshot | `<repo>/.genie/roadmap.json` | Yes — the canonical roadmap |
+| The database itself | `<repo>/.genie/genie.db` | No |
 
-| File | Replaced By | Status |
-|------|-------------|--------|
-| `~/.genie/workers.json` | `agents` table | Deprecated — PG is authoritative |
-| `~/.genie/teams/*.json` | `teams` table | Deprecated — PG is authoritative |
-| `.genie/mailbox/*.json` | `mailbox` table | Deprecated — PG is authoritative |
-| `.genie/chat/*.jsonl` | `team_chat` table | Deprecated — PG is authoritative |
+`roadmap.json` is the canonical board: `genie task sync` reconciles it against `genie.db` three ways, and git hooks run
+it on merge, rewrite, and pre-commit. When both sides moved but only a card's timeline differs, the events are unioned
+by identity and republished — the card conversation is global state, not a local view.
 
-### Connection Details
-
-| Setting | Value |
-|---------|-------|
-| Default port | `19642` |
-| Host | `127.0.0.1` |
-| Database name | `genie` |
-| Data directory | `~/.genie/data/pgserve/` |
-| Port lockfile | `~/.genie/pgserve.port` |
-| Migration marker | `~/.genie/pgserve.migrated` |
-
-See the [PostgreSQL architecture page](/genie/architecture/postgres) for full schema details and migration history.
-
-## Auto-Approve Configuration
-
-Genie supports layered trust configuration for automatic tool approval.
-
-**Config hierarchy** (lower overrides higher):
-
-1. **Global defaults:** `~/.config/genie/auto-approve.yaml`
-2. **Repo-level:** `.genie/auto-approve.yaml` in each repo
-3. **Wish-level:** `## Auto-Approve` section in WISH.md
-
-### YAML Schema
-
-```yaml
-# ~/.config/genie/auto-approve.yaml
-defaults:
-  allow:
-    - Read
-    - Glob
-    - Grep
-  deny:
-    - Bash
-  bash_allow_patterns:
-    - "^git status"
-    - "^bun test"
-  bash_deny_patterns:
-    - "^rm -rf"
-    - "^git push.*--force"
-
-repos:
-  /home/user/myproject:
-    inherit: global    # or "none" to start fresh
-    allow:
-      - Write
-      - Edit
-    bash_allow_patterns:
-      - "^bun run"
-```
-
-### Evaluation Order
-
-For each tool use, the auto-approve engine:
-
-1. Checks deny lists first (deny wins over allow)
-2. Checks allow lists
-3. For Bash commands, checks `bash_deny_patterns` then `bash_allow_patterns`
-4. Merges layers: wish > repo > global defaults
-
-## Environment Variables
+## Environment variables
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `GENIE_HOME` | `~/.genie` | Relocates all global state |
-| `GENIE_AGENT_NAME` | — | Agent identity for hooks (required for auto-spawn) |
-| `GENIE_TEAM` | — | Default team name |
-| `GENIE_NATS_URL` | `nats://localhost:4222` | NATS server URL |
-| `GENIE_PG_PORT` | `19642` | pgserve PostgreSQL port |
-| `GENIE_MAX_CONCURRENT` | `5` | Max concurrent scheduler runs |
-| `GENIE_IDLE_TIMEOUT_MS` | — | Auto-suspend idle agents after N ms |
-| `CLAUDECODE` | — | Set to `1` to enable Claude Code features |
-| `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` | — | Set to `1` for native teammate UI |
+| `GENIE_HOME` | `~/.genie` | Relocates **all** global state — the global database and `worktrees/` |
+| `GENIE_AGENT_NAME` | — | Worker identity for task claims and stage-log entries; the default for `task checkout --worker` |
+| `GENIE_AGENT_ID` | — | Fallback worker identity when `GENIE_AGENT_NAME` is unset; both floor at `cli` |
+| `GENIE_TEAM` | — | Default team when `--team` is not provided |
+| `GENIE_WORKTREES_DIR` | `<GENIE_HOME>/worktrees` | Override the worktrees base doctor and review snapshots read |
+| `GENIE_CONFIG_FILE` | `<GENIE_HOME>/config.json` | Override the resolved config path |
 
 ## Agent skill homes
 
-Genie does not write into any agent's settings file. The one place it puts content inside an agent's configuration is the agent's **skill home**, and it gets there through the [skills.sh](https://skills.sh) channel — run by the bootstrap script on first install, and by `genie update` on every update:
+Genie does not write into any agent's settings file. The one place it puts content inside an agent's configuration is
+the agent's **skill home**, and it gets there through the [skills.sh](https://skills.sh) channel — run by the bootstrap
+script on first install, and by `genie update` on every update:
 
 | Agent | Skill home |
 |-------|------------|
@@ -254,16 +139,27 @@ Genie records what it installed, and where, at `~/.genie/skills-install.json`:
 
 ```json
 {
-  "ref": "v5.260831.6",
+  "ref": "v6.260919.1",
   "source": "local:/home/you/.genie/skills",
   "cliVersion": "1.5.23",
   "inventory": ["wish", "work", "review", "..."],
   "agentDirs": ["/home/you/.claude/skills", "/home/you/.agents/skills"],
   "dirDigests": { "/home/you/.claude/skills/wish": "…" },
-  "installedAt": "2026-08-31T12:00:00.000Z"
+  "installedAt": "2026-09-19T12:00:00.000Z"
 }
 ```
 
 <Note>
-`agentDirs` is a post-install discovery scan of your home directory, not a fixed table — it names every directory the skills CLI actually wrote. `genie doctor` reads this record to report drift, and `genie uninstall` reads it (and re-verifies `dirDigests`) to decide what it may safely delete. Genie never modifies `~/.claude/settings.json`.
+`agentDirs` is a bounded post-install discovery scan of your home directory unioned with the known-homes floor, not a
+fixed table — it names every directory the skills CLI actually wrote, and a recorded home that later vanishes is
+reported and **kept** in the record rather than dropped. `genie doctor` reads this record to report drift; `genie
+uninstall` reads it, and re-verifies `dirDigests`, to decide what it may safely delete. Genie never modifies
+`~/.claude/settings.json`.
 </Note>
+
+## Saved workflows
+
+Alongside the skills, `genie install` and `genie update` deliver the saved-workflow catalog into Claude Code's user
+scope at `~/.claude/workflows/`. A workflow is a script the harness executes for a procedure that is worth running the
+same way every time — the `council` deliberation, the documentation audit, the skill-intake sweep. The catalog's
+`README.md` is documentation and is never delivered.

@@ -58,7 +58,7 @@ The practical version, for the exhausted developer at 11 PM:
     Dispatch a team before bed. Wake up to a pull request. This is not a metaphor.
   </Card>
   <Card title="Bring your own agent" icon="plug">
-    Claude, Codex, Open Claw, or that custom thing you built last weekend. We don't care which AI you use.
+    Claude, Codex, Goose, or that custom thing you built last weekend. We don't care which AI you use.
   </Card>
   <Card title="Portable context" icon="suitcase">
     Wishes, skills, and team configs live in your repo. Switch machines, switch agents, keep everything.
@@ -71,19 +71,14 @@ Genie has opinions about orchestration. It has zero opinions about which AI you 
 
 | Agent | Setup | Best For |
 |-------|-------|----------|
-| **Claude Code** | Works out of the box | Deepest integration — full transcript and team support |
+| **Claude Code** | Works out of the box | Deepest integration — skills as slash commands, plus the saved-workflow catalog |
 | **Codex** | Works out of the box | OpenAI's agent — reads Genie's skills from the shared `~/.agents/skills` home |
-| **Open Claw** | `genie setup --open-claw` | Open-source option, community-maintained adapter |
-| **Custom (BYOA)** | `genie setup --custom` | Any CLI agent with stdout/stderr — bring your own |
+| **Goose, Windsurf, and the rest** | Works out of the box | Any agent [skills.sh](https://skills.sh) supports gets the same skills, in its own skill home |
+| **Custom (BYOA)** | Nothing to configure | Any CLI agent that reads a skills directory — bring your own |
 
-```bash
-# Mix providers on the same team — fast engineers, thorough reviewer
-genie spawn engineer --provider claude --model sonnet
-genie spawn engineer --provider codex --model codex-mini
-genie spawn reviewer --provider claude --model opus
-```
-
-Your agents are interchangeable. Switch mid-project, mix on a team, or write your own adapter. Genie cares that the work ships — not who does it.
+The skills are runtime-neutral by construction: they name portable roles and let each runtime map them onto its own
+native subagents. Genie installs no custom agent profiles and no hooks, so nothing it ships runs inside your agent's
+event loop. Switch agents mid-project or mix them on the same wish — Genie cares that the work ships, not who does it.
 
 <Tip>
   See the [Hacks page](/genie/hacks) for community patterns on provider switching, cost optimization, and BYOA configurations.
@@ -93,14 +88,16 @@ Your agents are interchangeable. Switch mid-project, mix on a team, or write you
 
 | Capability | The Point | Why It Matters |
 |------------|-----------|----------------|
-| **Wishes** | Structured plans — scope, criteria, execution groups | You describe it once. Agents figure out the rest. |
-| **Skills** | 14+ slash commands — composable prompt programs | `/brainstorm` through `/dream`, plus `/pm` for project management. |
-| **Teams** | Multi-agent squads with shared state | Isolated worktrees per team. Zero conflicts during dev. |
-| **PostgreSQL Backend** | Embedded database for all state | Tasks, boards, agents, sessions, audit events — all in PG, not JSON files. |
-| **Boards & Pipelines** | Kanban-style task management | Configurable columns with gates and action skills. Project-scoped. |
-| **Observability** | OTel-structured event logging | Cost breakdown, tool analytics, session replay, error patterns — all from the CLI. |
-| **BYOA** | Provider-agnostic orchestration | Claude, Codex, Open Claw, your custom thing. We don't care. |
+| **Wishes** | Structured plans — scope, criteria, execution groups | You describe it once. Agents figure out the rest. And one decided task skips the plan entirely. |
+| **Skills** | Composable prompt programs, runtime-neutral | `/brainstorm`, `/wish`, `/work`, `/review`, `/fix`, `/council` and the rest — as slash commands in Claude Code, by name anywhere else. |
+| **Documents in git** | Wishes, designs, and the index are plain markdown | You diff, review, and version a plan like any other code. Nothing important is trapped in a database. |
+| **One file of state** | Tasks, lanes, and dependency edges in a single per-repo SQLite file | No daemon, no server, no port. A command opens it, runs one transaction, and exits. |
+| **Boards** | A kanban view derived live by query | `genie board` has no stored view state to go stale. `genie idea` drops a thought straight into the Idea lane. |
+| **Orca authority** | Lifecycle ownership is an explicit, reversible choice | `genie setup --orchestration-mode orca` hands the lifecycle to Orca, with exit-2 refusals instead of a shadow copy — and no fallback database in either direction. |
+| **Saved workflows** | A script catalog for procedures worth running the same way twice | Installed to `~/.claude/workflows` alongside the skills — `council`, `docs-audit`, `skill-intake`, and more. |
+| **Microagents** | `genie mikro` — narrow agents with an answer schema | Validated JSON whose every citation is verified, with repo-first agents resolved behind a trusted root. |
 | **Skills channel** | One install path to every agent | Genie's skills ship through skills.sh into every agent skill home on the box — `~/.claude/skills`, the shared `~/.agents/skills` that Codex reads, `~/.config/goose/skills`, `~/.codeium/windsurf/skills`. Nothing Genie installs runs inside your agent's event loop. |
+| **Verified delivery** | Every release verifies offline, with no GitHub credential | Signed delivery evidence is checked against an embedded trust root and bound to the tarball's hash before anything is extracted. |
 
 ## How it works
 
@@ -111,26 +108,29 @@ Every feature follows the same lifecycle — vague idea to merged pull request, 
     Explore the idea. Identify constraints, scope, and design decisions. The `/brainstorm` skill guides you through this interactively until the idea is crisp enough to plan.
   </Step>
   <Step title="Wish">
-    Convert the brainstorm into a structured plan — `WISH.md` — with scope, acceptance criteria, and parallelizable execution groups. This is the contract between you and the agents.
+    One decided task is delivered end to end right here — its own worktree, the gate, an independent reviewer, a
+    merge-ready PR — with no plan at all. Work that is bigger than one task becomes a `WISH.md` instead, with scope,
+    acceptance criteria, and parallelizable execution groups. That document is the contract between you and the agents.
   </Step>
   <Step title="Work">
-    Genie dispatches agents per execution group. Independent groups run in parallel across isolated worktrees. Each agent knows its scope, its criteria, and how to validate its own output.
+    Genie dispatches your agent's own native subagents per execution group, wave by wave in dependency order. Each one knows its scope, its criteria, and how to validate its own output; state changes serialize through the per-repo SQLite file rather than through a coordinator.
   </Step>
   <Step title="Review">
-    A reviewer agent validates all work against the wish criteria. The verdict is **SHIP** or **FIX-FIRST**. Fix loops run automatically — up to the configured retry limit.
+    A **different** subagent from the one that wrote the code validates the work against the wish criteria — reviewer ≠ engineer, so the verdict is independent evidence. It returns **SHIP**, **FIX-FIRST**, or **BLOCKED**, and a bounded repair loop runs up to the budget in your config.
   </Step>
   <Step title="Ship">
-    A pull request is created, targeting `dev`. You review and merge. The agents did the work; you made the decision.
+    The orchestrator persists the review evidence into `WISH.md` — a chat verdict alone never advances state — and opens a pull request targeting `dev`. You review and merge. The agents did the work; you made the decision.
   </Step>
 </Steps>
 
-## Desktop is coming
+## Where it runs
 
-{/* If you're reading the source of our docs, you're exactly our target audience. */}
+Genie is CLI-first, and stable on **Linux and macOS**. Both are covered by the release gate, so a change that breaks one
+of them does not ship. Windows is not supported (WSL2 works but is not on the tested matrix).
 
-Genie is CLI-first today — built for developers who live in the terminal. But we're building a desktop app for Q2 2026: wish boards, agent dashboards, real-time monitoring. Same system, visual surface.
-
-The CLI isn't going anywhere. If you want to orchestrate agents at 2 AM in a tmux session while your cat judges you, we respect that.
+If you want a visual surface, Orca is it: `genie setup --orchestration-mode orca` hands lifecycle authority to Orca
+through a closed public boundary, and the Genie plugin puts the same verbs in Orca's palette. There is no separate Genie
+desktop app and no Genie UI — that is a deliberate choice, not a gap.
 
 ## What's next
 

@@ -85,19 +85,17 @@
           {
             "group": "CLI Reference",
             "pages": [
-              "genie/cli/session",
-              "genie/cli/team",
+              "genie/cli/infrastructure",
               "genie/cli/tasks",
               "genie/cli/boards",
+              "genie/cli/export-import",
+              "genie/cli/session",
+              "genie/cli/team",
               "genie/cli/projects",
               "genie/cli/observability",
               "genie/cli/dispatch",
-              "genie/cli/agents",
               "genie/cli/messaging",
-              "genie/cli/export-import",
               "genie/cli/spawn",
-              "genie/cli/directory",
-              "genie/cli/infrastructure",
               "genie/cli/registry",
               "genie/cli/releases-tags-types",
               "genie/cli/database",
@@ -128,8 +126,6 @@
             "pages": [
               "genie/architecture/overview",
               "genie/architecture/state",
-              "genie/architecture/postgres",
-              "genie/architecture/messaging",
               "genie/architecture/scheduler",
               "genie/architecture/transcripts"
             ]

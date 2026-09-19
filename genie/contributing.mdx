@@ -146,59 +146,58 @@ describe('myModule', () => {
 
 ```text
 src/
-├── genie.ts                 # CLI entry point (commander.js)
-├── lib/                     # Core modules
-│   ├── wish-state.ts        # PG-backed wish state machine
-│   ├── agent-registry.ts    # Worker registry (global JSON)
-│   ├── team-manager.ts      # Team CRUD with git clone --shared
-│   ├── protocol-router.ts   # Provider-agnostic message routing
-│   ├── mailbox.ts           # Durable message store
-│   ├── nats-client.ts       # NATS pub/sub singleton
-│   ├── db.ts                # pgserve connection management
-│   ├── db-migrations.ts     # SQL migration runner
-│   ├── task-service.ts      # PG CRUD for task lifecycle
-│   ├── scheduler-daemon.ts  # Cron trigger loop
-│   ├── transcript.ts        # Provider-agnostic log reading
-│   ├── claude-logs.ts       # Claude Code log parser
-│   ├── codex-logs.ts        # Codex log parser
-│   ├── auto-approve.ts      # Layered trust configuration
-│   └── tmux.ts              # tmux wrapper
-├── term-commands/           # CLI command handlers
-├── genie-commands/          # Setup/utility commands
-├── db/migrations/           # SQL migration files
-├── types/                   # Shared Zod schemas
-└── ...
-skills/                      # Skill prompt files (SKILL.md)
+├── genie.ts                          # CLI entry point (commander), 15 registrations
+├── lib/                              # Core modules
+│   ├── genie-home.ts                 # GENIE_HOME resolution and the paths built on it
+│   ├── genie-config.ts               # Resolved global config; the schema is the key namespace
+│   ├── orchestration-mode.ts         # Lifecycle-authority selection and its refusal types
+│   ├── orca-orchestration-adapter.ts # The closed public `orca orchestration … --json` boundary
+│   ├── skills-installer.ts           # The skills.sh channel, retirement, and the install record
+│   ├── skills-agents.ts              # Genie's mirror of the skills.sh agent registry (detection)
+│   ├── workflows-installer.ts        # The saved-workflow catalog → ~/.claude/workflows
+│   ├── delivery-evidence-verify.ts   # Offline release verification (embedded trust root)
+│   └── v5/
+│       ├── genie-db.ts               # Per-repo .genie/genie.db open/init (worktree-aware, WAL)
+│       ├── sqlite-open.ts            # Shared bun:sqlite primitive + the migration ladder
+│       ├── task-state.ts             # Task / dependency / ready-set state machine
+│       ├── base-state.ts             # Integration-branch + recorded wish-base state
+│       └── roadmap-sync.ts           # Three-way reconcile: database ↔ git-tracked snapshot
+├── term-commands/                    # CLI command handlers (board, context, init, task, wish, …)
+├── genie-commands/                   # Install lifecycle (setup, doctor, update, uninstall)
+└── types/                            # Shared Zod schemas
+scripts/mikro/                        # The mikro microagent runtime (imported in place)
+skills/                               # Skill prompt files (SKILL.md) — the product
+.claude/workflows/                    # The saved-workflow catalog
+plugins/genie/                        # The Orca plugin payload (symlink-free, tree-only ref)
 ```
 
 ## Plugin Development
 
-Genie supports plugins that extend the CLI with additional commands, hooks, and skills.
+Genie ships **exactly one plugin, and it is the Orca plugin.** There is no Claude Code plugin, no plugin marketplace
+registration, no hook definitions, and no editor-specific integration. If you are extending Genie, you are almost
+certainly writing a **skill** (below) or a **saved workflow**, not a plugin.
 
-### Plugin Structure
+### The Orca plugin payload
 
 ```text
-plugins/<plugin-name>/
-├── package.json            # Plugin metadata
-├── settings.json           # Claude Code settings overlay
-├── hooks/
-│   └── hooks.json          # Additional hook definitions
-├── .claude-plugin/
-│   └── plugin.json         # Plugin registration
-└── src/                    # Plugin source code
+plugins/genie/
+├── orca-plugin.json        # The manifest — must sit at the install tree's ROOT
+├── package.json            # Versioned alongside the root package.json
+├── references/             # The public Orca boundary contract
+└── src/                    # Handlers over `orca orchestration … --json`
 ```
 
-### Plugin Registration
+Two constraints are load-bearing and enforced by `scripts/orca-manifest-parity.test.ts`:
 
-Plugins are registered in `openclaw.plugin.json` at the repo root:
+- **The repository root can never be the install tree.** Orca's loader rejects any tree containing a symlink, and this
+  repo has `docs -> .docs-vendor/genie`. It also caps an install at 2000 files / 50 MB, and a dev checkout is roughly
+  14,000 files. Do not add a re-rooted `orca-plugin.json` at the repo root.
+- **The plugin publishes as a tree-only git ref.** `.github/workflows/orca-plugin-ref.yml` force-pushes a parentless
+  commit carrying the `plugins/genie` subtree to `refs/heads/orca-plugin` from `main`, and `orca-plugin-dev` from
+  `dev`. Those refs are never merged back.
 
-```json
-{
-  "name": "genie",
-  "version": "1.0.0",
-  "plugins": ["plugins/genie"]
-}
-```
+The only Orca file at the repository root is `orca-marketplace.json`, a source-only, versionless index that no release
+tarball contains.
 
 ### Adding Skills
 
