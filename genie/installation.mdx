@@ -241,6 +241,59 @@ genie update --dev    # Pre-release builds
   `gh` that ran and says the artifact does not verify still aborts.
 </Note>
 
+## Plugin-era cleanup
+
+Before v6, `genie update` ran a one-shot, backup-first sweep on every host that classified the assets a **plugin-era**
+Genie had written and removed the ones it could prove were its own and unmodified. **That sweep is gone in v6**, along
+with the `legacy integrations` line `genie doctor` used to print. The compatibility window it served — hosts on
+releases `>= 5.260711.6` — closed with the major.
+
+<Note>
+  **You almost certainly have nothing to do here.** Any host that ran a v5 `genie update` was already swept, the sweep
+  was idempotent, and a retired surface classified as absent. This section is for a host that skipped the whole v5 line,
+  or one where the sweep reported something it preserved rather than removed.
+</Note>
+
+Nothing below is removed for you any more. Check each path, and delete only what you recognise as Genie's — a
+plugin-era Genie wrote all of it, but so might something else, and none of it is load-bearing for v6.
+
+### Claude Code
+
+| Path | What it was |
+|------|-------------|
+| `~/.claude/plugins/marketplaces/automagik/` | The marketplace bundle tree a plugin-era Genie registered |
+| `~/.claude/plugins/cache/automagik/genie/` | Its plugin cache |
+| `~/.claude/plugins/known_marketplaces.json` | Remove **only** the `automagik` entry; keep every other marketplace |
+| `~/.claude/plugins/installed_plugins.json` | Remove **only** genie's entry |
+| `~/.claude/settings.json` | Remove **only** the `enabledPlugins` key for genie's `automagik`-scoped plugin id. Genie never wrote anything else in this file |
+| `~/.claude/workflows/` | The stamped plugin-era workflow and its `.genie-sync.json` sidecar. **Do not delete the whole directory** — v6 delivers the saved-workflow catalog here |
+| `~/.claude/agents/` | Plugin-era role agents, each beside a `.genie-sync.json` manifest |
+
+### Codex
+
+| Path | What it was |
+|------|-------------|
+| `~/.codex/agents/genie-*.toml` | Plugin-era role agents |
+| `~/.codex/agents/.genie-role-agents.json` | The sidecar naming them |
+| `~/.codex/agents/.genie-role-agents.txn-*`, `.prepare-*`, `.conflict-*`, `.committed-cleanup-*` | Transaction directories a crashed sync left behind |
+| `~/.codex/skills/.curate*` | The hidden curated-skills lane only the plugin-era sync wrote. Codex reads the shared `~/.agents/skills` now |
+| `~/.codex/config.toml` | Remove **only** the Genie marker block, if one is still there. `genie init` still does this for a project-level route it can prove it owns |
+
+### Hermes and pi
+
+| Path | What it was |
+|------|-------------|
+| `~/.hermes/plugins/genie` | A symlink into a plugin-era checkout |
+| `~/.hermes/config.yaml` | Two marker-delimited blocks, `# genie:managed:mcp_servers.genie — begin` / `— end`, and the external-skills-directory block. Remove the blocks, keep the rest of the file byte-for-byte |
+| `<pi agent dir>/extensions/genie` | A symlink into a plugin-era checkout |
+
+<Warning>
+  **Back up before you delete, and never delete a whole config file.** Four of the entries above are *keys or blocks
+  inside* a file you did not write: `known_marketplaces.json`, `installed_plugins.json`, `settings.json` and
+  `config.yaml`. Edit those; do not remove them. The old sweep preserved anything it could not prove it owned, and by
+  hand you should do the same.
+</Warning>
+
 ## Uninstalling
 
 ```bash

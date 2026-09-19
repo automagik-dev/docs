@@ -25,13 +25,34 @@ Both retirement stubs (`genie mcp`, `genie ui-bridge`) are also gone in v6; a v5
 exited 1, and v6 no longer registers the verbs at all. `genie doctor` still observes and reports the historical
 `.mcp.json` and `.codex/config.toml` routes, and `genie init` still retires the ones it can prove are Genie's.
 
-### The per-repo database migrates itself
+### The per-repo database migrates itself — and old binaries then refuse it
 
 The per-repo `.genie/genie.db` schema moves to **`user_version = 2`**, which drops the machine-local `hire_roster`
-table. The migration is automatic and one-way-safe: a database stamped at version 1 opens under the v6 binary, is
-migrated in one transaction, and a second open is a no-op. `genie task import` of a snapshot that still carries the key
-ignores it rather than failing. A database stamped at an unbridgeable version still refuses to open rather than
-guessing.
+table.
+
+**What happens.** The first **lifecycle** command you run — `genie task`, `genie board`, `genie idea` — migrates the
+database in one transaction and prints one line saying so. It is **backup-first**: the pre-migration file is copied to
+`<GENIE_HOME>/state-backups/db-migration-<timestamp>/genie.db` before anything is written. A second open is a no-op.
+`genie task import` of a snapshot that still carries `hire_roster` ignores the key rather than failing, and a database
+stamped at an unbridgeable version still refuses to open rather than guessing.
+
+**`genie doctor` never migrates.** It is a read-only observer here as it is for the skills channel: on a
+pre-migration host it reports the database as `schema v1` and leaves it alone. Running `doctor` is not how you
+upgrade — run a lifecycle command.
+
+<Warning>
+  **Upgrade every checkout of a repository together.** All linked worktrees of one repository share a single
+  `.genie/genie.db`, resolved through the git common directory. Once any v6 binary has migrated it, a **5.x binary —
+  or a v6 binary in a checkout you have not updated** — refuses it:
+
+  ```text
+  written by a newer genie (schema v2); run `genie update` in this checkout
+  ```
+
+  That refusal is the schema guard working, not corruption: the database is fine and the v6 binary reads it normally.
+  Nothing is lost, and the backup above is still on disk. Update the other checkouts and they all see the same cards
+  again.
+</Warning>
 
 ### The plugin-era retirement pass is gone
 
@@ -41,8 +62,11 @@ window for hosts on releases `>= 5.260711.6`; that window closed with v6 and the
 transcript therefore no longer prints any line prefixed `integrations:`** — if you were grepping for one, stop.
 
 Nothing is left behind on a host that already updated through a v5 release: the sweep is idempotent by construction and
-a retired surface classifies as absent. A host that skipped the whole v5 line follows the documented manual steps
-instead.
+a retired surface classifies as absent. A host that skipped the whole v5 line — or one where the sweep reported
+something it *preserved* rather than removed — follows
+[Plugin-era cleanup](/genie/installation#plugin-era-cleanup), which lists every surface by hand.
+
+The `legacy integrations` line `genie doctor` used to print is gone with it.
 
 ### Orca-mode refusals now exit 2, not 1
 
@@ -81,7 +105,7 @@ Two things this **buys** you, and they are why the trade was made:
 - **Genie's skills reach every agent the same way** — through the [skills.sh](https://skills.sh) channel — instead of through a per-agent hook and plugin integration that only ever worked properly on one agent.
 
 <Note>
-  Genie now ships exactly **one plugin, the Orca plugin**, and exactly **one skills channel, skills.sh**. If you had a Claude Code plugin registration from an older Genie, nothing on your machine will update or remove it automatically on hosts older than `v5.260711.6` — remove it by hand if you want it gone.
+  Genie now ships exactly **one plugin, the Orca plugin**, and exactly **one skills channel, skills.sh**. If you had a Claude Code plugin registration from an older Genie, nothing on your machine removes it automatically any more — see [Plugin-era cleanup](/genie/installation#plugin-era-cleanup) for every surface and how to edit it safely.
 </Note>
 
 ---
