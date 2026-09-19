@@ -48,6 +48,27 @@ gh workflow run release.yml --field channel=stable
 
 The tag stays, and the incident closes as superseded once the Release object appears.
 
+### Rollback
+
+**The default is to fix forward.** A bad `6.x` is superseded by the next `6.<date>.N`, which is one merged PR away
+and takes the normal, fully-gated path. Reach for a rollback only when operators are actively installing something
+broken and the next build is not minutes away.
+
+The five-minute rollback is **a hand-authored PR to `main` that reverts `.well-known/latest.json` to the last good
+`5.x`.** That file is the channel authority: `install.sh` reads the stable manifest from `main` through the
+credential-free contents API (and the CDN copy, which lags it by roughly five minutes), so pointing it back at a `5.x`
+release is what actually stops new installs — nothing else does. The already-published `6.x` assets stay exactly where
+they are; a release is never unpublished or rewritten.
+
+If the whole major turned out to be premature, **revert the promotion commit on `main`**. That restores the version
+generator and the release guard together, in one commit — `scripts/version.ts` and `scripts/release-guard.sh` both
+carry the major, and reverting only one of them leaves a tree that generates a tag its own guard rejects.
+
+**Do not try to re-dispatch a `5.x` stable release.** Once the major has moved, `release-guard.sh` rejects a `5.x`
+version by design — it validates the version against the major the tree declares. That refusal is the guard working,
+not a bug to route around. The path back to `5.x` is the manifest revert above, or the promotion revert, never a
+dispatch.
+
 ## The orphan alert
 
 The alert workflow files one `release-incident` issue per orphaned tag and closes it again on its own once the Release
