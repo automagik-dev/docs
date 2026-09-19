@@ -38,10 +38,12 @@ CLAUDE.md is a **first-class documentation surface** — it should always reflec
 
 ## Dispatch
 
-```bash
-# Spawn a docs subagent
-genie spawn docs
-```
+The audit half is a saved workflow, not an inline procedure: run
+`.claude/workflows/docs-audit.js` from the repository's workflow catalog when
+that file exists, otherwise `~/.claude/workflows/docs-audit.js`, delivered by
+`genie install` and `genie update`. Give the runtime that explicit script path,
+never a bare name. On a runtime with no workflow surface, dispatch one subagent
+per documentation surface with the same brief and relay its report unchanged.
 
 ## Rules
 

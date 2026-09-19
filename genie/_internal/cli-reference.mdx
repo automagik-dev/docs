@@ -3,11 +3,12 @@
 Engineering-internal dump of the command surface. `genie --help` is the only authority; this page exists so a reviewer
 can read the whole surface at once without running the binary.
 
-**Fifteen top-level commands.** Everything forks and exits — there is no daemon, no server, and no resident process.
+**Sixteen top-level commands.** Everything forks and exits — there is no daemon, no server, and no resident process.
 
 ```text
-board  config  context  doctor  help  idea  init  install
-mikro  setup   shortcuts  task  uninstall  update  wish
+board  config  context  doctor  help   idea   init  install
+mikro  orca    setup     shortcuts     task   uninstall
+update wish
 ```
 
 ## Table of contents
@@ -17,6 +18,7 @@ mikro  setup   shortcuts  task  uninstall  update  wish
 - [Spawn context](#spawn-context)
 - [Wish documents](#wish-documents)
 - [Microagents: mikro](#microagents-mikro)
+- [Orca mirror](#orca-mirror)
 - [Installation lifecycle](#installation-lifecycle)
 - [Exit codes](#exit-codes)
 - [Orca mode refusals](#orca-mode-refusals)
@@ -41,17 +43,22 @@ through `git rev-parse --git-common-dir`.
 | `task adopt <id> --board <ref> --lane <name>` | One-time placement of a pre-board card onto a lane |
 | `task report <id> --worker <name> -- '<text>'` | The engineer's one handoff message per claim |
 | `task comment <id> --worker <name> -- '<text>'` | Orchestrator gate pointer. Bounded to 4000 bytes, no control characters |
+| `task block <id>` | Place an enforced block on a card — it refuses checkout until cleared |
+| `task unblock <id>` | Clear an enforced block |
+| `task release <id>` | Release a claim, returning the card to the ready queue |
+| `task link <id> --wish <w>` | Link an existing card to a wish (appends a wish event) |
 | `task delete <id>` | Hard-delete. Refused while other cards depend on it |
 | `task done <id>` | **Orchestrator only.** Mark reviewed work done and recompute the ready set |
 | `task export [--write]` | Emit the whole database as JSON; `--write` writes `.genie/roadmap.json` |
 | `task import [--replace]` | Restore the database from `.genie/roadmap.json` |
-| `task sync` | Three-way reconcile database ↔ snapshot. Run by the git hooks on pull, merge, rewrite and pre-commit |
+| `task sync` | Three-way reconcile database ↔ snapshot. Run by four git hooks: `post-checkout`, `post-merge`, `post-rewrite`, `pre-commit` |
 
 `--agent` names a roster agent (`claude`, `codex`, `pi`, `hermes`, `prime`). Assignment is **declaration-only** — there
 is no checkout gate — and it serializes on the lane path only, so non-lane readers deliberately do not see it.
 
 `task sync` resolution: when both sides moved but only card timelines differ, events are unioned by identity and
-republished as `merged`. The card conversation is global state, not a local view.
+republished as `merged`. The card conversation is global state, not a local view. The four hooks that call it are
+`post-checkout`, `post-merge`, `post-rewrite` and `pre-commit`.
 
 ---
 
@@ -89,8 +96,17 @@ Emits one line of versioned JSON: composed branch, resolved base SHA, and the re
 genie wish lint [--dir <repo>]
 ```
 
-Lints `<repo>/.genie/wishes` for structure in **any** repository, writes nothing, and exits 0 (clean) or 1 (findings).
-`--dir` defaults to the git toplevel of the cwd; a root that does not resolve is refused rather than reported clean.
+Lints `<repo>/.genie/wishes` for structure in **any** repository and writes nothing.
+
+| Exit | Meaning |
+|------|---------|
+| `0` | Clean |
+| `1` | Findings — also the parser's own code for an unknown flag |
+| `2` | **The root was refused.** A `--dir` you typed that is not a directory, or that holds no `.genie/wishes` |
+
+`--dir` defaults to the git toplevel of the cwd, falling back to the cwd itself; a checkout that carries no wishes yet
+is **not** an error and reports 0 files. A `--dir` you TYPED is verified instead, so a typo can never read as a clean
+bill of health — which is why it is exit 2 and not exit 0. Treat 2 as a failure in CI.
 
 ---
 
@@ -119,6 +135,54 @@ opted in grows no untracked files.
 
 ---
 
+## Orca mirror
+
+```bash
+genie orca mirror --to <transition> --evidence '<text>' [--verdict <verdict>] [--worktree <selector>] [--json]
+```
+
+Writes genie's lifecycle onto the Orca **workspace card**, one way. One verb, because the map has to be code rather
+than four prose recipes, and because the card must have exactly one writer.
+
+| Flag | Required | Value |
+|------|----------|-------|
+| `--to <transition>` | yes | `APPROVED` \| `IN_PROGRESS` \| `REVIEW` \| `SHIPPED` \| `BLOCKED` |
+| `--evidence <text>` | yes | One line naming the proof: group, head SHA, gap count, gate, merge SHA |
+| `--verdict <verdict>` | only with `--to REVIEW` | `SHIP` \| `FIX-FIRST` \| `BLOCKED` — refused on every other transition |
+| `--worktree <selector>` | no (default `current`) | `current` \| `active` \| `id:<repoId>::<abs path>` \| `path:<abs path>` \| `branch:<ref>` \| `name:<display name>` |
+| `--json` | no | Accepted for symmetry; one JSON line is printed either way |
+
+The transition → workspace-status map:
+
+| `--to` | Orca `workspaceStatus` |
+|--------|------------------------|
+| `APPROVED` | `todo` |
+| `IN_PROGRESS` | `in-progress` |
+| `REVIEW` | `in-review` |
+| `SHIPPED` | `completed` |
+| `BLOCKED` | `in-progress` |
+
+`BLOCKED` maps to `in-progress` deliberately: Orca has no blocked status, and the comment carries the word. The
+comment is dated UTC, because a card comment is read in more than one timezone.
+
+**Nothing here reads Orca.** A board status is never lifecycle truth, and there is no verb that brings one back — the
+documents stay the record. The pure map lives in `src/lib/orca-lifecycle-mirror.ts` (no I/O); the spawn, the receipt
+and the `worktree show` read-back belong to the closed adapter in `src/lib/orca-orchestration-adapter.ts`.
+
+Exit codes are the contract:
+
+| Exit | Meaning |
+|------|---------|
+| `0` | The write is **proven** — receipt identity plus the official read-back |
+| `1` | A typed adapter failure. stderr carries one JSON line: `{error, operation, phase, retrySafety, recovery, reason}` |
+| `2` | Usage — a refused transition, a missing or misplaced `--verdict`, or a selector outside the adapter's grammar |
+
+An `invalid_argument` raised while *validating* is the caller's own input and exits 2 with the reason; every other
+adapter failure is Orca's and leaves as the machine-readable line, so a coordinator can route it without parsing
+prose. The map refuses first and at zero cost, then exactly one adapter call happens.
+
+---
+
 ## Installation lifecycle
 
 | Command | Purpose |
@@ -127,7 +191,7 @@ opted in grows no untracked files.
 | `install [--skip-v4-cleanup]` | Post-install finisher: authenticated delivery, v4 cleanup, non-Codex convergence, skills channel |
 | `setup [--orchestration-mode <standalone\|orca>] [--shortcuts] [--show] [--reset]` | Configure Genie and select the lifecycle authority |
 | `config get <dotted.key> [--json]` | Read one schema key from the resolved config. `--json` adds `{key, value, source}` |
-| `doctor [--fix] [--fix-global-db] [--json]` | Diagnostics. `--fix-global-db` is the one repair verb it owns |
+| `doctor [--fix] [--fix-global-db] [--json]` | Diagnostics. `--fix` backs up and removes proven v4 residue and merged-clean `genie launch` worktrees, and tightens registered-worktree modes (files only from wider to their index mode, dirs only 0775/0777 → 0755); it refuses replacements, symlinks, and non-wider or ambiguous modes, and is idempotent. `--fix-global-db` is a separate repair that runs **alone**, not with the other checks |
 | `shortcuts show\|install\|uninstall` | tmux and shell keybindings |
 | `update [--stable\|--dev] [--rollback]` | Update from a GitHub Release |
 | `uninstall` | Record-driven, digest-verified removal |
@@ -163,7 +227,7 @@ Every doctor surface prints **one line per check**, never one per item, with the
 |------|---------|
 | `0` | Success |
 | `1` | The command ran and did not succeed |
-| `2` | **The operator must act.** The workspace gate, `mikro call`'s usage refusals, and every Orca-mode refusal |
+| `2` | **The operator must act.** The workspace gate, `mikro call`'s and `mikro fixtures`' usage refusals, `wish lint`'s refused root, and the **`ORCA_FORBIDDEN`** verbs under Orca authority |
 
 ---
 
@@ -172,6 +236,12 @@ Every doctor surface prints **one line per check**, never one per item, with the
 `ORCA_FORBIDDEN` is a closed set: `task` (every subverb **except** `sync`), `board`, `idea`. Nothing else. A second,
 non-exempt commander `preAction` refuses those verbs before the handler with exit 2 and one fixed message naming `orca`
 and the remedy `genie setup --orchestration-mode standalone`.
+
+<Warning>
+  **Exit 2 is the `ORCA_FORBIDDEN` set, not "every Orca refusal."** `genie context`'s own refusal — every form except
+  `--wish <slug> --plan` — is raised by the handler, not by the preAction, and exits **1**. Scripting for "2 means
+  Orca said no" is wrong for `context`.
+</Warning>
 
 Two deliberate carve-outs:
 

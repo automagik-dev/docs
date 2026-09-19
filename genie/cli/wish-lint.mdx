@@ -1,0 +1,141 @@
+---
+title: "Wish Lint"
+sidebarTitle: "Wish Lint"
+icon: "circle-check"
+description: "genie wish lint — check a repository's wish documents for structure, metadata, routing columns and broken brainstorm links, and report without writing anything."
+---
+
+`genie wish lint` lints a repository's wish documents for structure. It writes nothing.
+
+```
+Usage: genie wish lint [options]
+
+Options:
+  --dir <repo>   Repository whose .genie/wishes is linted (default: the git toplevel of the cwd)
+```
+
+<Note>
+  `genie wish` is exempt from the workspace gate on purpose. The whole point of the verb is that it reports on
+  **another** repository's wishes — one a Genie workspace was never created in. Gating it would prompt for `genie init`
+  in exactly the repositories the verb exists for.
+</Note>
+
+## What it reads
+
+The command reads `<repo>/.genie/wishes` and reports on:
+
+- the canonical wish template **sections**;
+- the **metadata fields** — a Status from the lifecycle vocabulary, and a valid `YYYY-MM-DD` Date;
+- the **Execution Strategy routing columns**;
+- every markdown link into `.genie/brainstorms/` that does not resolve on disk.
+
+That is the whole promise: structure, metadata, routing, links. Nothing is written — not a fix, not a cache, not a
+report file.
+
+### The Status vocabulary
+
+A wish's Status must come from the durable lifecycle vocabulary:
+
+| Status | Meaning |
+|--------|---------|
+| `DRAFT` | Authored, not yet approved |
+| `FIX-FIRST` | Review found blocking gaps; repair before proceeding |
+| `APPROVED` | Reviewed and cleared to execute |
+| `IN_PROGRESS` | Execution under way |
+| `BLOCKED` | Stalled on something outside the wish |
+| `SHIPPED` | Delivered |
+
+## How the root is chosen
+
+| Invocation | Root | If it does not hold wishes |
+|------------|------|----------------------------|
+| No `--dir` | The git toplevel of the working directory, falling back to the working directory itself | **Not an error** — reports 0 files |
+| `--dir <repo>` | Exactly the path you typed, verified first | **Refused rather than scanned** — exit 2 |
+
+The asymmetry is deliberate. An implicit root is a guess the command made, so a checkout that simply carries no wishes
+yet is a clean, empty result. A `--dir` you **typed** is a claim, so a path that is not a directory, or that holds no
+`.genie/wishes`, is refused — a typo can never read as a clean bill of health.
+
+<Tip>
+  A single file can opt out of the lint with a leading `<!-- wishes-lint:ignore -->` marker on its first line.
+</Tip>
+
+## Two rules that belong to a repository gate
+
+Two further rules ride the same pass but are **repository-gate concerns**, not a promise this verb makes to every
+checkout:
+
+- **Design-review evidence** — a post-2026-07-11 wish must link a `DESIGN.md` carrying a current SHIP stamp.
+- **The cross-wish graph** — `depends-on`/`blocks` must name slugs that exist in this same corpus, and must stay
+  acyclic.
+
+Both are authored for the Genie repository's own `bun run wishes:lint` gate, where the **whole corpus is present**. A
+graph rule cannot be evaluated against a partial set of wishes without producing findings that say more about what is
+missing from the checkout than about the wishes themselves. A repository that does not follow that contract should
+treat these rules in its own gate, not here.
+
+## Exit codes
+
+| Code | Meaning |
+|------|---------|
+| `0` | Clean — every wish scanned passed |
+| `1` | Findings — the lint ran and reported problems. An unknown flag is the parser's own error and also exits `1` |
+| `2` | The root was refused — nothing was scanned |
+
+<Warning>
+  **Exit `2` is a refused root, not a clean bill of health.** A `--dir` typo, a path that is not a directory, or a
+  directory with no `.genie/wishes` all land here. In CI, treat `2` as a failure — a job that only checks for a
+  non-zero `1` will pass forever on a path that was never read.
+</Warning>
+
+## Use it in CI
+
+The `0`/`1` split is the contract a gate needs: a non-zero exit fails the step, and `2` fails it for a different and
+louder reason.
+
+```bash
+#!/usr/bin/env bash
+# pre-commit hook or CI step
+set -euo pipefail
+
+genie wish lint --dir "$PWD"
+```
+
+With `set -e`, both `1` and `2` fail the step. If you branch on the code yourself, handle `2` explicitly rather than
+folding it into a default case:
+
+```bash
+if genie wish lint --dir "$PWD"; then
+  echo "wishes: clean"
+else
+  status=$?
+  case "$status" in
+    1) echo "wishes: findings — see output above" ;;
+    2) echo "wishes: root refused — check the --dir path" ;;
+    *) echo "wishes: unexpected exit $status" ;;
+  esac
+  exit "$status"
+fi
+```
+
+<Note>
+  Because the command writes nothing, it is safe in a pre-commit hook, in a read-only checkout, and against a
+  repository you do not own. Running it twice changes nothing and costs nothing.
+</Note>
+
+## What's next
+
+<CardGroup cols={2}>
+  <Card title="Wishes" icon="scroll" href="/genie/concepts/wishes">
+    What a wish is, what the template sections are for, and how the lifecycle statuses advance.
+  </Card>
+  <Card title="/wish" icon="wand-magic-sparkles" href="/genie/skills/wish">
+    The skill that authors wishes the lint is checking.
+  </Card>
+  <Card title="Mikro" icon="robot" href="/genie/cli/mikro">
+    `genie mikro` — the other verb that reports on a repository without writing to it.
+  </Card>
+  <Card title="Infrastructure" icon="screwdriver-wrench" href="/genie/cli/infrastructure">
+    `init`, `install`, `config`, `doctor` — the commands that own the installation itself.
+  </Card>
+</CardGroup>

@@ -32,21 +32,43 @@ the Release job. `release.yml`'s manual dispatch offers only `channel=stable`, a
 dev dispatch.
 
 So: **land any commit on dev through a normal pull request.** The next Version run ships the same tree under the next
-build number. The orphan tag stays where it is — it is a record of an attempt, not a thing to clean up — and its
-incident closes as superseded.
+build number. The orphan tag stays where it is — it is a record of an attempt, not a thing to clean up.
+
+**Close the incident yourself, as superseded.** Nothing will close it for you. The alert's auto-close fires only when
+*that tag* gains a Release object (`release-orphan-alert.yml:186-199` matches the incident title's tag against the
+releases listing), and a dev orphan's tag never gets one — the recovery ships a *different* tag. Your close is the
+acknowledgement: say which build superseded it and close as completed.
 
 Re-running failed *jobs* inside one attempt is fine for a transient GitHub error. Re-running the whole workflow is not:
 endorsements from different attempts make the security gate fail with `verified signer run disagreement`.
 
 ### A stable orphan
 
-A stable release recovers through the stable re-dispatch, which `release.yml` does expose:
+A stable release recovers through the stable re-dispatch. `release.yml` exposes it, but it is **not** a one-flag
+command — the dispatch declares five required inputs, and every one of them is an identity the guard re-validates:
 
 ```bash
-gh workflow run release.yml --field channel=stable
+gh workflow run release.yml \
+  --ref main \
+  --field version=6.260919.1 \
+  --field channel=stable \
+  --field source_sha=<the exact commit SHA to build> \
+  --field source_branch=main \
+  --field source_ci_run_id=<the authorizing CI run ID for that SHA>
 ```
 
-The tag stays, and the incident closes as superseded once the Release object appears.
+- `version` is bare, with **no `v` prefix**.
+- `channel` has exactly one option, `stable` — there is no manual dev channel.
+- `source_sha` is the commit that gets built, not the tag.
+- `source_branch` is `main` or `dev`: the branch of the *successful source CI run*.
+- `source_ci_run_id` is that run. (`trigger_sha` is the one optional input, and it is for automated channels only.)
+
+**A second maintainer must then approve.** `approve-stable` (`release.yml:124-135`) runs in the protected `production`
+environment, whose reviewer requirement is a *different* person from the one who dispatched. The run parks on that
+approval until they act; nothing downstream builds or publishes before it clears.
+
+The tag stays, and the incident closes as superseded once the Release object appears — for a stable orphan the
+auto-close *does* apply, because the re-dispatch publishes a Release for the same tag.
 
 ### Rollback
 
@@ -79,5 +101,8 @@ appears. Two behaviours matter when reading its output:
 - **A healed incident auto-closes** and is labelled `release-auto-resolved`. The label is written after the close, as a
   one-shot receipt, and is created lazily only when it does not already exist. An issue carrying that label was resolved
   by the pipeline itself — nobody needs to look at it.
+- **Auto-close is tag-scoped.** It matches the incident title's tag against the releases listing, so it fires only when
+  *that* tag gains a Release. A dev orphan, whose recovery ships a different tag, is therefore never auto-closed — close
+  it by hand as superseded.
 
 If the orchestrator never fires at all, check that `version.yml` dispatched it.

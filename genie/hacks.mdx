@@ -158,10 +158,11 @@ See the [Skills concept guide](/genie/concepts/skills) for frontmatter options.
 **Solution:** `genie mikro` is a small runtime for repository-local microagents — a prompt plus an answer schema, returning validated JSON whose every citation is checked against the tree. It can **measure** itself.
 
 ```bash
-genie mikro init                        # seed the default agents into this repo
-genie mikro fixtures --from-commits     # build a fixture set from your own history
-genie mikro bench wish-context          # score it mechanically
-genie mikro coach wish-context          # propose, patch a copy, bench before/after
+genie mikro init                                     # seed the default agents into this repo
+genie mikro fixtures --from-commits HEAD~50..HEAD \
+                     --agent wish-context             # a fixture set from your own history
+genie mikro bench wish-context                        # score it mechanically
+genie mikro coach wish-context                        # propose, patch a copy, bench before/after
 ```
 
 Agents resolve repo-first: `--agents-dir`, then this checkout's `.mikro/agents/<agent>/agent.yaml`, then the release's templates. The answer names which source won, so you always know what ran.
@@ -182,7 +183,7 @@ Agents resolve repo-first: `--agents-dir`, then this checkout's `.mikro/agents/<
 
 ```bash
 genie doctor --json | jq '.checks[] | select(.status == "warn") | .name'
-genie doctor --json | jq '.checks[].modeDrift.entries // empty | length'
+genie doctor --json | jq '[.checks[].modeDrift.entries // empty] | flatten | length'
 ```
 
 **Benefit:** You get the full list without a thousand lines of terminal, and the same command works in CI.
@@ -255,7 +256,7 @@ gh repo fork automagik-dev/docs --clone
 # 3. Create a PR
 git add genie/hacks.mdx
 git commit -m "hack: your hack title"
-gh pr create --base main --title "hack: your hack title" --body "
+gh pr create --base dev --title "hack: your hack title" --body "
 ## New Hack
 
 **Category:** planning | parallel | skills | ops

@@ -10,7 +10,7 @@ These are the commands that set Genie up, tell you whether it is healthy, and ta
 service: Genie has **no daemon**. Every command opens what it needs, runs one transaction, and exits.
 
 <Note>
-  Genie's whole surface is **15 top-level commands**. Run `genie --help` for the live list — it is the only authority.
+  Genie's whole surface is **16 top-level commands**. Run `genie --help` for the live list — it is the only authority.
   This page covers the installation half; [Tasks](/genie/cli/tasks) and [Boards](/genie/cli/boards) cover the lifecycle
   half.
 </Note>
@@ -127,31 +127,37 @@ genie doctor [--fix] [--fix-global-db] [--json]
 | `--fix-global-db` | The one repair verb doctor owns: back up the global database and drop only the per-repo tables that do not belong in it |
 | `--json` | Emit the full check payload, including every entry behind a summarized line |
 
-```bash Terminal
-$ genie doctor
-Genie Doctor
-────────────────────────────────────────
+Real output from a host mid-install, abridged only by cutting repeated rows of the same kind:
 
-Prerequisites:
-  ✓ git
-  ✓ bun / node
-  ✓ an agent that reads skills
+```text
+genie doctor
 
-Configuration:
-  ✓ Genie config exists ~/.genie/config.json
-  ✓ authority: standalone
-
-Skills channel:
-  ✓ skills: claude    19/19 @ v6.x.x
-  ✓ skills: agents    19/19 @ v6.x.x
-  ✓ skills: goose     not detected
-  ✓ skills: windsurf  not detected
-
-  ✓ mode drift: none found
-  ✓ budgets: maxEscalationsPerGroup=2 (default)
-
-────────────────────────────────────────
+  ✔ genie version — 6.260919.1
+  ✔ genie on PATH — /home/you/.local/bin/genie
+  ✔ orchestration authority — mode=standalone; payload=absent; host_registration=not-managed
+  ✔ git present — /usr/local/bin/git
+  ✔ inside a git repository — /home/you/work/myrepo
+  ✔ genie.db — /home/you/work/myrepo/.genie/genie.db (schema v2)
+  ✔ skills present — /home/you/work/myrepo/skills
+  ! skills: channel — no install record
+      ↳ Run `genie update` to install the skills.sh channel
+  ! skills: legacy leftovers — 12 dir(s) predate the install record — 5 genie's own, 7 unproven (a retired genie
+    name or description, not both; genie claims none of these): /home/you/.agents/skills/genie-hacks (unproven);
+    /home/you/.claude/skills/brain (unproven); +9 more
+      ↳ Run `genie update` — it archives the proven ones under state-backups and moves nothing else; an unproven
+        dir is a name-or-description match genie does not claim, and stays listed until you remove it or it stops
+        matching
+  ✔ workflows: catalog — (unrecorded)
+  ✔ bun present — 1.3.14 (/usr/local/bin/bun)
+  ✔ budgets: maxEscalationsPerGroup=2 (default)
+  ✔ Codex CLI — /home/you/.local/bin/codex
+  ✔ obsolete Genie OTel exporter — absent
+  ✔ preferred agent runtime — auto
+  ✔ v4 residue — none found
+  ✔ mode drift — 10949 stricter drift item(s) across 24 worktree(s) — nothing to fix
 ```
+
+Three prefixes: `✔` pass, `!` warn, `✖` fail. A warn always carries a `↳` remedy line.
 
 Doctor's output is **aggregated, never per-item**: a host with thousands of drifted worktree files prints one
 `mode drift` line naming at most five entries plus a remainder, and `--json` carries every entry. The same rule governs

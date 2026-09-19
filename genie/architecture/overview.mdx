@@ -16,14 +16,15 @@ and it does that with **no resident process of any kind**.
   [`v4` branch](https://github.com/automagik-dev/genie/tree/v4) for anyone still running it.
 </Note>
 
-## The three surfaces
+## The four surfaces
 
-Genie ships exactly three things, and nothing else:
+Genie ships exactly four things, and nothing else:
 
 | Surface | Delivered by | Recorded at |
 |---------|--------------|-------------|
 | **The signed binary** | `install.sh`, then `genie update` | `~/.genie` |
 | **The skills** | The pinned [skills.sh](https://skills.sh) CLI, run over the tree the signed release put on disk | `~/.genie/skills-install.json` |
+| **The saved-workflow catalog** | `genie install` / `genie update`, into Claude Code's user scope `~/.claude/workflows/` | The same install pass; `genie doctor` reports it as `workflows: catalog` |
 | **The Orca plugin** | An optional lifecycle integration you register with Orca yourself | Orca's own install record |
 
 There is no Claude marketplace plugin, no Codex plugin, no Genie-installed hooks, no MCP server, and no role-agent
@@ -39,7 +40,7 @@ profiles. Nothing Genie installs runs inside your agent's event loop.
                 │ invokes
                 ▼
 ┌──────────────────────────────────────────────────────────────┐
-│  genie CLI — 15 commands (commander, src/genie.ts)           │
+│  genie CLI — 16 commands (commander, src/genie.ts)           │
 │  fork · one transaction · exit                               │
 └───────┬─────────────────────────┬────────────────────────────┘
         │                         │
@@ -121,7 +122,8 @@ an answer schema, which return validated JSON whose every citation is verified a
 ```bash
 genie mikro init                       # seed this release's default agents into a repository
 genie mikro call <agent> --prompt '…'  # run one agent, get validated JSON back
-genie mikro fixtures --from-commits    # build a fixture set from the repo's own history
+genie mikro fixtures --from-commits HEAD~50..HEAD --agent wish-context
+                                       # a fixture set from the repo's own history
 genie mikro bench <agent>              # score the agent mechanically over its fixtures
 genie mikro coach <agent>              # propose, patch a copy, bench before and after
 ```
@@ -134,9 +136,7 @@ the tree being reviewed — and the answer names which source won.
 
 | Variable | Effect |
 |----------|--------|
-| `GENIE_HOME` | Relocates all global state from `~/.genie` |
+| `GENIE_HOME` | Relocates all global state from `~/.genie` — `config.json`, the skills install record, `state-backups/` and `worktrees/` |
 | `GENIE_AGENT_NAME` | Worker identity for task claims and stage-log entries |
 | `GENIE_AGENT_ID` | Fallback worker identity; both floor at `cli` |
-| `GENIE_TEAM` | Default team when `--team` is not provided |
 | `GENIE_WORKTREES_DIR` | Override the worktrees base doctor and review snapshots read |
-| `GENIE_CONFIG_FILE` | Override the resolved config path |

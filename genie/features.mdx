@@ -25,16 +25,16 @@ description: "The capabilities that make Genie work — from structured intent t
   <Card title="Boards Derived by Query" icon="columns-3" href="/genie/cli/boards">
     `genie board` has no stored view state to go stale, and `genie idea` drops a thought straight into the Idea lane. The roadmap snapshot in git is the canonical board.
   </Card>
-  <Card title="Orca Lifecycle Authority" icon="plug" href="/genie/cli/infrastructure">
+  <Card title="Orca Lifecycle Authority" icon="plug" href="/genie/cli/orca">
     Hand the lifecycle to Orca with one explicit, reversible command. Orca mode refuses what it forbids at exit 2 instead of keeping a shadow copy — and there is no fallback database in either direction.
   </Card>
   <Card title="Saved Workflows" icon="wand-magic-sparkles" href="/genie/skills/loop-overview">
     A catalog of scripts for procedures worth running the same way twice — `council`, `docs-audit`, `skill-intake` — installed to `~/.claude/workflows` alongside the skills.
   </Card>
-  <Card title="Microagents — genie mikro" icon="robot" href="/genie/architecture/overview">
+  <Card title="Microagents — genie mikro" icon="robot" href="/genie/cli/mikro">
     Narrow agents with an answer schema, returning validated JSON whose every citation is verified. `init`, `fixtures`, `bench` and `coach` seed, measure and refine a repository's own agents.
   </Card>
-  <Card title="Wish Linting" icon="circle-check" href="/genie/skills/wish">
+  <Card title="Wish Linting" icon="circle-check" href="/genie/cli/wish-lint">
     `genie wish lint` checks any repository's `.genie/wishes` for structure, writes nothing, and exits 0 or 1 — so a malformed plan fails before an agent acts on it.
   </Card>
   <Card title="Skills Channel" icon="share-nodes" href="/genie/installation">
@@ -43,7 +43,7 @@ description: "The capabilities that make Genie work — from structured intent t
   <Card title="Verified Delivery" icon="shield-check" href="/genie/security/verifying-installs">
     Every release verifies offline, with no GitHub credential — signed delivery evidence checked against an embedded trust root and bound to the tarball's hash before anything is extracted.
   </Card>
-  <Card title="Provider Agnosticism — BYOA" icon="plug" href="/genie/concepts/byoa">
+  <Card title="Provider Agnosticism — BYOA" icon="plug" href="/genie/concepts/skills">
     Claude, Codex, Goose, or your custom agent. The skills are runtime-neutral by construction, so Genie installs no agent profiles and no hooks.
   </Card>
 </CardGroup>

@@ -1,7 +1,7 @@
 ---
 title: "Configuration Files"
 sidebarTitle: "Config Files"
-description: "config.json, the two SQLite databases, the documents in git, and every environment variable."
+description: "config.json, the one SQLite database, the documents in git, and every environment variable."
 ---
 
 Genie keeps three kinds of state, and they are deliberately separate:
@@ -83,18 +83,20 @@ config falls back to defaults with a warning rather than failing the command.
   </Accordion>
 </AccordionGroup>
 
-## State storage — two separate SQLite databases
+## State storage — one SQLite database
 
-Both run on Bun's built-in engine, both use WAL, and they are **wholly separate databases**: different paths, different
-schemas, independent `PRAGMA user_version`. Nothing reaches across.
+There is exactly **one** database, and it is per-repository: `<repo>/.genie/genie.db`. It runs on Bun's built-in
+engine, uses WAL and a `busy_timeout`, and holds tasks, dependency edges, board lanes, wish-group execution state and
+the stage log. Its schema is at `user_version = 2`.
 
-| Database | Path | Scope | What lives here |
-|----------|------|-------|-----------------|
-| Per-repo | `<repo>/.genie/genie.db` | One per repository, shared across all its worktrees | Tasks, dependency edges, board lanes, wish-group execution state, stage log |
-| Global | `~/.genie/genie.db` | Machine-wide | Nothing lifecycle-related. v6 opens no machine-scope lifecycle database |
+Linked worktrees resolve it through `git rev-parse --git-common-dir`, so a task created in one worktree is immediately
+visible in another with **no sync step**.
 
-Linked worktrees resolve the per-repo database through `git rev-parse --git-common-dir`, so a task created in one
-worktree is immediately visible in another with **no sync step**.
+<Note>
+  **v6 opens no machine-scope database.** The global `~/.genie/genie.db` existed only to hold the Omni approval queue
+  and inbox; with Omni removed there is nothing for it to hold, and the module that owned it is gone. `~/.genie` still
+  holds `config.json`, the skills install record, `state-backups/` and `worktrees/` — just no database.
+</Note>
 
 ### Documents in git
 
@@ -115,12 +117,10 @@ by identity and republished — the card conversation is global state, not a loc
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `GENIE_HOME` | `~/.genie` | Relocates **all** global state — the global database and `worktrees/` |
+| `GENIE_HOME` | `~/.genie` | Relocates **all** global state — `config.json`, the skills install record, `state-backups/` and `worktrees/` |
 | `GENIE_AGENT_NAME` | — | Worker identity for task claims and stage-log entries; the default for `task checkout --worker` |
 | `GENIE_AGENT_ID` | — | Fallback worker identity when `GENIE_AGENT_NAME` is unset; both floor at `cli` |
-| `GENIE_TEAM` | — | Default team when `--team` is not provided |
 | `GENIE_WORKTREES_DIR` | `<GENIE_HOME>/worktrees` | Override the worktrees base doctor and review snapshots read |
-| `GENIE_CONFIG_FILE` | `<GENIE_HOME>/config.json` | Override the resolved config path |
 
 ## Agent skill homes
 

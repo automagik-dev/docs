@@ -35,16 +35,13 @@ Convene a panel of 10 specialist perspectives to brainstorm, critique, and vote 
 
 ### Lightweight Mode (Default)
 
-When no council members are hired in the team, all perspectives are simulated in a single session. One agent plays all roles — faster, lower cost, good for most decisions.
+When the runtime offers no delegation surface, all perspectives are simulated in a single session. One agent plays all roles — faster, lower cost, good for most decisions.
 
-### Full Spawn Mode
+### Independent Dispatch Mode
 
-When council members are hired in the team (`genie team hire council`), real agents deliberate via `genie chat` and reach consensus. Higher-quality since each member runs in its own context.
+When the runtime can delegate, each selected perspective runs in its own subagent, in parallel where supported. Higher-quality since each member reasons in its own context. Every member receives the same decision statement, constraints, evidence, and unknowns — and nothing else, because a lens that reads the room returns an echo instead of evidence.
 
-```bash
-# Hire all 10 council members
-genie team hire council
-```
+There is no team or hire command: the panel is subagents. Members that return nothing are reported as not convened rather than counted in the vote.
 
 ## Smart Routing
 
@@ -68,7 +65,7 @@ Not every decision needs all 10 perspectives. Topics are routed to the relevant 
 ## Council Advisory
 
 ### Topic: [Detected Topic]
-### Mode: [Lightweight / Full Spawn]
+### Mode: [Lightweight / Independent Dispatch]
 ### Members Consulted: [List]
 
 ### Perspectives

@@ -4,26 +4,31 @@ sidebarTitle: "Wishes"
 description: "The structured plan that drives everything — from brainstorm to pull request."
 ---
 
-# Wishes
+A **wish** is Genie's unit of work. It is a structured document (`WISH.md`) that defines what to build, how to validate
+it, and how to break it into parallelizable execution groups. It lives in git, so you review it like code.
 
-A **wish** is Genie's unit of work. It's a structured document (`WISH.md`) that defines what to build, how to validate it, and how to break it into parallelizable execution groups.
+## The Lifecycle
 
-## The Workflow
-
-Every wish flows through a five-stage workflow:
+Every wish flows through the same lifecycle, with a review gate between each pair of stages:
 
 ```text
-brainstorm → wish → work → review → ship
+brainstorm → design review → wish → plan review → work → implementation review
 ```
 
 | Stage | Skill | Input | Output |
 |-------|-------|-------|--------|
-| Explore | `/brainstorm` | Rough idea | Design document with decisions |
+| Explore | `/brainstorm` | Rough idea | `DESIGN.md`, independently reviewed |
 | Deliver one task | `/wish` | One decided objective | A merge-ready PR, or a refusal naming the route it needs |
 | Plan | `/wish` (plan entry) | Design document | `WISH.md` with criteria and groups |
 | Execute | `/work` | Approved `WISH.md` | Code changes, tests, docs |
 | Validate | `/review` | Completed work | SHIP, FIX-FIRST, or BLOCKED |
-| Ship | automatic | SHIP verdict | Pull request |
+| Ship | orchestrator | SHIP verdict | Pull request for you to merge |
+
+<Note>
+  Not every objective needs a plan. For **one decided task**, [`/wish`](/genie/skills/wish) skips `WISH.md` entirely:
+  it admits the task, works it in its own worktree, runs the gate, hands the commit to an independent reviewer, and
+  opens a merge-ready PR. A `WISH.md` is what you write when the work is bigger than one task.
+</Note>
 
 ## Anatomy of a WISH.md
 
@@ -41,16 +46,23 @@ Every wish contains these sections:
 | **Date** | 2026-03-24 |
 ```
 
-The **status** tracks the wish lifecycle:
+The **status** tracks the wish lifecycle. These six are the durable vocabulary — SessionStart, resume routing, and the
+loop skills all read them:
 
 | Status | Meaning |
 |--------|---------|
 | `DRAFT` | Being written, not yet approved |
+| `FIX-FIRST` | Review found bounded gaps that block acceptance |
 | `APPROVED` | Ready for execution |
 | `IN_PROGRESS` | Currently being worked on |
-| `REVIEW` | Work complete, under review |
-| `DONE` | Shipped and merged |
-| `BLOCKED` | Cannot proceed — needs input |
+| `BLOCKED` | Cannot proceed — needs a decision |
+| `SHIPPED` | Reviewed, merged, done |
+
+<Warning>
+  A reviewer's chat verdict is **evidence, not state**. SHIP, FIX-FIRST, and BLOCKED are what a review returns; the
+  statuses above are what the wish carries. The **orchestrator** appends the review evidence to `WISH.md` and updates
+  the status — no verdict advances a wish on its own.
+</Warning>
 
 ### Scope
 
@@ -85,7 +97,7 @@ Checkboxes that define "done". These are what `/review` validates against:
 
 ### Execution Groups
 
-Parallelizable work units. Each group is assigned to an agent:
+Parallelizable work units. Each group names the role that executes it:
 
 ```markdown
 ## Execution Groups
@@ -104,97 +116,90 @@ Parallelizable work units. Each group is assigned to an agent:
 **depends-on:** Group 1
 ```
 
-Groups with `depends-on` run sequentially. Independent groups run in parallel — this is how Genie achieves speed.
+Groups with `depends-on` run in order. Independent groups run in parallel — this is how Genie achieves speed.
 
 ## Wish State
 
-Genie tracks execution state in PostgreSQL via the task system. A wish becomes a parent task, and each execution group becomes a child task with dependency edges.
+Genie tracks execution state in the per-repo SQLite database, `<repo>/.genie/genie.db`. Each execution group becomes a
+card carrying the wish slug, with dependency edges between cards; the ready set is whatever has no unmet dependency.
+There is no server and no daemon — a command opens the file, runs one transaction, and exits.
 
-The task system records:
-- Which groups are complete
-- Which agents are assigned
-- Current workflow stage
-- Timestamps and error states
+The card state records:
 
-State is stored in the `tasks` and `task_dependencies` tables — no file locks needed, and concurrency is handled natively by PostgreSQL.
-
-### Drift Detection
-
-When state is first created, Genie stashes a SHA-256 signature of the wish's group structure (group names + sorted `depends-on` per group) on the parent task. Any later dispatch recomputes that signature from the current `WISH.md` and compares. If they diverge, Genie **fails loud** instead of silently dispatching against a stale plan.
-
-<Warning>
-**What triggers it:** editing `WISH.md` to add a group, remove a group, or change a group's `depends-on` after the wish has already been initialized in the database. Prose edits (summary, decisions, context) leave the signature untouched.
-</Warning>
-
-**The error you'll see:**
-
-```text
-Wish "dark-mode-toggle" group structure has changed since state was created.
-  + added: Group 3
-  - removed: Group 2
-  ~ changed deps: Group 1
-
-Run `genie reset dark-mode-toggle` to recreate state from the current WISH.md.
-```
-
-Each diff line appears only when non-empty — you may see just additions, just removals, or just dependency changes.
-
-**Recovery:**
-
-<Steps>
-  <Step title="Confirm the edit was intentional">
-    If the WISH.md change was accidental, revert it — the error will clear on the next dispatch.
-  </Step>
-  <Step title="Reset the wish state">
-    If the edit was intentional, wipe the cached state and recreate it from the current `WISH.md`:
-
-    ```bash
-    genie reset <slug>
-    ```
-
-    In non-interactive contexts (CI, agent shells), add `--yes` to skip the confirmation prompt. See [`genie reset`](/genie/cli/dispatch#genie-reset) for the full flag list.
-  </Step>
-  <Step title="Re-dispatch">
-    Any previously in-progress groups are lost with the reset — re-run `/work` (or re-dispatch manually) against the refreshed plan.
-  </Step>
-</Steps>
+- Which groups are complete and which are ready
+- Which roster agent is declared on each card
+- The card's lane and its stage log — handoff reports and gate pointers
+- Timestamps, claims, and heartbeat liveness
 
 <Note>
-Pre-existing state from before this feature landed has no stored signature and is treated as "valid, never validated" — it won't false-alarm on the next dispatch, but the first `genie reset <slug>` will enrol it into drift tracking.
+  `tasks.wish` is a **lifecycle slug**, not proof that a `WISH.md` exists. A card carries the same stable slug from the
+  moment `.genie/brainstorms/<slug>/` is created, threading Idea → Brainstorm → Wish → Work → Review → Done. The slug
+  is identity; the documents catch up with it.
 </Note>
+
+### Shared across worktrees
+
+All linked worktrees of one repository share the same `genie.db`, resolved via `git rev-parse --git-common-dir`. A card
+created in one worktree is instantly visible in another — there is no sync step between worktrees, and no per-worktree
+copy to reconcile.
+
+### The canonical snapshot
+
+`<repo>/.genie/roadmap.json` is the **canonical** board snapshot and is tracked in git; `genie.db` itself is gitignored
+and materializes from it. `genie task sync` three-way reconciles the two, and the git hooks run it on pull, merge,
+rewrite, and pre-commit — so the board travels with the branch instead of living on one machine.
 
 ## File Locations
 
-| Location | Path | Purpose |
-|----------|------|---------|
-| Wish document | `.genie/wishes/<slug>/WISH.md` | The plan |
-| Design document | `.genie/brainstorms/<slug>/DESIGN.md` | Pre-wish exploration |
-| Execution state | PostgreSQL `tasks` table | Progress tracking |
+| Location | Path | Tracked in git |
+|----------|------|----------------|
+| Wish document | `.genie/wishes/<slug>/WISH.md` | Yes |
+| Design document | `.genie/brainstorms/<slug>/DESIGN.md` | Yes |
+| Index | `.genie/INDEX.md` | Yes |
+| Board snapshot | `.genie/roadmap.json` | Yes — the canonical roadmap |
+| Execution state | `.genie/genie.db` | No — SQLite, materialized from `roadmap.json` |
+
+Brainstorm notes other than `DESIGN.md` are machine-local and gitignored: the reviewed design is the artifact that
+travels, not the scratch work behind it.
 
 ## CLI Commands
 
-Wishes become tasks in the database — see the [Task CLI reference](/genie/cli/tasks) for full task management commands.
+Wish work shows up as cards in the database — see the [Task CLI reference](/genie/cli/tasks) for the full subcommand
+list.
 
 ```bash
-genie status <slug>          # Show wish progress
-genie wish approve <slug>    # Approve a draft wish
-genie wish reset <slug>      # Reset wish state
-genie done <slug> <group>    # Mark a group complete
+genie board --wish <slug>            # the cards for one wish, rendered live
+genie task status <id>               # one card: detail, dependencies, stage log
+genie context --wish <slug> --plan   # preview the spawn context, read-only
+genie wish lint                      # lint .genie/wishes for structure
 ```
+
+`genie context --wish <slug> [--group <g>]` emits one line of versioned JSON — the composed branch, the resolved base
+SHA, and the ready tasks — which is what a spawn consumes to set up an isolated worktree. `--plan` previews it without
+writing anything.
+
+`genie wish lint [--dir <repo>]` checks a repository's `.genie/wishes` for structural problems and writes nothing:
+exit `0` clean, `1` findings, `2` when the root is refused.
 
 ## Best Practices
 
 <AccordionGroup>
   <Accordion title="Keep wishes small">
-    A wish should be completable in one session. If it has more than 6 execution groups, consider splitting into multiple wishes.
+    A wish should be completable in one session. If it has more than 6 execution groups, consider splitting it into
+    multiple wishes — or, if it collapses to a single decided task, skip the plan and use `/wish` directly.
   </Accordion>
   <Accordion title="Write testable criteria">
     Each success criterion should be verifiable by a command or assertion. Avoid subjective criteria like "code is clean."
   </Accordion>
   <Accordion title="Declare dependencies explicitly">
-    If Group 3 needs Group 1's output, say `depends-on: Group 1`. Genie uses this to schedule execution order.
+    If Group 3 needs Group 1's output, say `depends-on: Group 1`. Genie turns that into a dependency edge and uses it
+    to compute the ready set.
   </Accordion>
   <Accordion title="Scope aggressively">
     The OUT section is as important as IN. Explicitly listing what you won't do prevents scope creep.
+  </Accordion>
+  <Accordion title="Let the orchestrator own the status">
+    Don't hand-edit a wish's status to match a verdict you read in chat. The orchestrator writes the evidence and the
+    status together, which is what keeps `WISH.md` and the board telling the same story.
   </Accordion>
 </AccordionGroup>

@@ -13,7 +13,7 @@ Five minutes. One PR. Whatever agent you already use.
 
 <Steps>
   <Step title="Install Genie">
-    Run the bootstrap script (see the full [Installation guide](/genie/installation) for alternatives). It installs the CLI, sets up plugins, and configures git hooks.
+    Run the bootstrap script (see the full [Installation guide](/genie/installation) for alternatives). It installs the signed CLI, then the skills and the saved-workflow catalog into the agent homes it detects.
 
     ```bash
     curl -fsSL https://raw.githubusercontent.com/automagik-dev/genie/main/install.sh | bash
@@ -232,7 +232,7 @@ Creating pull request...
 
 <CardGroup cols={2}>
   <Card title="Full onboarding walkthrough" icon="route" href="/genie/onboarding">
-    The 15-minute tour — install → smoke test → wizard → first wish → first PR → first monitor.
+    The 15-minute tour — install → doctor → init → first wish → review → first PR.
   </Card>
   <Card title="The Genie Loop" icon="arrows-rotate" href="/genie/skills/loop-overview">
     Plan → Review → Work → Ship → Monitor — the canonical lifecycle and the skills behind each phase.

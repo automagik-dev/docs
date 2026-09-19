@@ -36,7 +36,7 @@ Idea → /brainstorm → /wish → /review → /work → /review → PR → Ship
 | One decided task, deliver it now | Run `/wish` — it comes back with a merge-ready PR, or a refusal naming the route it needs |
 | Work is bigger than one task, needs a plan | Run `/wish` (plan entry) |
 | Wish exists but not reviewed | Run `/review` |
-| Wish is SHIP-approved | Run `genie team create` to execute |
+| Wish is SHIP-approved | Run `/work` to execute it in dependency order |
 | Work is done, needs verification | Run `/review` |
 | Review says FIX-FIRST | Run `/fix`, then re-review |
 | Want specialist perspectives | Run `/council` |
@@ -56,21 +56,17 @@ Idea → /brainstorm → /wish → /review → /work → /review → PR → Ship
 
 6. **Dream** (`/dream`) — Overnight batch execution of multiple wishes with QA loop.
 
-## Team Execution
+## Larger Work
 
-For larger work, create a team for autonomous multi-agent execution:
+For work bigger than one task, `/work` executes the approved wish: it derives ready waves from the wish's execution groups, dispatches one worker subagent per independent group through the runtime's own delegation surface, and routes each group through an independent reviewer before completing it.
 
-```bash
-genie team create my-feature --repo . --wish add-dark-mode
-```
-
-This spawns a team leader with wish context, who orchestrates engineers, reviewers, and fixers.
+There is no team command and Genie starts no processes of its own. The workers are the runtime's subagents; the state they share is the per-repo SQLite database `.genie/genie.db`.
 
 ## Quick Commands
 
 | Command | Purpose |
 |---------|---------|
-| `genie status <slug>` | Check wish progress |
-| `genie done <ref>` | Mark a group complete |
-| `genie reset <ref>` | Retry a stuck group |
-| `genie ls` | List active agents |
+| `genie board --wish <slug>` | Kanban view of the wish's cards |
+| `genie task list --wish <slug>` | List the wish's cards and their lanes |
+| `genie task status <id>` | Card detail, dependencies, and timeline |
+| `genie task done <id>` | Coordinator only: mark a reviewed group done |

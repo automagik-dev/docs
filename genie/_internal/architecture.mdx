@@ -15,12 +15,13 @@ lightweight body. v4 is preserved on the [`v4` branch](https://github.com/automa
 ## Module map
 
 ```text
-src/genie.ts                      CLI entry point (commander), 15 registrations
+src/genie.ts                      CLI entry point (commander), 16 registrations
 src/lib/
   genie-home.ts                   GENIE_HOME resolution and the per-agent home paths built on it
   genie-config.ts                 Resolved global config; the schema is the key namespace
   orchestration-mode.ts           The lifecycle-authority selection and its refusal types
   orca-orchestration-adapter.ts   The closed public `orca orchestration ... --json` boundary
+  orca-lifecycle-mirror.ts        The pure transition -> workspaceStatus map (no I/O)
   skills-installer.ts             The skills.sh channel — pinned CLI, local delivered source, install record
   skills-agents.ts                Genie's own mirror of the skills.sh agent registry (detection)
   workflows-installer.ts          The saved-workflow catalog → ~/.claude/workflows
@@ -33,7 +34,7 @@ src/lib/
     base-state.ts                 Integration-branch resolution + recorded wish-base state
     roadmap-sync.ts               Three-way reconcile between the database and the git-tracked snapshot
     TAXONOMY.md                   The docs-in-git / state-in-SQLite contract
-src/term-commands/                Command handlers (board, context, init, mikro, task, wish, ...)
+src/term-commands/                Command handlers (board, context, init, mikro, orca, task, wish, ...)
 scripts/mikro/                    The mikro microagent runtime; imported in place, NOT relocated under src/
 skills/                           Skill prompt files — the product
 .claude/workflows/                The saved-workflow catalog
@@ -77,8 +78,10 @@ atomically switching. After that, Genie refuses local `genie.db` lifecycle reads
 syncs, and exports. Switching back imports no Orca state. **There is no fallback database in either direction** — if
 Orca is unavailable, the operation fails.
 
-The refusal is a second, non-exempt commander `preAction`, not the workspace hook: `WORKSPACE_EXEMPT` exempts exactly
-the verbs `ORCA_FORBIDDEN` names, so the workspace hook can never carry the check.
+The refusal is a second, non-exempt commander `preAction`, not the workspace hook. `WORKSPACE_EXEMPT`
+(`src/lib/interactivity.ts`) holds **21 entries** — every verb that self-resolves its own state or touches none, which
+includes all three `ORCA_FORBIDDEN` verbs — so the workspace hook short-circuits on exactly the verbs the Orca check
+needs to see, and can never carry that check itself.
 
 ```text
 ORCA_FORBIDDEN = { task (every subverb except sync), board, idea }

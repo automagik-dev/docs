@@ -33,10 +33,34 @@ migrated in one transaction, and a second open is a no-op. `genie task import` o
 ignores it rather than failing. A database stamped at an unbridgeable version still refuses to open rather than
 guessing.
 
+### The plugin-era retirement pass is gone
+
+`genie update` no longer retires plugin-era host assets. The one-shot, backup-first sweep that classified and removed
+Codex and Claude plugin registrations, role-agent TOMLs, managed skill mirrors and the rest served a compatibility
+window for hosts on releases `>= 5.260711.6`; that window closed with v6 and the module is deleted. **The update
+transcript therefore no longer prints any line prefixed `integrations:`** — if you were grepping for one, stop.
+
+Nothing is left behind on a host that already updated through a v5 release: the sweep is idempotent by construction and
+a retired surface classifies as absent. A host that skipped the whole v5 line follows the documented manual steps
+instead.
+
+### Orca-mode refusals now exit 2, not 1
+
+Under explicitly selected Orca authority, `genie task` (every subverb except `sync`), `genie board` and `genie idea`
+refuse with **exit 2** and one fixed message naming the remedy `genie setup --orchestration-mode standalone`. They
+used to exit 1.
+
+Exit 2 is Genie's "the operator must act" family — the same code the workspace gate and `genie mikro`'s usage refusals
+use — so a refusal is never confused with a command that ran and failed. **If you script around these verbs, check for
+2.** Two behaviours are deliberately carved out of the refusal: `genie task sync` exits 0 and prints nothing, so the
+git hooks that call it on every commit stay silent; and `genie context --wish <slug> --plan` still answers read-only,
+because it is the one question an agent needs answered to cut a worktree. `genie context`'s other refusals exit 1, not
+2 — the closed exit-2 set is those three root verbs only.
+
 ### The command surface
 
-`genie --help` lists **15 top-level commands**. Nothing was renamed — the list shrank because `mcp`, `ui-bridge` and
-`omni` left it.
+`genie --help` lists **16 top-level commands**. Nothing was renamed: `mcp`, `ui-bridge` and `omni` left the list, and
+`genie orca` joined it.
 
 ### Supported platforms
 
@@ -136,7 +160,8 @@ npx skills add automagik-dev/genie -g
 
 <Warning>
   Do not add `--all` to the public command. It expands to `--skill '*' --agent '*' -y`, and `--agent '*'` creates every
-  product home in the skills CLI's 77-agent registry — around 53 directories for agents you do not have. Genie's own
+  product home for every one of the 77 agents in its registry. About 53 of them actually materialized on the host we
+  measured; a later `--all`-era record named 57. Either way, directories for agents you do not have. Genie's own
   channel never passes it.
 </Warning>
 

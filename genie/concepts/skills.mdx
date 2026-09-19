@@ -1,158 +1,175 @@
 ---
 title: "Skills"
 sidebarTitle: "Skills"
-description: "Slash-command prompt programs that encode best practices into reusable workflows."
+description: "Runtime-neutral prompt programs that encode Genie's workflows for whatever agent you already use."
 ---
 
-# Skills
+A **skill** is a structured prompt file that encodes a workflow. When you invoke `/brainstorm` or `/work`, you are
+loading a skill — a Markdown document with YAML frontmatter that gets read into the agent's context.
 
-A **skill** is a structured prompt file that encodes a workflow as a slash command. When you type `/brainstorm` or `/work`, you're invoking a skill — a Markdown document with YAML frontmatter that gets loaded into the agent's context.
+Skills are not code. They are prompt programs: they define phases, decision points, output formats, and validation
+steps that the agent follows.
 
-## How Skills Work
+## How Skills Reach Your Agent
 
-1. You type `/brainstorm` in Claude Code
-2. Claude Code finds `skills/brainstorm/SKILL.md`
-3. The skill's content is injected into the conversation
-4. The agent follows the skill's instructions
+Genie delivers its skills through the [skills.sh](https://skills.sh) channel, into **each agent's own global skill
+home** — `~/.claude/skills`, the shared `~/.agents/skills` that Codex and others read, and so on. Delivery happens at
+two moments and only two:
 
-Skills are not code — they're prompt programs. They define phases, decision trees, output formats, and validation steps that the agent follows.
+| When | What happens |
+|------|--------------|
+| `genie install` (the post-install finisher) | The skills that shipped inside that release are installed to every agent Genie detects |
+| `genie update` | The binary is replaced, then the skills are reinstalled from that release's own tree |
+
+<Warning>
+  Skills do **not** appear instantly, and Genie never delivers one by dropping a file into your repository. If a skill
+  is missing, run `genie update` — it owns every mutation on this surface. `genie doctor` only observes it. Most agents
+  also pick up new skills on the *next* session start, so restart your session before assuming the install failed.
+</Warning>
+
+## Runtime Neutrality
+
+Genie's skills are written to be runtime-neutral. They name **portable roles** — an orchestrator, an engineer, an
+independent reviewer — and let each runtime map those roles onto its own native subagents. Genie installs **no agent
+profiles and no hooks**; it does not need to know how your agent spawns work.
+
+What changes per runtime is only how you invoke a skill:
+
+| Runtime | Invocation |
+|---------|------------|
+| Claude Code | A slash command: `/wish`, `/work`, `/review` |
+| Everything else | By name, or in plain language: "use the wish skill to …" |
 
 ## Skill Anatomy
 
-Every skill lives in `skills/<name>/SKILL.md` with this structure:
+Every skill lives in `skills/<name>/SKILL.md`, and its frontmatter allows **exactly four keys**:
 
 ```yaml
 ---
 name: brainstorm
-description: Explore ambiguous or early-stage ideas interactively
+description: Explore an ambiguous idea with the user, settle scope and success criteria, and produce an independently reviewed design for wish.
+category: lifecycle
+mutates: true
 ---
 
-# Brainstorm Skill
+# Brainstorm
 
-## Phase 1: Understand the Idea
-...
-
-## Phase 2: Explore Constraints
+## Phase 1: Understand the idea
 ...
 ```
 
-The frontmatter defines:
-
 | Field | Purpose |
 |-------|---------|
-| `name` | Skill identifier — matches the `/command` name |
-| `description` | One-line summary shown in skill listings |
-
-## Built-in Skills
-
-Genie ships with 17 skills organized by function:
-
-### Core Pipeline
-
-| Skill | Command | Purpose |
-|-------|---------|---------|
-| [Brainstorm](/genie/skills/brainstorm) | `/brainstorm` | Explore ideas interactively, track wish-readiness |
-| [Wish](/genie/skills/wish) | `/wish` | Convert a design into a structured WISH.md |
-| [Work](/genie/skills/work) | `/work` | Execute a wish — dispatch agents per execution group |
-| [Review](/genie/skills/review) | `/review` | Validate work against criteria — SHIP or FIX-FIRST |
-
-### Debugging & Fixing
-
-| Skill | Command | Purpose |
-|-------|---------|---------|
-| [Trace](/genie/skills/trace) | `/trace` | Investigate unknown issues, isolate root cause |
-| [Fix](/genie/skills/fix) | `/fix` | Apply minimal fix for FIX-FIRST gaps |
-| [Report](/genie/skills/report) | `/report` | Full bug investigation with GitHub issue creation |
-
-### Orchestration
-
-| Skill | Command | Purpose |
-|-------|---------|---------|
-| [PM](/genie/skills/pm) | `/pm` | Full PM playbook — triage, assign, track, report, escalate |
-| [Council](/genie/skills/council) | `/council` | 10-perspective architectural review |
-| [Dream](/genie/skills/dream) | `/dream` | Batch-execute SHIP-ready wishes overnight |
-| [Genie](/genie/skills/genie) | `/genie` | Transform any session into a Genie orchestrator |
-
-### Knowledge & Learning
-
-| Skill | Command | Purpose |
-|-------|---------|---------|
-| [Brain](/genie/skills/brain) | `/brain` | Knowledge graph engine — search, ingest, analyze |
-| [Learn](/genie/skills/learn) | `/learn` | Behavioral correction from user feedback |
-| Brain Init | `/brain-init` | Initialize and personalize a knowledge brain |
-
-### Utilities
-
-| Skill | Command | Purpose |
-|-------|---------|---------|
-| [Wizard](/genie/skills/wizard) | `/wizard` | Guided onboarding — scaffold to first wish |
-| [Refine](/genie/skills/refine) | `/refine` | Optimize prompts via prompt-optimizer |
-| [Docs](/genie/skills/docs) | `/docs` | Audit and generate documentation |
+| `name` | Skill identifier — matches how the skill is invoked |
+| `description` | One-line summary, used for routing and shown in skill listings |
+| `category` | Groups the skill in the catalogue |
+| `mutates` | Whether the skill is allowed to change the repository |
 
 <Note>
-The `qa-runner` agent has been merged into the `/qa` QA system accessible via `genie qa`.
+  There is **no `triggers:` key**. A skill is selected by its `description` and by you asking for it — nothing else in
+  the frontmatter routes it.
 </Note>
+
+## Shipped Skills
+
+Genie ships **19 skills**.
+
+### Lifecycle
+
+| Skill | Purpose |
+|-------|---------|
+| [brainstorm](/genie/skills/brainstorm) | Explore an ambiguous idea, settle scope and success criteria, produce an independently reviewed design |
+| [wish](/genie/skills/wish) | Deliver one decided task end to end, or plan a multi-group wish when it is bigger than that |
+| [work](/genie/skills/work) | Execute an approved wish in dependency order with scoped workers and independent review |
+| [review](/genie/skills/review) | Independently assess a design, plan, implementation, or PR — returns SHIP, FIX-FIRST, or BLOCKED without applying fixes |
+| [fix](/genie/skills/fix) | Resolve blocking review gaps through bounded repairs and independent re-review |
+| verify | Prove a completion claim with fresh evidence: the gate's exit code, the real diff, the remote's checks, the reviewer's verdict |
+| merge | Resolve an in-progress merge or rebase by the intent of both sides, then re-run the full gate on the merged tree |
+
+### Orchestration and judgement
+
+| Skill | Purpose |
+|-------|---------|
+| genie | Route Genie questions, operations, bugs, and planned work; resume related wishes |
+| dream | Batch-execute SHIP-ready wishes overnight and report what landed |
+| council | Assess a proposal through independent technical, product, risk, and dissenting lenses, then synthesize a decision |
+| report | Investigate a failure to its root cause with grounded evidence and hand the diagnosis to `fix` |
+| research | Investigate a question against primary sources, cite every claim, and write the findings into the repository's notes |
+
+### Craft and maintenance
+
+| Skill | Purpose |
+|-------|---------|
+| authoring | Write or revise a Genie skill so it survives the shipped contract — frontmatter, size, voice |
+| deslop | Clean up prose, code, or an interface already in scope without changing its meaning or behaviour |
+| docs | Audit documentation and developer experience against the live product, and write or fix docs when asked |
+| refine | Improve a prompt using official provider guidance |
+| skill-audit | Audit the shipped catalogue for overlap, staleness, and drift against the install record |
+| workfly | Discover a procedure and build its saved workflow |
+| genie-hacks | Browse, search, and contribute community patterns |
 
 ## Invoking Skills
 
-Skills are invoked as slash commands:
+Pass whatever context you have as the argument:
 
 ```text
 /brainstorm Add a webhook system for real-time notifications
 ```
 
-You can pass arguments — the text after the command becomes context for the skill.
+Skills also call each other, which is how the loop holds together without you driving every hop:
 
-Some skills are also triggered automatically:
-- `/work` is invoked by the team-lead when dispatching execution
-- `/review` is invoked after work completion
-- `/fix` is invoked when review returns FIX-FIRST
+- `/wish` routes back to `/brainstorm` when the objective is not decided yet
+- `/work` hands finished work to `/review`
+- `/review` returning FIX-FIRST routes to `/fix`, which re-reviews when it is done
+- `/dream` runs `/work` → `/review` loops across a batch of SHIP-ready wishes
 
-## Skill Composition
+<Warning>
+  The reviewer is never the engineer. `/review` runs as a **different subagent** from the one that wrote the code, and
+  its verdict is evidence, not state: the orchestrator is what persists the review into `WISH.md` and advances the
+  work.
+</Warning>
 
-Skills can delegate to other skills:
-
-- `/wizard` delegates to `/brainstorm` for identity shaping and `/wish` for plan creation
-- `/work` invokes `/review` after execution completes
-- `/report` cascades through `/trace` before filing an issue
-- `/dream` orchestrates `/work` → `/review` loops across multiple wishes
-
-## Creating Custom Skills
-
-To add a custom skill:
+## Writing Your Own Skill
 
 1. Create `skills/<name>/SKILL.md`
-2. Add YAML frontmatter with `name` and `description`
-3. Write the skill's instructions in Markdown
-4. The skill becomes available as `/<name>`
+2. Add frontmatter with `name`, `description`, `category`, and `mutates` — those four keys and no others
+3. Write the instructions in Markdown: phases, decision points, the exact shape of the output
+4. Install it into your agent's skill home the same way you install any skills.sh skill
 
 ```yaml
 ---
 name: deploy
-description: Guide deployment to staging and production environments
+description: Guide a deployment to staging and production, with a pre-flight gate before each promotion.
+category: ops
+mutates: true
 ---
 
-# Deploy Skill
+# Deploy
 
-## Phase 1: Pre-flight Checks
-- Verify all tests pass
-- Check CI status
-- Confirm target environment
+## Phase 1: Pre-flight checks
+- Verify the full gate passes
+- Check CI status on the target branch
+- Confirm the target environment
 
-## Phase 2: Deploy
+## Phase 2: Promote
 ...
 ```
 
-Skills installed via the plugin system (in `~/.claude/plugins/genie/skills/`) are available globally across all projects.
+<Tip>
+  The `authoring` skill exists for exactly this: it writes and revises skills against the shipped contract, so your
+  skill reads like the ones Genie delivers. `skill-audit` then tells you whether it overlaps something that already
+  exists.
+</Tip>
 
-## Skill vs. Agent
+## Skills and the CLI
 
-| | Skill | Agent |
-|---|-------|-------|
-| **What** | A prompt program | A running process |
-| **Lifetime** | Single conversation turn | Persistent tmux session |
-| **State** | Stateless (context is the conversation) | Stateful (agent registry, mailbox) |
-| **Invocation** | `/command` | `genie spawn <role>` |
-| **Use case** | Structured workflow | Long-running autonomous work |
+Skills carry the judgement; the CLI carries the state. A skill decides what to do next and writes the documents; the
+[16 top-level commands](/genie/cli/infrastructure) open `.genie/genie.db`, run one transaction, and exit. Neither one
+runs a daemon.
 
-Skills tell agents *what to do*. Agents are *who does it*.
+| | Skill | CLI command |
+|---|-------|-------------|
+| **What** | A prompt program your agent reads | A process that opens the database and exits |
+| **Lives in** | Your agent's global skill home | `~/.local/bin/genie` |
+| **State** | Stateless — the conversation is the context | Per-repo SQLite plus git-tracked documents |
+| **Invocation** | `/wish`, or by name | `genie board`, `genie task status <id>` |

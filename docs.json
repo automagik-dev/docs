@@ -25,6 +25,14 @@
     "codeblocks": "dark"
   },
   "favicon": "/favicon.png",
+  "redirects": [
+    { "source": "/genie/architecture/messaging", "destination": "/genie/architecture/overview", "permanent": true },
+    { "source": "/genie/architecture/postgres", "destination": "/genie/config/files", "permanent": true },
+    { "source": "/genie/cli/agents", "destination": "/genie/cli/infrastructure", "permanent": true },
+    { "source": "/genie/cli/directory", "destination": "/genie/cli/infrastructure", "permanent": true },
+    { "source": "/genie/concepts/byoa", "destination": "/genie/concepts/skills", "permanent": true },
+    { "source": "/genie/config/tmux", "destination": "/genie/cli/infrastructure", "permanent": true }
+  ],
   "navigation": {
     "products": [
       {
@@ -50,8 +58,7 @@
               "genie/concepts/teams",
               "genie/concepts/boards",
               "genie/concepts/projects",
-              "genie/concepts/skills",
-              "genie/concepts/byoa"
+              "genie/concepts/skills"
             ]
           },
           {
@@ -88,6 +95,9 @@
               "genie/cli/infrastructure",
               "genie/cli/tasks",
               "genie/cli/boards",
+              "genie/cli/mikro",
+              "genie/cli/wish-lint",
+              "genie/cli/orca",
               "genie/cli/export-import",
               "genie/cli/session",
               "genie/cli/team",
@@ -107,8 +117,7 @@
             "pages": [
               "genie/config/setup",
               "genie/config/files",
-              "genie/config/worktrees",
-              "genie/config/tmux"
+              "genie/config/worktrees"
             ]
           },
           {
