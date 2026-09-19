@@ -124,7 +124,7 @@ genie doctor [--fix] [--fix-global-db] [--json]
 | Flag | Description |
 |------|-------------|
 | `--fix` | Tighten wider-than-index file modes inside registered worktrees |
-| `--fix-global-db` | The one repair verb doctor owns: back up the global database and drop only the per-repo tables that do not belong in it |
+| `--fix-global-db` | The repair that runs **alone**, not alongside the other checks: back up the global database, then drop only the per-repo tables that do not belong in it |
 | `--json` | Emit the full check payload, including every entry behind a summarized line |
 
 Real output from a host mid-install, abridged only by cutting repeated rows of the same kind:

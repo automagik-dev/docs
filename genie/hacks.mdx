@@ -55,7 +55,7 @@ These aren't theoretical. They're patterns from real Genie users solving real pr
 
 **Problem:** An agent works for twenty minutes against a wish whose group has no acceptance criteria, and the review has nothing to check against.
 
-**Solution:** `genie wish lint` checks a repository's `.genie/wishes` for structure. It writes nothing and exits 0 or 1, so it drops straight into a pre-commit hook or a CI step.
+**Solution:** `genie wish lint` checks a repository's `.genie/wishes` for structure. It writes nothing and its exit code is the whole contract: **0** clean, **1** findings, **2** the root was refused. That drops straight into a pre-commit hook or a CI step — treat 2 as a failure, because a `--dir` you typed that does not resolve is refused rather than reported clean.
 
 ```bash
 genie wish lint                 # this repository
@@ -179,7 +179,7 @@ Agents resolve repo-first: `--agents-dir`, then this checkout's `.mikro/agents/<
 
 **Problem:** `genie doctor` prints one aggregated line per check, which is exactly right for a human and useless for a script.
 
-**Solution:** `--json` carries every entry behind every summarized line — each drifted worktree path, each skill home, each legacy leftover — while the human output stays readable.
+**Solution:** `--json` carries the full entry list behind a summarized line while the human output stays readable. Mode drift is the case that matters: the human line names at most five entries, and `checks[].modeDrift.entries` carries every one of them.
 
 ```bash
 genie doctor --json | jq '.checks[] | select(.status == "warn") | .name'

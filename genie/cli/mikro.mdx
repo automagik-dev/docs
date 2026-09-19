@@ -43,7 +43,8 @@ templates — but it has nothing of its own to coach.
 Run one microagent and print its validated JSON answer.
 
 ```bash
-genie mikro call <agent> --prompt '<text>' [--prompt-file <path>] [--dir repo] [--agents-dir dir] [--facts auto] [--boundary none|bwrap] [--raw]
+genie mikro call <agent> --prompt '<text>' [--prompt-file <path>] [--dir repo] [--agents-dir dir]
+                 [--agents-ref <ref>] [--facts auto] [--boundary none|bwrap] [--raw]
 ```
 
 `call` **declares no options of its own**. Everything after the agent name reaches the mikro runtime exactly as you
@@ -61,16 +62,42 @@ copy of the runtime's flag list.
 Agents resolve **repo-first**, behind a trusted root:
 
 1. The `--agents-dir` flag, when you pass one.
-2. The **invoking checkout's** `.mikro/agents/<agent>/agent.yaml` — the git toplevel of the current working directory.
+2. The invoking checkout's `.mikro/agents/<agent>/` **read at a trusted git ref — never from the working tree.**
 3. The release's own `<GENIE_HOME>/templates/mikro/agents`.
 
 The answer names the winner in its `agentSource` field, so you never have to guess which prompt produced a result.
 
+#### The trusted ref
+
+Step 2 does not read files off disk. It reads the agent's blobs out of git at a ref you can point at, so an
+uncommitted edit in the working tree — yours, or one that arrived with the branch under review — cannot change what
+the agent is.
+
+| How the ref is chosen | Result |
+|-----------------------|--------|
+| `--agents-ref <ref>` | That ref, validated and resolved. A **malformed** ref is a usage refusal; a well-formed ref that names no commit in this checkout is not — it degrades to the shipped agents and says so |
+| No flag (the default) | `<base>`, the branch the invoking checkout's `origin/HEAD` names. The **local** branch wins when `origin/<base>` is an ancestor of it; otherwise `origin/<base>` |
+| No `origin/HEAD` at all | No ref resolves. The shipped agents are used, and the reason names the fix: `git remote set-head origin -a`, or pass `--agents-ref` |
+
+The local-base rule is what makes a committed-but-unpushed agent usable in a repository that commits straight to its
+base branch. It also trusts every local commit on that branch, including one merged locally from an unreviewed PR —
+which is why an automated caller passes `--agents-ref origin/<base>` explicitly and never relies on the default.
+
 <Note>
-  Step 2 is the **invoking checkout**, never `--dir`. `--dir` names the tree under review, which is untrusted input: an
-  agent definition read out of the tree being analyzed would let that tree choose its own reviewer. The trusted root is
-  the invoking checkout for every source that is not the flag; with the flag it stays two levels above the agents
-  directory, which is the operator's own authoring path.
+  **The ref is extracted and then proven.** The agent directory is materialized out of git into a `0700` temp tree
+  with `git archive`, and every extracted file is verified byte-for-byte against the ref. `git archive` is used
+  deliberately *and* is the reason the proof exists: it applies `export-ignore` and `export-subst` from the
+  `.gitattributes` at that ref, so a repository could otherwise drop a file from the agent, or rewrite a line of its
+  `SYSTEM.md`, in a way a plain read would never show. The temp tree is removed on success, on failure, and on a
+  thrown error.
+</Note>
+
+<Note>
+  Step 2 reads the **invoking checkout** at the trusted ref, never `--dir`. `--dir` names the tree under review, which
+  is untrusted input: an agent definition taken from the tree being analyzed would let that tree choose its own
+  reviewer. Reading at a ref closes the same hole one step further in — a working-tree edit cannot change the agent
+  either. With `--agents-dir` the trusted root stays two levels above the agents directory, which is the operator's own
+  authoring path.
 </Note>
 
 ### The run ledger
