@@ -1,112 +1,142 @@
 ---
 title: "Architecture Overview"
 sidebarTitle: "Overview"
-description: "How Genie v4 components connect — from CLI to database to agents"
+description: "How Genie is put together — a lightweight body of skills, documents in git, and one SQLite file."
 ---
 
 # Architecture Overview
 
-Genie v4 is an agent orchestration system that turns wishes (structured plans) into pull requests through autonomous AI agents. The architecture is built around five subsystems that work together.
+Genie is a planning-and-execution layer for AI coding agents. It turns a described intent into a reviewed pull request,
+and it does that with **no resident process of any kind**.
 
 <Note>
-The Genie codebase internally uses "worker" in some identifiers (e.g., `workerProfiles`, `workers.json`). In these docs, the canonical term is **agent** — "worker" and "agent" refer to the same thing.
+  The v4 harness — an embedded PostgreSQL backend, pane-based process orchestration, executor registries, a NATS event
+  spine, the full-screen console, and the desktop app — is gone. What remains is the part that always did the work: the
+  skills, the documents, and one SQLite file of state. v4 is preserved on the
+  [`v4` branch](https://github.com/automagik-dev/genie/tree/v4) for anyone still running it.
 </Note>
 
-## High-Level Component Map
+## The four surfaces
+
+Genie ships exactly four things, and nothing else:
+
+| Surface | Delivered by | Recorded at |
+|---------|--------------|-------------|
+| **The signed binary** | `install.sh`, then `genie update` | `~/.genie` |
+| **The skills** | The pinned [skills.sh](https://skills.sh) CLI, run over the tree the signed release put on disk | `~/.genie/skills-install.json` |
+| **The saved-workflow catalog** | `genie install` / `genie update`, into Claude Code's user scope `~/.claude/workflows/` | The same install pass; `genie doctor` reports it as `workflows: catalog` |
+| **The Orca plugin** | An optional lifecycle integration you register with Orca yourself | Orca's own install record |
+
+There is no Claude marketplace plugin, no Codex plugin, no Genie-installed hooks, no MCP server, and no role-agent
+profiles. Nothing Genie installs runs inside your agent's event loop.
+
+## Component map
 
 ```text
-┌─────────────────────────────────────────────────────────┐
-│                     genie CLI                           │
-│  (commander.js entry point → src/genie.ts)              │
-├─────────────┬──────────────┬────────────────────────────┤
-│  Skills     │  Commands    │  State                     │
-│  brainstorm │  team create │  .genie/genie.db (SQLite)  │
-│  wish       │  spawn       │  .genie/wishes/ (git)      │
-│  work       │  send        │  ~/.genie/ (global)        │
-│  review     │  status      │                            │
-└──────┬──────┴──────┬───────┴──────────┬─────────────────┘
-       │             │                  │
-       ▼             ▼                  ▼
-┌─────────────┐ ┌──────────┐  ┌──────────────────┐
-│  Wish State │ │  Agent   │  │  NATS Pub/Sub    │
-│  (PG tasks) │ │ Registry │  │  (observability) │
-└──────┬──────┘ │ (PG      │  └────────┬─────────┘
-       │        │ agents   │           │
-       │        │  table)  │           │
-       │        └────┬─────┘           │
-       │             │                 │
-       ▼             ▼                 ▼
-┌──────────────────────────────────────────────────┐
-│                   pgserve                        │
-│  Embedded PostgreSQL (port 19642)                │
-│  schedules · triggers · runs · tasks · messages  │
-└──────────────────────────────────────────────────┘
-       │
-       ▼
-┌──────────────────────────────────────────────────┐
-│                tmux Transport                    │
-│  Sessions → Windows → Panes (one per agent)     │
-│  send-keys injection · pane capture · state      │
-└──────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│  Your agent (Claude Code, Codex, or any skills-reading CLI)  │
+│  reads the skills from its own global skill home             │
+└───────────────┬──────────────────────────────────────────────┘
+                │ invokes
+                ▼
+┌──────────────────────────────────────────────────────────────┐
+│  genie CLI — 16 commands (commander, src/genie.ts)           │
+│  fork · one transaction · exit                               │
+└───────┬─────────────────────────┬────────────────────────────┘
+        │                         │
+        ▼                         ▼
+┌────────────────────┐   ┌────────────────────────────────────┐
+│  Documents in git  │   │  Operational state                 │
+│  .genie/wishes/    │   │  .genie/genie.db (SQLite, WAL)     │
+│  .genie/brainstorms│   │  tasks · dependencies · lanes      │
+│  .genie/INDEX.md   │   │  .genie/roadmap.json (canonical)   │
+└────────────────────┘   └────────────────────────────────────┘
 ```
 
-## Subsystems
+## Lifecycle authority
 
-| Subsystem | Module | Purpose |
-|-----------|--------|---------|
-| **State** | `wish-state.ts`, `agent-registry.ts`, `mailbox.ts`, `team-manager.ts` | Track wish execution groups, agent lifecycle, message delivery, team configs |
-| **Postgres** | `db.ts`, `db-migrations.ts`, `task-service.ts` | Embedded pgserve database — 10 migrations, tasks, boards, projects, agents, sessions, app registry |
-| **Messaging** | `nats-client.ts`, `protocol-router.ts`, `claude-native-teams.ts` | Real-time pub/sub, provider-agnostic routing, Claude Code native IPC bridge |
-| **Scheduler** | `scheduler-daemon.ts`, `cron.ts` | Cron-based trigger firing, lease-based claiming, heartbeat collection |
-| **Transcripts** | `transcript.ts`, `claude-logs.ts`, `codex-logs.ts` | Provider-agnostic log reading from Claude Code and Codex sessions |
-| **Observability** | `audit_events`, `sessions`, `session_content` | OTel-structured event logging — costs, tokens, tool usage, errors. Session replay and search. |
-| **Boards** | `boards`, `board_templates` | Kanban-style pipelines with configurable columns, gates, and action skills |
+Genie has two explicit modes, and the mode is always a deliberate selection — never inferred from what is installed.
 
-## Data Flow: Wish to PR
+<CardGroup cols={2}>
+  <Card title="standalone (default)" icon="hard-drive">
+    Genie owns the per-repo `genie.db` and the roadmap snapshot. This is the default, including when the config omits
+    `orchestration.mode`.
+  </Card>
+  <Card title="orca" icon="plug">
+    Orca is the sole lifecycle authority, reached through the closed public `orca orchestration … --json` boundary.
+    Genie opens no local lifecycle database and keeps **no fallback**: if Orca is unavailable, the operation fails.
+  </Card>
+</CardGroup>
+
+In Orca mode the CLI is explicit about what it will not do. `genie task`, `genie board` and `genie idea` exit **2** with
+one fixed line naming the remedy — that closed list of three root verbs is the whole list. `genie task sync` exits 0 and
+prints nothing, so the git hooks that call it on every commit stay silent. `genie context --wish <slug> --plan` still
+answers, read-only, because it is the one question an agent needs answered to cut a worktree.
+
+Switching either way is `genie setup --orchestration-mode <mode>`, and neither direction imports the other's state.
+
+## Data flow: intent to PR
 
 <Steps>
-  <Step title="Plan">
-    `/brainstorm` → `/wish` creates a `WISH.md` with execution groups and acceptance criteria.
+  <Step title="Brainstorm">
+    `/brainstorm` explores the idea until it is concrete, and writes a `DESIGN.md` under `.genie/brainstorms/<slug>/`.
+    The design gets an independent review before anything is planned.
   </Step>
-  <Step title="Decompose">
-    `/work` reads `WISH.md`, creates PG tasks (parent = wish, children = groups), and resolves dependencies.
+  <Step title="Wish">
+    `/wish` admits the work. **One decided task** is delivered end to end — its own worktree, the gate, an independent
+    reviewer, a merge-ready PR — with no plan at all. Work that is bigger than one task becomes a `WISH.md` with scope,
+    acceptance criteria, and parallelizable execution groups.
   </Step>
-  <Step title="Dispatch">
-    The team-lead spawns agents into tmux panes via `genie spawn`. Each agent gets a worktree clone and a group assignment.
-  </Step>
-  <Step title="Execute">
-    Agents work autonomously in their own worktrees, reading and writing wish and task state through the CLI.
-  </Step>
-  <Step title="Converge">
-    As groups complete (`genie done`), the wish state machine recalculates dependent groups. Blocked groups become ready.
+  <Step title="Work">
+    `/work` fans agents out through the active client's **native subagents**, wave by wave in dependency order. Each one
+    claims a task; state changes serialize through `genie.db` rather than through a coordinator. Worktree isolation,
+    where required, is arranged by the orchestrator.
   </Step>
   <Step title="Review">
-    `/review` validates all criteria. If issues are found, `/fix` loops until the reviewer returns SHIP.
+    Review runs as a different subagent from the one that wrote the code — reviewer ≠ engineer — so the verdict is
+    independent evidence against the wish criteria. It returns SHIP, FIX-FIRST, or BLOCKED.
+  </Step>
+  <Step title="Persist and ship">
+    A reviewer verdict is evidence, not state. The **orchestrator** appends the review evidence, updates `WISH.md`, and
+    is the only actor that runs `genie task done`. Then the PR is opened for a human to merge.
   </Step>
 </Steps>
 
-## State Fragmentation
+## State, and where it lives
 
-Genie state is intentionally distributed across four scopes:
-
-| Scope | Location | What Lives Here |
+| Scope | Location | What lives here |
 |-------|----------|-----------------|
-| **Global** | `~/.genie/` | Agent registry, team configs, sessions, pgserve data |
-| **Per-repo** | `<repo>/.genie/` | Wish state, mailbox, team chat |
-| **Per-worktree** | `<worktree>/.genie/` | Team chat (worktree-specific) |
-| **Claude native** | `~/.claude/teams/` | Native team configs, inbox messages |
+| Global | `~/.genie/` (relocated by `GENIE_HOME`) | `config.json`, the skills install record, state backups, worktrees |
+| Per-repo, in git | `<repo>/.genie/{wishes,brainstorms/*/DESIGN.md,INDEX.md,roadmap.json}` | Every document a human reviews |
+| Per-repo, operational | `<repo>/.genie/genie.db` | Tasks, dependency edges, lanes, stage log |
 
-Worktrees share the main repo's `.genie/` via `git rev-parse --git-common-dir`. The agent registry is global, not per-worktree.
+All linked worktrees of a repository share one `genie.db`, resolved from the git common directory, so a task created in
+one worktree is immediately visible in another with no sync step. Documents live in git; operational state lives in
+SQLite. That split is the contract.
 
-## Environment Variables
+## Microagents
+
+`genie mikro` is a small, separate runtime for **repository-local microagents** — narrow agents defined by a prompt and
+an answer schema, which return validated JSON whose every citation is verified against the tree under review.
+
+```bash
+genie mikro init                       # seed this release's default agents into a repository
+genie mikro call <agent> --prompt '…'  # run one agent, get validated JSON back
+genie mikro fixtures --from-commits HEAD~50..HEAD --agent wish-context
+                                       # a fixture set from the repo's own history
+genie mikro bench <agent>              # score the agent mechanically over its fixtures
+genie mikro coach <agent>              # propose, patch a copy, bench before and after
+```
+
+Agents resolve **repo-first**: the `--agents-dir` flag wins, then the invoking checkout's
+`.mikro/agents/<agent>/agent.yaml`, then the release's own templates. The trusted root is the invoking checkout, never
+the tree being reviewed — and the answer names which source won.
+
+## Environment variables
 
 | Variable | Effect |
 |----------|--------|
-| `GENIE_HOME` | Relocates all global state from `~/.genie` |
-| `GENIE_AGENT_NAME` | Agent identity used by the CLI (must be set for auto-spawn) |
-| `GENIE_TEAM` | Default team when `--team` not provided |
-| `GENIE_NATS_URL` | NATS server URL (default: `nats://localhost:4222`) |
-| `GENIE_PG_PORT` | pgserve port (default: `19642`) |
-| `GENIE_MAX_CONCURRENT` | Max concurrent scheduler runs (default: `5`) |
-| `GENIE_IDLE_TIMEOUT_MS` | Auto-suspend idle agents after N ms |
-| `CLAUDECODE=1` | Enables Claude Code features in team-lead |
+| `GENIE_HOME` | Relocates all global state from `~/.genie` — `config.json`, the skills install record, `state-backups/` and `worktrees/` |
+| `GENIE_AGENT_NAME` | Worker identity for task claims and stage-log entries |
+| `GENIE_AGENT_ID` | Fallback worker identity; both floor at `cli` |
+| `GENIE_WORKTREES_DIR` | Override the worktrees base doctor and review snapshots read |

@@ -42,28 +42,28 @@ Remaining gaps:
 ## Dispatch
 
 Fix and re-review are **separate dispatches** — never combined in one subagent.
+Both go through the runtime's own subagent surface; Genie has no spawn command.
 
-```bash
-# Spawn a fixer subagent
-genie spawn fixer
-
-# Spawn a reviewer subagent (separate from fixer)
-genie spawn reviewer
-```
+| Dispatch | Brief |
+|----------|-------|
+| Fixer subagent | The gap evidence, original criteria, owned files, validation command, and the remaining budget |
+| Reviewer subagent | A different agent, read-only, re-reviewing the repaired scope against the same criteria |
 
 ## Task Lifecycle Integration
 
-When a PG task exists for the work being fixed, each fix attempt is logged as a task comment:
+The fixer never changes task status and posts nothing to the card: the group
+stays claimed through repair and review. The coordinator relays each verdict to
+the card in the per-repo `.genie/genie.db`:
 
 | Event | Command |
 |-------|---------|
-| Fix attempt start | `genie task comment #<seq> "Fix loop 1/2: [gap summary]"` |
-| Fix attempt result | `genie task comment #<seq> "Fix loop 1/2: [changes made]"` |
-| Fix success | `genie task comment #<seq> "Fix complete — [summary of all changes]"` |
-| Escalation (max loops) | `genie task block #<seq> --reason "Fix loop exceeded (2/2)"` |
-| Escalation (no progress) | `genie task block #<seq> --reason "No progress — identical gaps across loops"` |
+| Verdict of each re-review | `genie task comment <id> --worker orchestrator -- 'review: FIX-FIRST — <gap summary>'` |
+| Fix accepted and validated | `genie task comment <id> --worker orchestrator -- 'review: SHIP — validation: <command> → pass'` |
+| Escalation (max loops) | `genie task comment <id> --worker orchestrator -- 'blocked: fix loop exceeded — <route>'` |
+| Escalation (no progress) | `genie task comment <id> --worker orchestrator -- 'blocked: identical gaps across loops — <route>'` |
 
-Task integration is graceful — if no PG task exists, fix loop logging is skipped.
+Task integration is graceful — with no card, the fix loop runs unchanged from
+the review evidence alone.
 
 ## Rules
 

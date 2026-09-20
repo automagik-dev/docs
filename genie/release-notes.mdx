@@ -7,6 +7,92 @@ description: "Behavior changes that need an operator decision — what is gone, 
 
 This page records the changes that **remove a capability you may have been relying on**. It is not a changelog; ordinary features and fixes ship without an entry here. Every entry states three things: what is gone, what still works, and what to do instead.
 
+## v6 — the first stable cut
+
+v6 is the release where the product and the documentation finally describe the same thing. It removes four surfaces
+that no longer had an implementation behind them, and states plainly what is supported.
+
+### Breaking: four surfaces removed
+
+| Removed | What it was | What to do instead |
+|---------|-------------|--------------------|
+| **Omni** — `genie omni` and its subcommands | A resident NATS bridge that drained an approval queue and inbox from the global database | Nothing replaces it. Genie has no resident daemon and opens no machine-scope lifecycle database. Approve in the session, or pre-authorize the tool surface in your agent's sandbox permissions |
+| **`genie mcp`** | The cross-client MCP server, its write tools, and its plugin launchers | `genie task` and `genie board` — or, in Orca mode, Orca's own surface |
+| **`genie ui-bridge`** | A private stdio transport, tool registry, and change watcher for a Genie UI | The Orca integration is the supported UI surface. `genie setup --orchestration-mode orca` |
+| **The `quick` skill** | A one-task shortcut that predated `wish` | `/wish` — it delivers one decided task end to end, with no plan |
+
+Both retirement stubs (`genie mcp`, `genie ui-bridge`) are also gone in v6; a v5 binary printed a stable diagnostic and
+exited 1, and v6 no longer registers the verbs at all. `genie doctor` still observes and reports the historical
+`.mcp.json` and `.codex/config.toml` routes, and `genie init` still retires the ones it can prove are Genie's.
+
+### The per-repo database migrates itself — and old binaries then refuse it
+
+The per-repo `.genie/genie.db` schema moves to **`user_version = 2`**, which drops the machine-local `hire_roster`
+table.
+
+**What happens.** The first **lifecycle** command you run — `genie task`, `genie board`, `genie idea` — migrates the
+database in one transaction and prints one line saying so. It is **backup-first**: the pre-migration file is copied to
+`<GENIE_HOME>/state-backups/db-migration-<timestamp>/genie.db` before anything is written. A second open is a no-op.
+`genie task import` of a snapshot that still carries `hire_roster` ignores the key rather than failing, and a database
+stamped at an unbridgeable version still refuses to open rather than guessing.
+
+**`genie doctor` never migrates.** It is a read-only observer here as it is for the skills channel: on a
+pre-migration host it reports the database as `schema v1` and leaves it alone. Running `doctor` is not how you
+upgrade — run a lifecycle command.
+
+<Warning>
+  **Upgrade every checkout of a repository together.** All linked worktrees of one repository share a single
+  `.genie/genie.db`, resolved through the git common directory. Once any v6 binary has migrated it, a **5.x binary —
+  or a v6 binary in a checkout you have not updated** — refuses it:
+
+  ```text
+  written by a newer genie (schema v2); run `genie update` in this checkout
+  ```
+
+  That refusal is the schema guard working, not corruption: the database is fine and the v6 binary reads it normally.
+  Nothing is lost, and the backup above is still on disk. Update the other checkouts and they all see the same cards
+  again.
+</Warning>
+
+### The plugin-era retirement pass is gone
+
+`genie update` no longer retires plugin-era host assets. The one-shot, backup-first sweep that classified and removed
+Codex and Claude plugin registrations, role-agent TOMLs, managed skill mirrors and the rest served a compatibility
+window for hosts on releases `>= 5.260711.6`; that window closed with v6 and the module is deleted. **The update
+transcript therefore no longer prints any line prefixed `integrations:`** — if you were grepping for one, stop.
+
+Nothing is left behind on a host that already updated through a v5 release: the sweep is idempotent by construction and
+a retired surface classifies as absent. A host that skipped the whole v5 line — or one where the sweep reported
+something it *preserved* rather than removed — follows
+[Plugin-era cleanup](/genie/installation#plugin-era-cleanup), which lists every surface by hand.
+
+The `legacy integrations` line `genie doctor` used to print is gone with it.
+
+### Orca-mode refusals now exit 2, not 1
+
+Under explicitly selected Orca authority, `genie task` (every subverb except `sync`), `genie board` and `genie idea`
+refuse with **exit 2** and one fixed message naming the remedy `genie setup --orchestration-mode standalone`. They
+used to exit 1.
+
+Exit 2 is Genie's "the operator must act" family — the same code the workspace gate and `genie mikro`'s usage refusals
+use — so a refusal is never confused with a command that ran and failed. **If you script around these verbs, check for
+2.** Two behaviours are deliberately carved out of the refusal: `genie task sync` exits 0 and prints nothing, so the
+git hooks that call it on every commit stay silent; and `genie context --wish <slug> --plan` still answers read-only,
+because it is the one question an agent needs answered to cut a worktree. `genie context`'s other refusals exit 1, not
+2 — the closed exit-2 set is those three root verbs only.
+
+### The command surface
+
+`genie --help` lists **16 top-level commands**. Nothing was renamed: `mcp`, `ui-bridge` and `omni` left the list, and
+`genie orca` joined it.
+
+### Supported platforms
+
+Stable is declared for **Linux and macOS**. Both legs run in the release gate, so a change that breaks either one does
+not ship. Windows remains unsupported; WSL2 works but is not on the tested matrix.
+
+---
+
 ## The hook system is gone
 
 Genie used to install lifecycle hooks into your agent — a handler chain that ran on every tool call, every session start, and every permission prompt. That whole subsystem has been removed. There is no hook command, no handler registry, and no lifecycle hook of any kind in a Genie release; nothing Genie installs runs inside your agent's event loop any more.
@@ -19,7 +105,7 @@ Two things this **buys** you, and they are why the trade was made:
 - **Genie's skills reach every agent the same way** — through the [skills.sh](https://skills.sh) channel — instead of through a per-agent hook and plugin integration that only ever worked properly on one agent.
 
 <Note>
-  Genie now ships exactly **one plugin, the Orca plugin**, and exactly **one skills channel, skills.sh**. If you had a Claude Code plugin registration from an older Genie, nothing on your machine will update or remove it automatically on hosts older than `v5.260711.6` — remove it by hand if you want it gone.
+  Genie now ships exactly **one plugin, the Orca plugin**, and exactly **one skills channel, skills.sh**. If you had a Claude Code plugin registration from an older Genie, nothing on your machine removes it automatically any more — see [Plugin-era cleanup](/genie/installation#plugin-era-cleanup) for every surface and how to edit it safely.
 </Note>
 
 ---
@@ -48,13 +134,19 @@ Two things this **buys** you, and they are why the trade was made:
 
 ---
 
-## 3. Omni in-session permission approvals are gone
+## 3. Omni approvals are gone — and, in v6, so is Omni
 
-**What is gone.** A permission prompt raised by an agent mid-session can no longer be approved from a chat. The path that pushed a live prompt out to an Omni channel and fed the reply back into the session ran inside the hook chain, and went with it.
+**What is gone.** In-session permission approval from a chat went first, with the hook chain that carried it. In **v6
+the whole Omni integration follows**: there is no `genie omni` command, no NATS client in the bundle, no approval queue
+and no inbox. Genie opens no machine-scope database at all.
 
-**What still works.** `genie omni serve` is unchanged in every other respect: it is still the resident NATS bridge, it still drains the approval queue, and the queue and inbox still persist in the global `~/.genie/genie.db`. `genie omni status` and `genie omni inbox` read them without touching the network. CLI-originated approvals still flow through the queue exactly as before.
+**What still works.** Nothing of Omni. The documentation that described the bridge, its subjects, and its `OMNI_*`
+configuration has been removed rather than left standing as a description of something that is not there.
 
-**What to do instead.** Approve in the session, or avoid the prompt. Configure the agent's sandbox permissions so the operations you trust do not prompt at all — sandbox permission configuration is where a hard control belongs, and it works whether or not anyone is watching a chat. For unattended runs, pre-authorize the tool surface rather than expecting to answer a prompt remotely.
+**What to do instead.** Approve in the session, or avoid the prompt. Configure the agent's sandbox permissions so the
+operations you trust do not prompt at all — sandbox permission configuration is where a hard control belongs, and it
+works whether or not anyone is watching a chat. For unattended runs, pre-authorize the tool surface rather than
+expecting to answer a prompt remotely.
 
 ---
 
@@ -68,7 +160,7 @@ Two things this **buys** you, and they are why the trade was made:
 
 None of them are emitted any more. In particular, **nothing will warn you that a wish is stale.**
 
-**What still works.** `GENIE_AGENT_NAME` and `GENIE_AGENT_ID` are still real environment variables and still configure the CLI — only the injection into session context is gone. Wish state itself is unchanged: it lives in git under `.genie/wishes/` and in `.genie/genie.db`, and every Genie skill reads it explicitly at the point of use rather than trusting an injected preamble.
+**What still works.** `GENIE_AGENT_NAME` and `GENIE_AGENT_ID` are still real environment variables and still configure the CLI — only the injection into session context is gone. Wish state itself is unchanged: it lives in git under `.genie/wishes/` and in `.genie/genie.db`, and every Genie skill reads it explicitly at the point of use rather than trusting an injected preamble. `genie wish lint` will tell you whether a wish document is structurally sound before an agent acts on it.
 
 **What to do instead.** Read the state, do not wait to be told about it. `genie board` and `genie task status <id>` are the authoritative views, and a skill that resumes a wish opens `WISH.md` itself. If you resume long-running work, make re-reading the wish the first step of the session rather than assuming a warning would have fired.
 
@@ -87,8 +179,15 @@ curl -fsSL https://raw.githubusercontent.com/automagik-dev/genie/main/install.sh
 genie update
 
 # Skills machine-wide without the Genie CLI (drop -g for a project-scoped copy)
-npx skills add automagik-dev/genie -g --all
+npx skills add automagik-dev/genie -g
 ```
+
+<Warning>
+  Do not add `--all` to the public command. It expands to `--skill '*' --agent '*' -y`, and `--agent '*'` creates every
+  product home for every one of the 77 agents in its registry. About 53 of them actually materialized on the host we
+  measured; a later `--all`-era record named 57. Either way, directories for agents you do not have. Genie's own
+  channel never passes it.
+</Warning>
 
 `genie update` installs the exact skills that shipped inside the release you are running. The public `npx skills add` command installs the repository's **default branch**, regardless of any `@<ref>` suffix — see [Installation](/genie/installation#the-public-command-tracks-main-not-a-release) for why, and use `genie update` when you need the version that matches your binary.
 

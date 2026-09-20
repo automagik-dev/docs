@@ -4,60 +4,44 @@ sidebarTitle: "Setup"
 description: "Interactive setup wizard walkthrough for configuring Genie"
 ---
 
-# Setup Wizard
-
-Genie includes an interactive setup wizard that configures your environment step by step. Run it with:
+`genie setup` configures the CLI itself — the settings Genie keeps in `~/.genie/config.json`, plus the optional
+keyboard shortcuts. Run it with:
 
 ```bash
 genie setup
 ```
 
-Or skip interactive prompts with sensible defaults:
+Or accept every default without prompting:
 
 ```bash
 genie setup --quick
 ```
 
+<Note>
+  Setup starts nothing. Genie has no daemon, no server, and no port: every command opens what it needs, runs one
+  transaction, and exits. This wizard writes a config file, and that is all it does.
+</Note>
+
 ## What Setup Configures
 
-The wizard walks through several sections, each configurable independently:
+The wizard walks through these sections, each also reachable on its own:
 
-### 1. System Check
+| Section | What it covers |
+|---------|----------------|
+| Session defaults | Names Genie uses when you run your agent inside a tmux session |
+| Terminal defaults | Command timeout and read-line defaults for the terminal helpers |
+| Keyboard shortcuts | Optional tmux keybindings, installed into your `~/.tmux.conf` |
+| Debug options | Verbose and debug logging switches |
+| Prompt mode | Whether Genie appends to or replaces Claude Code's default system prompt |
 
-Before configuration, setup verifies prerequisites:
+<Note>
+  The session and shortcut sections are conveniences for people who already work inside tmux. Genie does not spawn
+  agents, manage panes, or orchestrate processes — that is your agent's job, and Genie stays out of it.
+</Note>
 
-| Requirement | Check |
-|-------------|-------|
-| tmux | Binary in PATH (required for agent spawn) |
-| git | Binary in PATH (required for worktrees) |
-| Claude Code | `claude` binary available |
-| Codex | `codex` binary available (optional) |
+See [Configuration Files](/genie/config/files) for the full schema of every key these sections write.
 
-<Warning>
-tmux is required — there is no fallback. If tmux is not installed, agent spawning will fail.
-</Warning>
-
-### 2. Session Configuration
-
-Configure the default tmux session:
-
-| Setting | Default | Purpose |
-|---------|---------|---------|
-| `session.name` | `genie` | tmux session name |
-| `session.defaultWindow` | `shell` | Default window name |
-| `session.autoCreate` | `true` | Auto-create session if missing |
-
-### 3. Terminal Configuration
-
-Configure terminal behavior:
-
-| Setting | Default | Purpose |
-|---------|---------|---------|
-| `terminal.execTimeout` | `120000` (2 min) | tmux command execution timeout |
-| `terminal.readLines` | `100` | Lines to capture from pane |
-| `terminal.worktreeBase` | `~/.genie/worktrees` | Base directory for team worktrees |
-
-### 4. Orchestration Mode
+## Orchestration Mode
 
 Select which lifecycle authority owns board and task state:
 
@@ -66,15 +50,29 @@ genie setup --orchestration-mode standalone   # default — local .genie/genie.d
 genie setup --orchestration-mode orca         # Orca owns the lifecycle
 ```
 
-`standalone` is the default, including when the setting is absent. Switching to `orca` probes the shipped plugin payload and a compatible Orca runtime before it switches; after that, Genie refuses local lifecycle reads and writes. Switching back imports no Orca state.
+`standalone` is the default, including when `orchestration.mode` is absent from the config. Switching to `orca` probes
+the shipped plugin payload and a compatible Orca runtime before it switches atomically, and backs up the previous
+config first. Switching back with `--orchestration-mode standalone` imports no Orca state — there is no fallback
+database in either direction.
+
+<Warning>
+  Under `orca`, Genie refuses local lifecycle work: `genie task` (every subverb except `sync`), `genie board`, and
+  `genie idea` exit **2** with one fixed message naming the remedy, `genie setup --orchestration-mode standalone`.
+  `genie task sync` exits 0 and prints nothing, and `genie context --wish <slug> --plan` still answers read-only.
+</Warning>
+
+`--orchestration-mode` runs alone: it conflicts with `--quick`, `--shortcuts`, `--terminal`, `--session`, `--reset`,
+and `--show`.
 
 <Note>
-  There is no per-agent integration step. Genie's skills reach Codex, Claude Code, and every other agent skills.sh supports through the skills channel that `genie update` installs — see [Installation](/genie/installation#skills-for-any-agent).
+  There is no per-agent integration step. Genie's skills reach Codex, Claude Code, and every other agent skills.sh
+  supports through the skills channel that `genie update` installs — see
+  [Installation](/genie/installation#skills-for-any-agent).
 </Note>
 
-### 5. Keyboard Shortcuts
+## Keyboard Shortcuts
 
-Install tmux and shell shortcuts for quick access:
+Install the tmux keybindings without running the rest of the wizard:
 
 ```bash
 genie setup --shortcuts
@@ -82,25 +80,40 @@ genie setup --shortcuts
 
 | Shortcut | Action |
 |----------|--------|
-| `Ctrl+G` (tmux) | Open Genie TUI |
-| `genie` (shell) | Launch Genie session |
+| `Ctrl+T` | New tmux window |
+| `Ctrl+S` | Vertical split |
+| `Ctrl+H` | Horizontal split |
+
+`genie shortcuts show | install | uninstall` manages the same keybindings afterwards, without reopening setup.
 
 ## Section-Specific Setup
 
 Run only the section you need:
 
 ```bash
-genie setup --shortcuts  # Only install shortcuts
-genie setup --terminal   # Only terminal settings
+genie setup --shortcuts  # Only configure keyboard shortcuts
+genie setup --terminal   # Only terminal defaults
 genie setup --session    # Only session settings
 ```
 
+<Note>
+  Every path that renders a prompt refuses to run without a TTY: on a non-interactive stdin, setup prints one line
+  naming the problem and exits **2** rather than hanging on a question nobody can answer. `--quick`, `--show`,
+  `--reset`, and `--orchestration-mode` are the scriptable routes.
+</Note>
+
 ## Showing Current Config
 
-View the current configuration without making changes:
+View the resolved configuration without making changes:
 
 ```bash
 genie setup --show
+```
+
+For a single key, `genie config get <dotted.key>` prints its value, and `--json` adds where that value came from:
+
+```bash
+genie config get budgets.maxEscalationsPerGroup --json
 ```
 
 ## Resetting Configuration
@@ -111,23 +124,31 @@ Reset all settings to defaults:
 genie setup --reset
 ```
 
-This deletes `~/.genie/config.json` and re-creates it with default values.
+This restores `~/.genie/config.json` to its default values.
 
 ## Post-Setup Verification
 
-After setup, verify your installation with the doctor command:
+After setup, verify the installation:
 
 ```bash
 genie doctor
 ```
 
-Doctor checks:
-- All required binaries are available
-- tmux server is running
-- Configuration file is valid
-- pgserve can start
-- Git hooks are installed (if applicable)
+Doctor reports:
+
+- The `genie` version and whether the binary is on your `PATH`
+- Which lifecycle authority is selected — `standalone` or `orca`
+- Git, and whether you are inside a repository
+- The per-repo `.genie/genie.db` and its schema version
+- One `skills:` line per agent skill home, plus retirement, legacy-leftover, and collision-backup observations
+- The resolved repair budgets, as a read-only `budgets: maxEscalationsPerGroup=<n>` line
+
+<Warning>
+  Doctor never repairs the skills channel — **not even under `--fix`**. It is a read-only observer there; `genie update`
+  owns every mutation on that surface and is the remedy each of those warnings names.
+</Warning>
 
 ## Config File Location
 
-Setup creates and manages `~/.genie/config.json`. See [Configuration Files](/genie/config/files) for the full schema.
+Setup creates and manages `~/.genie/config.json`. `GENIE_HOME` relocates it along with the rest of Genie's global
+state. See [Configuration Files](/genie/config/files) for the full schema.

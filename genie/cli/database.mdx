@@ -4,6 +4,14 @@ sidebarTitle: "Database"
 description: "Database management — check health, run migrations, and execute SQL queries via pgserve"
 ---
 
+<Warning>
+  **This page documents the v4 harness and is kept for people still running it.** The commands below do not exist in
+  the current release: v4's PostgreSQL backend, pane-based process orchestration, executor registries, NATS event spine
+  and scheduler were removed in the cutover to the lightweight body. v4 lives on the
+  [`v4` branch](https://github.com/automagik-dev/genie/tree/v4). For the current surface see
+  [Infrastructure](/genie/cli/infrastructure) and [Architecture → Overview](/genie/architecture/overview).
+</Warning>
+
 # Database Commands
 
 The `genie db` command group manages the embedded PostgreSQL instance (pgserve) that backs Genie's task store, agent registry, schedules, and more.

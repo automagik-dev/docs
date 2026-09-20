@@ -14,37 +14,37 @@ description: "The capabilities that make Genie work — from structured intent t
     Define what to build once — scope, acceptance criteria, execution groups — and never re-explain it to another agent.
   </Card>
   <Card title="Pipeline — Brainstorm to Ship" icon="arrows-spin" href="/genie/skills/work">
-    Seven stages from vague idea to merged PR: draft, brainstorm, wish, build, review, qa, ship. Each stage has a skill and a gate.
+    Brainstorm, design review, wish, plan review, work, implementation review. Each stage has a skill and a gate, and a verdict alone never advances state.
   </Card>
-  <Card title="Team Orchestration" icon="users-gear" href="/genie/concepts/teams">
-    Multi-agent squads with isolated worktrees, shared state, and dependency-aware scheduling. Parallel execution without merge conflicts.
+  <Card title="One File of State" icon="database" href="/genie/config/files">
+    Tasks, lanes, and dependency edges in a single per-repo SQLite file. No daemon, no server, no port — a command opens it, runs one transaction, and exits.
   </Card>
-  <Card title="PostgreSQL Backend" icon="database" href="/genie/architecture/postgres">
-    Embedded pgserve database with 10 migrations — tasks, boards, agents, sessions, audit events, and app registry. All state in PG, not JSON files.
+  <Card title="Documents in Git" icon="file-lines" href="/genie/concepts/wishes">
+    Wishes, designs, and the index are plain markdown under `.genie/`. You diff, review, and version a plan like any other code.
   </Card>
-  <Card title="Board & Pipeline System" icon="columns-3" href="/genie/cli/boards">
-    Kanban-style boards with configurable columns, gate types, and action skills. Project-scoped pipelines that drive the task lifecycle.
+  <Card title="Boards Derived by Query" icon="columns-3" href="/genie/cli/boards">
+    `genie board` has no stored view state to go stale, and `genie idea` drops a thought straight into the Idea lane. The roadmap snapshot in git is the canonical board.
   </Card>
-  <Card title="OTel Observability" icon="chart-mixed" href="/genie/cli/observability">
-    Full event audit log, cost breakdown by agent/model/wish, tool usage analytics, session replay, and machine metrics. All queryable from the CLI.
+  <Card title="Orca Lifecycle Authority" icon="plug" href="/genie/cli/orca">
+    Hand the lifecycle to Orca with one explicit, reversible command. Orca mode refuses what it forbids at exit 2 instead of keeping a shadow copy — and there is no fallback database in either direction.
   </Card>
-  <Card title="Real-time Coordination" icon="tower-broadcast" href="/genie/architecture/messaging">
-    Cross-agent messaging so agents know what each other are doing. Durable mailboxes, team chat, and tmux pane injection.
+  <Card title="Saved Workflows" icon="wand-magic-sparkles" href="/genie/skills/loop-overview">
+    A catalog of scripts for procedures worth running the same way twice — `council`, `docs-audit`, `skill-intake` — installed to `~/.claude/workflows` alongside the skills.
   </Card>
-  <Card title="Context Preservation" icon="brain" href="/genie/architecture/transcripts">
-    Provider-agnostic transcript capture across Claude and Codex. Session history survives crashes, suspends, and provider switches.
+  <Card title="Microagents — genie mikro" icon="robot" href="/genie/cli/mikro">
+    Narrow agents with an answer schema, returning validated JSON whose every citation is verified. `init`, `fixtures`, `bench` and `coach` seed, measure and refine a repository's own agents.
   </Card>
-  <Card title="Skills + /pm" icon="wand-magic-sparkles" href="/genie/skills/loop-overview">
-    Composable slash commands — from `/brainstorm` through `/dream`, plus a full `/pm` playbook. Each one encodes a workflow we got tired of repeating manually.
+  <Card title="Wish Linting" icon="circle-check" href="/genie/cli/wish-lint">
+    `genie wish lint` checks any repository's `.genie/wishes` for structure, writes nothing, and exits 0 or 1 — so a malformed plan fails before an agent acts on it.
   </Card>
-  <Card title="Item Registry" icon="store" href="/genie/architecture/postgres">
-    Unified app store for agents, skills, boards, workflows, stacks, templates, and hooks. Install, version, and manage ecosystem items.
+  <Card title="Skills Channel" icon="share-nodes" href="/genie/installation">
+    One install path to every agent skills.sh supports. Retirement runs before the install pass, every removal is backup-first, and the record is what `doctor` reads and `uninstall` proves against.
   </Card>
-  <Card title="Provider Agnosticism — BYOA" icon="plug" href="/genie/concepts/byoa">
-    Claude, Codex, Open Claw, or your custom agent. Mix providers on the same team. Genie cares that the work ships — not who does it.
+  <Card title="Verified Delivery" icon="shield-check" href="/genie/security/verifying-installs">
+    Every release verifies offline, with no GitHub credential — signed delivery evidence checked against an embedded trust root and bound to the tarball's hash before anything is extracted.
   </Card>
-  <Card title="Notification System" icon="bell" href="/genie/architecture/postgres">
-    Per-actor notification preferences across WhatsApp, Slack, email, and more. PostgreSQL LISTEN/NOTIFY for real-time event streaming.
+  <Card title="Provider Agnosticism — BYOA" icon="plug" href="/genie/concepts/skills">
+    Claude, Codex, Goose, or your custom agent. The skills are runtime-neutral by construction, so Genie installs no agent profiles and no hooks.
   </Card>
 </CardGroup>
 

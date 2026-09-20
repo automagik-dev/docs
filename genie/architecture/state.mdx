@@ -4,9 +4,17 @@ sidebarTitle: "State"
 description: "Wish state machine, agent registry, teams, mailbox, team chat, boards, and projects"
 ---
 
+<Warning>
+  **This page documents the v4 harness and is kept for people still running it.** The commands below do not exist in
+  the current release: v4's PostgreSQL backend, pane-based process orchestration, executor registries, NATS event spine
+  and scheduler were removed in the cutover to the lightweight body. v4 lives on the
+  [`v4` branch](https://github.com/automagik-dev/genie/tree/v4). For the current surface see
+  [Infrastructure](/genie/cli/infrastructure) and [Architecture → Overview](/genie/architecture/overview).
+</Warning>
+
 # State Management
 
-Genie tracks state primarily in PostgreSQL via the embedded [pgserve database](/genie/architecture/postgres). Wishes, tasks, boards, projects, agents, teams, mailboxes, and team chat all live in PG tables. Legacy JSON file state has been replaced by database-backed equivalents.
+Genie tracks state primarily in PostgreSQL via the embedded [pgserve database](/genie/config/files). Wishes, tasks, boards, projects, agents, teams, mailboxes, and team chat all live in PG tables. Legacy JSON file state has been replaced by database-backed equivalents.
 
 ## Wish State Machine
 

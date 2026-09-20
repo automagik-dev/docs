@@ -4,6 +4,14 @@ sidebarTitle: "Releases & Tags"
 description: "Manage releases, custom tags, and task type pipelines"
 ---
 
+<Warning>
+  **This page documents the v4 harness and is kept for people still running it.** The commands below do not exist in
+  the current release: v4's PostgreSQL backend, pane-based process orchestration, executor registries, NATS event spine
+  and scheduler were removed in the cutover to the lightweight body. v4 lives on the
+  [`v4` branch](https://github.com/automagik-dev/genie/tree/v4). For the current surface see
+  [Infrastructure](/genie/cli/infrastructure) and [Architecture → Overview](/genie/architecture/overview).
+</Warning>
+
 # Releases, Tags & Types
 
 Three supporting command groups for organizing tasks: `genie release` groups tasks into releases, `genie tag` adds custom labels, and `genie type` defines task pipelines with stage gates.

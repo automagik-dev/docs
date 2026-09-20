@@ -1,0 +1,224 @@
+---
+title: "Mikro"
+sidebarTitle: "Mikro"
+icon: "robot"
+description: "genie mikro — run one microagent against a repository, build fixtures from its own history, score the agent mechanically, and coach its prompt against a before/after number."
+---
+
+`genie mikro` runs and grows Genie's microagents: small, single-purpose agents that answer one bounded question about a
+repository and return **validated JSON**, with every citation in the answer verified against the tree under review. A
+registry inside the runtime owns both the agent **name** and the **answer schema** that name resolves to, so an agent
+either exists with a known answer shape or it does not exist at all.
+
+Two agents ship by default: `wish-context` and `review-prep`.
+
+| Subcommand | Purpose |
+|------------|---------|
+| `genie mikro call <agent>` | Run one mikro microagent and print its validated JSON answer |
+| `genie mikro bench <agent>` | Measure one microagent over its fixture set and score it mechanically |
+| `genie mikro coach <agent>` | Run one coaching round over an agent prompt: propose, patch a copy, bench before/after |
+| `genie mikro fixtures` | Build a fixture set from a repository's own commits (no PRs needed) |
+| `genie mikro init` | Seed this release's default agents into a repository and print the next steps |
+
+<Note>
+  `genie mikro` is exempt from the workspace gate on purpose. Its whole point is that **any** repository on a host with
+  Genie installed can run it — including one that was never initialized as a Genie workspace. Gating it would prompt
+  for `genie init` in exactly the repositories the command exists for.
+</Note>
+
+## `genie mikro init`
+
+Seed this release's default agents into a repository and print the next steps.
+
+```bash
+genie mikro init [flags...]
+```
+
+This is the opt-in step: it writes the shipped agents into the repository's own `.mikro/agents/`, where you can edit
+them and commit the result. A repository that never runs `init` still works — `call` falls back to the release's own
+templates — but it has nothing of its own to coach.
+
+## `genie mikro call`
+
+Run one microagent and print its validated JSON answer.
+
+```bash
+genie mikro call <agent> --prompt '<text>' [--prompt-file <path>] [--dir repo] [--agents-dir dir]
+                 [--agents-ref <ref>] [--facts auto] [--boundary none|bwrap] [--raw]
+```
+
+`call` **declares no options of its own**. Everything after the agent name reaches the mikro runtime exactly as you
+typed it, which is why a flag added to the runtime needs no second edit in the CLI — the CLI is a registration, not a
+copy of the runtime's flag list.
+
+<Warning>
+  The one exception is Genie's own global options. `-V`/`--version`, `-h`/`--help` and `--no-interactive` are consumed
+  by the program **wherever they appear**, including inside the tail. So `genie mikro call wish-context --prompt -V`
+  prints the version and runs nothing. Quote the value, or pass it with `--prompt-file`.
+</Warning>
+
+### How an agent is resolved
+
+Agents resolve **repo-first**, behind a trusted root:
+
+1. The `--agents-dir` flag, when you pass one.
+2. The invoking checkout's `.mikro/agents/<agent>/` **read at a trusted git ref — never from the working tree.**
+3. The release's own `<GENIE_HOME>/templates/mikro/agents`.
+
+The answer names the winner in its `agentSource` field, so you never have to guess which prompt produced a result.
+
+#### The trusted ref
+
+Step 2 does not read files off disk. It reads the agent's blobs out of git at a ref you can point at, so an
+uncommitted edit in the working tree — yours, or one that arrived with the branch under review — cannot change what
+the agent is.
+
+| How the ref is chosen | Result |
+|-----------------------|--------|
+| `--agents-ref <ref>` | That ref, validated and resolved. A **malformed** ref is a usage refusal; a well-formed ref that names no commit in this checkout is not — it degrades to the shipped agents and says so |
+| No flag (the default) | `<base>`, the branch the invoking checkout's `origin/HEAD` names. The **local** branch wins when `origin/<base>` is an ancestor of it; otherwise `origin/<base>` |
+| No `origin/HEAD` at all | No ref resolves. The shipped agents are used, and the reason names the fix: `git remote set-head origin -a`, or pass `--agents-ref` |
+
+The local-base rule is what makes a committed-but-unpushed agent usable in a repository that commits straight to its
+base branch. It also trusts every local commit on that branch, including one merged locally from an unreviewed PR —
+which is why an automated caller passes `--agents-ref origin/<base>` explicitly and never relies on the default.
+
+<Note>
+  **The ref is extracted and then proven.** The agent directory is materialized out of git into a `0700` temp tree
+  with `git archive`, and every extracted file is verified byte-for-byte against the ref. `git archive` is used
+  deliberately *and* is the reason the proof exists: it applies `export-ignore` and `export-subst` from the
+  `.gitattributes` at that ref, so a repository could otherwise drop a file from the agent, or rewrite a line of its
+  `SYSTEM.md`, in a way a plain read would never show. The temp tree is removed on success, on failure, and on a
+  thrown error.
+</Note>
+
+<Note>
+  Step 2 reads the **invoking checkout** at the trusted ref, never `--dir`. `--dir` names the tree under review, which
+  is untrusted input: an agent definition taken from the tree being analyzed would let that tree choose its own
+  reviewer. Reading at a ref closes the same hole one step further in — a working-tree edit cannot change the agent
+  either. With `--agents-dir` the trusted root stays two levels above the agents directory, which is the operator's own
+  authoring path.
+</Note>
+
+### The run ledger
+
+`call` writes a run ledger to `<root>/.mikro/runs` **only** when the repository already tracks a `.mikro/` directory —
+or when the target is not a git checkout at all. Otherwise the ledger goes to
+`<GENIE_HOME>/mikro/runs/<basename>-<sha256(root)[:8]>`.
+
+A repository that never opted into mikro therefore grows no untracked files, and you can run `call` against someone
+else's checkout without leaving anything behind in it.
+
+<Note>
+  A `mikro` binary missing from `PATH` is classified by the spawn error's **code** (`ENOENT`/`EACCES`), never by its
+  wording — the message differs between runtimes. It answers with one `unavailable:` error, `ok: false`, and exit 1,
+  with no second attempt.
+</Note>
+
+## `genie mikro fixtures`
+
+Build a fixture set from a repository's own commits. No PRs, no hand-authored cases, no external service.
+
+```
+usage: genie mikro fixtures --from-commits <range> --agent <wish-context|review-prep> [--dir repo] [--out path] [--max n] [--force]
+```
+
+| Flag | Description |
+|------|-------------|
+| `--from-commits <range>` | The commit range, e.g. `HEAD~20..HEAD` or `v1.2.0..HEAD` |
+| `--agent <name>` | `wish-context` or `review-prep` |
+| `--dir <repo>` | The repository whose history is read; defaults to the working directory |
+| `--out <path>` | Where to write, taken as given (it may point outside `<repo>`); default `<dir>/.mikro/fixtures/<agent>.json` |
+| `--max <n>` | Stop after n fixtures (oldest first) |
+| `--force` | Replace an existing file (refused without it) |
+
+### What a fixture is made of
+
+- **files** — `git show --name-only` of the commit. A rename contributes the **new** path.
+- **prompt** — `Intent: <subject>` for `wish-context`; `Prepare the review of commit <sha> against <sha>^` for
+  `review-prep`.
+- **id** — the first 12 characters of the sha.
+
+### What is skipped, and why
+
+A commit is skipped **with the reason printed** when it is a merge commit, when it is a root commit (for
+`review-prep`), when it touches no files, or when any of its files no longer exists at HEAD.
+
+The last rule is the one worth internalizing: the verifier scores the **tree**, not the commit. A fixture whose files
+have since been deleted or moved would ask the agent to cite paths that are not there, and would score the agent on
+history rather than on the repository as it stands.
+
+<Tip>
+  The output is **byte-stable** across runs of the same argv. A regenerated fixture set that produces no diff is proof
+  the set did not drift, so you can commit it and let review see only real changes.
+</Tip>
+
+## `genie mikro bench`
+
+Measure one microagent over its fixture set and score it mechanically.
+
+```bash
+genie mikro bench <agent> [flags...]
+```
+
+Mechanically is the point: the score comes from checking the answer against the tree, not from a second model's
+opinion of it. `fixtures` produces the set, `bench` turns it into a number.
+
+## `genie mikro coach`
+
+Run one coaching round over an agent prompt: propose a change, patch a **copy** of the prompt, and bench before and
+after.
+
+```bash
+genie mikro coach <agent> [flags...]
+```
+
+The copy matters. A coaching round never edits the prompt in place, so a round that scores worse costs you nothing and
+a round that scores better arrives with the evidence already attached.
+
+### The loop
+
+<AccordionGroup>
+  <Accordion title="1. Build the set" icon="list-check">
+    `genie mikro fixtures` reads the repository's own commits and writes a fixture set. The repository you want the
+    agent to be good at is the repository the cases come from.
+  </Accordion>
+  <Accordion title="2. Get a number" icon="gauge">
+    `genie mikro bench` scores the agent over that set mechanically, so "is this prompt any good" has an answer that
+    does not depend on who is reading it.
+  </Accordion>
+  <Accordion title="3. Change it on purpose" icon="wand-magic-sparkles">
+    `genie mikro coach` proposes a change, patches a copy of the prompt, and benches before and after — so a prompt
+    change stops being a vibe and becomes a before/after number.
+  </Accordion>
+</AccordionGroup>
+
+## Exit codes
+
+| Code | Meaning |
+|------|---------|
+| `0` | ok — for `fixtures`, a set was written |
+| `1` | not ok: it ran and did not succeed. Also covers `genie mikro call` with **no** agent name, which is the argument parser's own path, and a `mikro` binary missing from `PATH`. For `fixtures`, the range stated no fixture and nothing was written |
+| `2` | a refusal that cost nothing — the run never started. The runtime's own usage refusal: an unregistered agent name, a registered agent with no prompt, or a bad `--boundary`. For `fixtures`, the command was refused |
+
+<Note>
+  Read `2` as *the command was rejected before doing anything*, and `1` as *the work was attempted and did not
+  succeed*. In a script, `2` means fix the invocation; `1` means look at the result.
+</Note>
+
+## What's next
+
+<CardGroup cols={2}>
+  <Card title="Wish lint" icon="circle-check" href="/genie/cli/wish-lint">
+    `genie wish lint` — the other verb that reports on a repository without writing to it.
+  </Card>
+  <Card title="Infrastructure" icon="screwdriver-wrench" href="/genie/cli/infrastructure">
+    `init`, `install`, `config`, `doctor` — the commands that own the installation itself.
+  </Card>
+  <Card title="Configuration files" icon="sliders" href="/genie/config/files">
+    `GENIE_HOME`, the templates directory, and every environment variable.
+  </Card>
+  <Card title="Architecture overview" icon="sitemap" href="/genie/architecture/overview">
+    Where the microagent runtime sits relative to the rest of the body.
+  </Card>
+</CardGroup>

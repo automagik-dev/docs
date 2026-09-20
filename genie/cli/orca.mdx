@@ -1,0 +1,146 @@
+---
+title: "Orca Integration"
+sidebarTitle: "Orca"
+icon: "plug"
+description: "The Orca plugin's palette and keybindings, and genie orca mirror — the one-way write from genie's lifecycle onto the Orca workspace card."
+---
+
+# Orca Integration
+
+Orca is Genie's supported visual surface. There is no separate Genie UI and no Genie desktop app — that is a
+deliberate choice, not a gap. The integration has exactly two halves:
+
+| Half | What it is | Who installs it |
+|------|------------|-----------------|
+| **The Orca plugin** | Genie's verbs in Orca's command palette and keybindings, plus notifications | You, on the Orca side |
+| **`genie orca mirror`** | A CLI verb that writes genie's lifecycle onto the Orca workspace card, one way | Ships with the binary |
+
+<Note>
+  These are independent of **lifecycle authority**. `genie setup --orchestration-mode orca` decides who *owns* board
+  state; installing the plugin or running `genie orca mirror` changes nothing about that. You can run the plugin in
+  standalone mode, and you can select Orca authority without ever installing the plugin.
+</Note>
+
+## Installing the plugin
+
+`genie setup --orchestration-mode orca` selects Orca as the lifecycle authority. It does **not** register the plugin —
+that is a separate, Orca-side install. Orca accepts two kinds of source:
+
+| Route | What to give Orca |
+|-------|-------------------|
+| Marketplace source | `https://github.com/automagik-dev/genie.git`, ref `main` — the index; the plugin resolves to ref `orca-plugin` |
+| Plugin git source | `https://github.com/automagik-dev/genie.git`, ref `orca-plugin` (stable) or `orca-plugin-dev` (pre-release) |
+| Local folder | `~/.genie/plugins/genie` — what `genie install` and `genie update` put on disk |
+
+<Warning>
+  **The genie repository root can never be the plugin tree.** Orca's loader rejects any install tree containing a
+  symlink and caps an install at 2000 files / 50 MB; the repo has a `docs` symlink and runs to roughly 14,000 files in
+  a dev checkout. The plugin is therefore published as a **tree-only git ref whose root *is* `plugins/genie`** —
+  symlink-free and about 1.3 MB. Those refs carry no history and are never merged back, and Orca pins the commit it
+  fetched, so a republish cannot retroactively change an existing install.
+</Warning>
+
+The plugin requires Orca `>= 1.4.205`, and it declares exactly four capabilities: `workspace:read`, `terminal:send`,
+`notifications:show`, `events:subscribe`. It asks for nothing else.
+
+## The palette
+
+Eight commands, each scoped to a worktree context, each with a keybinding:
+
+| Command | Palette title | Keybinding |
+|---------|---------------|------------|
+| `genie.wish` | Genie: Wish | <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>W</kbd> |
+| `genie.work` | Genie: Work | <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>K</kbd> |
+| `genie.review` | Genie: Review | <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd> |
+| `genie.fix` | Genie: Fix | <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd> |
+| `genie.report` | Genie: Report | <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> |
+| `genie.council` | Genie: Council | <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>L</kbd> |
+| `genie.doctor` | Genie: Doctor | <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd> |
+| `genie.update` | Genie: Update | <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>U</kbd> |
+
+Each one sends the corresponding invocation to the worktree's terminal. The plugin runs **no** agent of its own and
+holds no state — it is a launcher for the same skills and commands you would type.
+
+## Notifications
+
+The plugin subscribes to one event, `agent.status.changed`, and raises a notification when an agent **settles** — when
+it stops being busy. That is the moment you actually want to look, and it is the only moment the plugin interrupts
+you. It does not notify on every tool call or every status transition.
+
+## Gates are a convention, not a mechanism
+
+Genie's human decision points — approve this plan, accept this verdict, merge this PR — are **a coordinator
+convention expressed as Orca gates**, not something the plugin enforces. The plugin cannot block a transition and does
+not try to. Whoever coordinates the work places the gate and waits on it; Genie's part is to make the state legible,
+which is what the mirror below is for.
+
+## `genie orca mirror`
+
+```bash
+genie orca mirror --to <transition> --evidence '<text>' [--verdict <verdict>] [--worktree <selector>]
+```
+
+One verb writes genie's lifecycle onto the Orca workspace card. One verb, because the map belongs in code rather than
+in four prose recipes — and because the card must have exactly **one** writer.
+
+| Flag | Required | Value |
+|------|----------|-------|
+| `--to` | yes | `APPROVED` \| `IN_PROGRESS` \| `REVIEW` \| `SHIPPED` \| `BLOCKED` |
+| `--evidence` | yes | One line naming the proof — group, head SHA, gap count, gate, merge SHA |
+| `--verdict` | only with `--to REVIEW` | `SHIP` \| `FIX-FIRST` \| `BLOCKED`. Refused on every other transition |
+| `--worktree` | no (default `current`) | `current` \| `active` \| `id:<repoId>::<abs path>` \| `path:<abs path>` \| `branch:<ref>` \| `name:<display name>` |
+| `--json` | no | Accepted for symmetry. One JSON line is printed either way |
+
+The map, in full:
+
+| Genie transition | Orca `workspaceStatus` |
+|------------------|------------------------|
+| `APPROVED` | `todo` |
+| `IN_PROGRESS` | `in-progress` |
+| `REVIEW` | `in-review` |
+| `SHIPPED` | `completed` |
+| `BLOCKED` | `in-progress` |
+
+`BLOCKED` lands on `in-progress` because Orca has no blocked status; the comment carries the word, dated in UTC
+because a card comment is read in more than one timezone.
+
+```bash
+genie orca mirror --to IN_PROGRESS --evidence 'group 4 started at a1b2c3d'
+genie orca mirror --to REVIEW --verdict FIX-FIRST --evidence '3 gaps against the wish criteria at a1b2c3d'
+genie orca mirror --to SHIPPED --evidence 'merged as 9f8e7d6, gate green'
+```
+
+<Warning>
+  **The mirror is one way, and it is not the record.** Nothing in Genie reads a board status back: a card's status is
+  never lifecycle truth, and there is no verb that imports one. The documents in `.genie/` stay the record. If you
+  change a card by hand in Orca, the next mirror overwrites it and nothing is lost on Genie's side — because nothing
+  on Genie's side was ever reading it.
+</Warning>
+
+### Exit codes
+
+| Exit | Meaning | What to do |
+|------|---------|------------|
+| `0` | The write is **proven** — a receipt identity plus the official read-back | Nothing |
+| `1` | A typed Orca failure. stderr carries one JSON line: `{error, operation, phase, retrySafety, recovery, reason}` | Route on `retrySafety`; the line names the recovery |
+| `2` | Usage — a refused transition, a missing or misplaced `--verdict`, or a selector outside the grammar | Fix the invocation. Nothing was sent |
+
+The map validates **first and at zero cost**, so an exit 2 means no adapter call happened at all. Only after it passes
+does exactly one call go out.
+
+## What's next
+
+<CardGroup cols={2}>
+  <Card title="Selecting the authority" icon="plug" href="/genie/cli/infrastructure">
+    `genie setup --orchestration-mode` and what Orca mode refuses.
+  </Card>
+  <Card title="Architecture overview" icon="sitemap" href="/genie/architecture/overview">
+    Where the closed `orca orchestration … --json` boundary sits.
+  </Card>
+  <Card title="Tasks" icon="list-check" href="/genie/cli/tasks">
+    The standalone lifecycle state machine the mirror reports on.
+  </Card>
+  <Card title="Release notes" icon="megaphone" href="/genie/release-notes">
+    What v6 removed, and why Orca is the supported UI surface.
+  </Card>
+</CardGroup>

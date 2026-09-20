@@ -2,30 +2,33 @@
 title: "The Genie Loop"
 sidebarTitle: "Loop Overview"
 icon: "arrows-rotate"
-description: "Plan → Review → Work → Ship → Monitor — the canonical lifecycle"
+description: "Brainstorm → design review → wish → plan review → work → implementation review — the canonical lifecycle."
 ---
 
 <Note>
-Every genie job moves through five phases. You can jump in at any phase; the skills that implement each phase are listed below.
+Every genie job moves through the same phases, and each has a gate. You can jump in at any phase; the skills that implement each one are listed below.
 </Note>
 
-## The five phases
+## The phases
 
 <CardGroup cols={3}>
-  <Card title="Plan" icon="sparkles" href="/genie/skills/wish">
-    Shape intent into a scoped wish with acceptance criteria. Driven by [/wish](/genie/skills/wish) (and [/brainstorm](/genie/skills/brainstorm) when the idea is still fuzzy).
+  <Card title="Brainstorm" icon="lightbulb" href="/genie/skills/brainstorm">
+    Explore a vague idea until it is concrete, and write a `DESIGN.md`. Driven by [/brainstorm](/genie/skills/brainstorm).
   </Card>
-  <Card title="Review" icon="clipboard-check" href="/genie/skills/review">
-    Gate the plan (and later the PR) against criteria before work starts. Driven by [/review](/genie/skills/review).
+  <Card title="Design review" icon="clipboard-check" href="/genie/skills/review">
+    An independent pass on the design, before anything is planned. Driven by [/review](/genie/skills/review).
+  </Card>
+  <Card title="Wish" icon="sparkles" href="/genie/skills/wish">
+    Admit the work. One decided task is delivered end to end; bigger work becomes a `WISH.md`. Driven by [/wish](/genie/skills/wish).
+  </Card>
+  <Card title="Plan review" icon="list-check" href="/genie/skills/review">
+    Gate the plan against its own criteria before execution starts. The same [/review](/genie/skills/review) skill.
   </Card>
   <Card title="Work" icon="hammer" href="/genie/skills/work">
-    Execute the approved plan. Driven by [/work](/genie/skills/work); FIX-FIRST gaps flow through [/fix](/genie/skills/fix).
+    Execute the approved groups wave by wave. Driven by [/work](/genie/skills/work); FIX-FIRST gaps flow through [/fix](/genie/skills/fix).
   </Card>
-  <Card title="Ship" icon="rocket" href="/genie/skills/review">
-    Final `/review` pass on the PR, then merge. The same skill that gated the plan gates the shipped change.
-  </Card>
-  <Card title="Monitor" icon="radar" href="/genie/skills/pm">
-    Watch the work land, triage escalations, and orchestrate the next loop. Driven by [/pm](/genie/skills/pm).
+  <Card title="Implementation review" icon="rocket" href="/genie/skills/review">
+    A different agent from the one that wrote the code returns SHIP, FIX-FIRST, or BLOCKED. Then the PR.
   </Card>
 </CardGroup>
 
@@ -33,44 +36,56 @@ Every genie job moves through five phases. You can jump in at any phase; the ski
 
 <Steps>
   <Step title="Start with an idea">
-    Open [/brainstorm](/genie/skills/brainstorm) if the idea is still fuzzy, or jump straight to [/wish](/genie/skills/wish) if you already know the shape. New to the loop? Run [/wizard](/genie/skills/wizard) — it walks you through this sequence end-to-end.
+    Open [/brainstorm](/genie/skills/brainstorm) if the idea is still fuzzy, or go straight to [/wish](/genie/skills/wish) if you already know the shape. New to the loop? The [onboarding walkthrough](/genie/onboarding) runs this sequence end to end.
   </Step>
-  <Step title="Formalize the plan">
-    [/wish](/genie/skills/wish) produces `.genie/wishes/<slug>/WISH.md` with IN/OUT scope, acceptance criteria, and execution groups. This is the artifact every downstream phase reads from.
+  <Step title="Get the design reviewed">
+    [/review](/genie/skills/review) reads the `DESIGN.md` under `.genie/brainstorms/<slug>/` and returns a verdict. The design review is mandatory — a wish is planned from a reviewed design, not from a conversation.
+  </Step>
+  <Step title="Admit the work">
+    [/wish](/genie/skills/wish) takes it from there. **One decided task** it delivers itself: its own worktree, the gate, an independent reviewer, a merge-ready PR, no plan at all. Work bigger than one task becomes `.genie/wishes/<slug>/WISH.md` with IN/OUT scope, acceptance criteria, and execution groups — the artifact every downstream phase reads.
   </Step>
   <Step title="Gate the plan">
-    [/review](/genie/skills/review) inspects the wish and returns **SHIP**, **FIX-FIRST**, or **BLOCKED**. A SHIP verdict authorizes execution.
+    [/review](/genie/skills/review) inspects the wish and returns **SHIP**, **FIX-FIRST**, or **BLOCKED**. Run [`genie wish lint`](/genie/cli/wish-lint) first — a structurally broken plan should fail in a second, not in review.
   </Step>
   <Step title="Execute the work">
-    [/work](/genie/skills/work) orchestrates subagents per execution group, runs validation, and loops on failures. FIX-FIRST findings from review are closed by [/fix](/genie/skills/fix) before work resumes.
+    [/work](/genie/skills/work) dispatches the runtime's own native subagents per execution group, in dependency order, and runs each group's validation. FIX-FIRST findings are closed by [/fix](/genie/skills/fix) within a bounded repair budget.
   </Step>
-  <Step title="Ship the PR">
-    [/review](/genie/skills/review) runs again against the pull request. Merge only on SHIP.
-  </Step>
-  <Step title="Monitor and iterate">
-    [/pm](/genie/skills/pm) tracks progress, surfaces blockers, and queues the next wish. The loop repeats.
+  <Step title="Review, persist, ship">
+    [/review](/genie/skills/review) runs again — as a **different** subagent from the one that wrote the code, so the verdict is independent evidence. A chat verdict never advances state: the orchestrator persists the evidence into `WISH.md`, is the only actor that runs `genie task done`, and opens the PR. You merge.
   </Step>
 </Steps>
 
+## Watching it happen
+
+There is no monitoring skill, because there is nothing resident to monitor. State is a query:
+
+```bash
+genie board                 # the live kanban, derived by query
+genie board --wish <slug>   # scoped to one wish
+genie task status <id>      # one card: dependencies, stage log, assignment
+```
+
 ## Entry points
 
-| I want to... | Start at... | Skill |
+| I want to... | Start at... | Skill or command |
 |---|---|---|
-| Explore a fuzzy idea | Plan | [/brainstorm](/genie/skills/brainstorm) |
-| Formalize a plan | Plan | [/wish](/genie/skills/wish) |
-| Gate a plan / PR | Review | [/review](/genie/skills/review) |
+| Explore a fuzzy idea | Brainstorm | [/brainstorm](/genie/skills/brainstorm) |
+| Deliver one decided task | Wish | [/wish](/genie/skills/wish) |
+| Plan work bigger than one task | Wish | [/wish](/genie/skills/wish) — its plan entry |
+| Gate a design, a plan, or a PR | Review | [/review](/genie/skills/review) |
 | Execute an approved wish | Work | [/work](/genie/skills/work) |
 | Close FIX-FIRST gaps | Work | [/fix](/genie/skills/fix) |
-| Be walked through the whole loop | all | [/wizard](/genie/skills/wizard) |
-| Orchestrate a backlog | all | [/pm](/genie/skills/pm) |
+| Check a plan's structure before anyone acts | Any | [`genie wish lint`](/genie/cli/wish-lint) |
+| See where everything stands | Any | [`genie board`](/genie/cli/boards) |
+| Run a batch of approved wishes overnight | Any | [/dream](/genie/skills/dream) |
 
 ## What's next
 
 <CardGroup cols={2}>
   <Card title="Walk through the loop" icon="rocket" href="/genie/onboarding">
-    The 15-minute guided walkthrough uses this loop end-to-end — install, smoke test, first wish, first PR, first monitor.
+    The 15-minute guided walkthrough runs this loop end to end — install, doctor, init, first wish, review, first PR.
   </Card>
   <Card title="Understand wishes" icon="scroll" href="/genie/concepts/wishes">
-    Every loop revolves around a wish. Learn the primitive that all five phases operate on.
+    Every loop revolves around a wish. Learn the primitive that every phase operates on.
   </Card>
 </CardGroup>

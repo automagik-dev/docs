@@ -19,7 +19,7 @@ Pick SHIP-ready wishes, build a dependency-ordered execution plan, spawn paralle
 1. **Pick wishes** from `.genie/brainstorm.md`.
 2. **Generate DREAM.md** with dependency-ordered execution plan.
 3. **Human confirms** DREAM.md (may edit before run).
-4. **Phase 1 — Execute:** dispatch agents per wish via `genie work`.
+4. **Phase 1 — Execute:** dispatch one worker subagent per wish, each running `/work`.
 5. **Phase 2 — Review + PR:** review each group, create PRs, fix valid issues, CI green.
 6. **Phase 3 — Merge + QA:** merge to dev, spawn QA, test against wish criteria.
 7. **Phase 4 — Report:** write `DREAM-REPORT.md` as the wake-up artifact.
@@ -42,10 +42,10 @@ For each selected wish:
 
 ### Phase 1: Execute
 
-- Create team: `genie team create dream-<date>`
-- Dispatch agents via `genie work <agent> <slug>#<group>`
-- Monitor via `genie status <slug>`
-- Agents signal completion via `genie send`
+- Dispatch one worker subagent per wish in the layer, through the runtime's own delegation surface
+- Each worker executes its wish per `/work`, on the branch DREAM.md names, in a dedicated worktree
+- Workers claim their cards with `genie task checkout <id> --worker <name>` and hand back one `genie task report`
+- Completion is push: wait for each worker's final message and inspect `genie board --wish <slug>` on demand
 
 ### Phase 2: Review + PR
 
@@ -57,8 +57,8 @@ For each selected wish:
 ### Phase 3: Merge + QA
 
 - Merge PRs to dev in `merge_order`
-- Spawn QA: `genie spawn qa`
-- QA loop: test → `/report` → `/trace` → `/fix` → retest
+- Dispatch a QA subagent on `dev` against each wish's QA criteria
+- QA loop: test → `/report` → `/fix` → retest, every fix a new PR through review and merge
 
 ### Phase 4: Report
 
@@ -76,23 +76,26 @@ Write `DREAM-REPORT.md`:
 ## Follow-ups
 ```
 
-Then disband the team: `genie team disband dream-<date>`.
+The report is the wake-up artifact. There is nothing to tear down: every worker
+was a subagent that has already ended, and Genie leaves no resident processes.
 
 ## Task Lifecycle Integration
 
-When using the task system, `/dream` creates a parent task for the dream run with child tasks per wish:
+When cards track the run, `/dream` creates one card per wish in the per-repo
+`.genie/genie.db`, each carrying the wish slug as its lifecycle identity:
 
 | Event | Command |
 |-------|---------|
-| Create dream parent task | `genie task create "Dream run <date>" --type software --tags chore` |
-| Create child per wish | `genie task create "<wish title>" --parent #<dream-seq> --type software` |
-| Track wish completion | `genie task done #<wish-seq> --comment "PR #N merged"` |
-| Complete dream run | `genie task done #<dream-seq> --comment "Dream complete — see DREAM-REPORT.md"` |
+| Create the dream run card | `genie task create --title 'Dream run <date>'` |
+| Create a card per wish | `genie task create --title '<wish title>' --wish <slug>` |
+| Relay a wish verdict | `genie task comment <id> --worker orchestrator -- 'review: SHIP — PR <url>, CI green'` |
+| Track wish completion | `genie task done <id>` |
+| Complete the dream run | `genie task done <id>` after the report is written |
 
 ## Rules
 
 - Never early-stop — if a wish is BLOCKED, record reason and continue
-- Never skip Phase 2 ��� every PR must be reviewed
+- Never skip Phase 2 — every PR must be reviewed
 - Never skip Phase 3 — every merge must be QA-tested
-- Orchestrator never executes work directly — dispatch via `genie work`
+- Orchestrator never executes work directly — dispatch a subagent running `/work`
 - Always write DREAM-REPORT.md, even if all wishes BLOCKED

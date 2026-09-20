@@ -4,6 +4,14 @@ sidebarTitle: "Transcripts"
 description: "Provider-agnostic log parsing for Claude Code and Codex sessions"
 ---
 
+<Warning>
+  **This page documents the v4 harness and is kept for people still running it.** The commands below do not exist in
+  the current release: v4's PostgreSQL backend, pane-based process orchestration, executor registries, NATS event spine
+  and scheduler were removed in the cutover to the lightweight body. v4 lives on the
+  [`v4` branch](https://github.com/automagik-dev/genie/tree/v4). For the current surface see
+  [Infrastructure](/genie/cli/infrastructure) and [Architecture → Overview](/genie/architecture/overview).
+</Warning>
+
 # Transcripts
 
 Genie reads agent conversation logs from both Claude Code and Codex through a unified transcript abstraction. This enables commands like `genie read <agent>` to work regardless of which AI provider backs the agent.

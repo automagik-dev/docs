@@ -1,158 +1,109 @@
 ---
 title: "Worktrees & Isolation"
 sidebarTitle: "Worktrees"
-description: "Git clone --shared isolation, worktree paths, and cleanup"
+description: "How isolated working copies are arranged, what genie context hands a spawn, and what the copies share"
 ---
 
-# Worktrees & Isolation
+Work on a wish happens in an isolated working copy, so two execution groups can touch the same repository without
+fighting over the index. The **orchestrator** arranges that isolation, following the dispatch contract for the runtime
+it is driving. Genie's own job is narrower and entirely read-only: it answers the question *which branch, from which
+base commit, with which ready tasks* — and the answer is one line of JSON.
 
-When Genie creates a team, it provisions an isolated copy of the repository so agents can work on different branches without conflicts. Understanding this isolation model is important for debugging file paths and cleanup.
+<Note>
+  Genie spawns nothing. There is no daemon, no process registry, and no pane orchestration: `genie context` prints a
+  payload and exits, and whatever your orchestrator does with it is its own business.
+</Note>
 
-## Isolation Model
-
-Genie uses `git clone --shared` instead of `git worktree` for team isolation.
-
-### Why Not git worktree?
-
-A known bug in Claude Code can flip `core.bare=true` on the parent repository via shared `.git` metadata when using standard git worktrees. This silently corrupts the parent repo, making all worktrees non-functional.
-
-`git clone --shared` creates a full clone that shares object storage with the parent (saving disk space) but has its own `.git` directory — safe from metadata corruption.
-
-### How It Works
-
-```text
-genie team create auth-fix --repo /home/user/myproject --wish auth-bug
-         │
-         ▼
-  1. Resolve worktree base directory
-     (~/.genie/worktrees/ or config terminal.worktreeBase)
-         │
-         ▼
-  2. git clone --shared /home/user/myproject ~/.genie/worktrees/myproject/auth-fix
-         │
-         ▼
-  3. git checkout -b feat/auth-fix   (team name IS the branch name)
-         │
-         ▼
-  4. Store team config at ~/.genie/teams/auth-fix.json
-```
-
-## Directory Structure
-
-```text
-~/.genie/worktrees/
-└── <repo-name>/
-    └── <team-name>/          # Full clone, shared objects
-        ├── .git/             # Independent git directory
-        ├── .genie/           # Shared via git-common-dir
-        │   ├── state/        # Wish state (shared)
-        │   ├── mailbox/      # Message queues (shared)
-        │   └── chat/         # Team chat (per-worktree)
-        └── src/              # Working copy
-```
-
-### Shared vs. Independent State
-
-| State | Shared? | Why |
-|-------|---------|-----|
-| Wish state (`.genie/state/`) | Shared | All agents on same wish need consistent state |
-| Mailbox (`.genie/mailbox/`) | Shared | Messages must be visible across all team members |
-| Team chat (`.genie/chat/`) | Per-worktree | Different worktrees may have different team contexts |
-| Git objects | Shared (via `--shared`) | Saves disk space |
-| Git refs/branches | Independent | Each worktree has its own branch |
-
-## Configuring the Base Directory
-
-The worktree base directory defaults to `~/.genie/worktrees/`. Override it in config:
-
-```json
-{
-  "terminal": {
-    "worktreeBase": "/data/genie-worktrees"
-  }
-}
-```
-
-Or set `GENIE_HOME` to relocate everything:
+## The Context Contract
 
 ```bash
-export GENIE_HOME=/data/genie
-# Worktrees go to /data/genie/worktrees/
+genie context --wish <slug>              # wish branch + every ready task of the wish
+genie context --wish <slug> --group <g>  # the composed group branch + that group's ready tasks
+genie context                            # no wish: the integration branch and its SHA
 ```
 
-## Path Resolution
-
-When a team is created, the worktree path is computed as:
+Each form prints a single line of versioned JSON:
 
 ```text
-<worktreeBase>/<repo-basename>/<team-name>
+{"version":1,"wish":"<slug>","branch":"wish/<slug>-<group>","base":"<40-hex>","tasks":[{"id":"…","title":"…"}],"group":"<group>"}
+{"version":1,"wish":"<slug>","branch":"wish/<slug>","base":"<40-hex>","tasks":[…]}
+{"version":1,"branch":"<integration-branch>","base":"<40-hex>","tasks":[]}
 ```
 
-For example:
-- Repo: `/home/user/projects/my-api`
-- Team: `feat/auth-fix`
-- Result: `~/.genie/worktrees/my-api/feat--auth-fix`
+| Field | Meaning |
+|-------|---------|
+| `version` | Payload version — consumers pin on it |
+| `wish` / `group` | Present only in the scoped forms |
+| `branch` | The branch the spawn should live on |
+| `base` | The full 40-hex commit the branch is based on — the value that actually crosses the boundary |
+| `tasks` | The ready set: the cards with no unmet dependency |
 
-Note that slashes in team names are converted to double-dashes for filesystem safety.
+The base SHA is **recorded** the first time a wish resolves it, so every later group of the same wish starts from the
+same commit instead of drifting onto whatever the integration branch has become. `--re-resolve` deliberately refreshes
+it; `--plan` previews the whole payload without writing anything at all.
 
-## Team Config File
+<Tip>
+  `genie context --wish <slug> --plan` is the safe way to see what a spawn would get. It is also the one lifecycle
+  read that still answers when Orca owns the lifecycle authority.
+</Tip>
 
-Each team stores its full configuration at `~/.genie/teams/<safe-name>.json`:
+## Where Worktrees Live
 
-```json
-{
-  "name": "feat/auth-fix",
-  "repo": "/home/user/projects/my-api",
-  "baseBranch": "dev",
-  "worktreePath": "/home/user/.genie/worktrees/my-api/feat--auth-fix",
-  "leader": "team-lead",
-  "members": ["team-lead", "engineer", "reviewer"],
-  "status": "in_progress",
-  "createdAt": "2026-03-24T10:00:00.000Z",
-  "nativeTeamsEnabled": true,
-  "tmuxSessionName": "feat-auth-fix"
-}
+The worktrees base is `<GENIE_HOME>/worktrees` — by default `~/.genie/worktrees`.
+
+| Variable | Effect |
+|----------|--------|
+| `GENIE_HOME` | Relocates **all** global state, the worktrees base included |
+| `GENIE_WORKTREES_DIR` | Overrides just the worktrees base |
+
+```bash
+export GENIE_HOME=/data/genie             # worktrees go to /data/genie/worktrees
+export GENIE_WORKTREES_DIR=/scratch/wt    # or point only the worktrees elsewhere
 ```
+
+## What the Copies Share
+
+Every linked worktree of one repository shares **one** `.genie/genie.db`, resolved through
+`git rev-parse --git-common-dir`. A card created in one worktree is instantly visible in every other — there is no sync
+step between worktrees, no per-worktree copy, and nothing to reconcile.
+
+| State | Shared across worktrees? | Why |
+|-------|--------------------------|-----|
+| Task, lane, and dependency state (`.genie/genie.db`) | Shared | One database per repository, resolved via the common git dir |
+| `roadmap.json` — the canonical board snapshot | Per checkout, travels in git | It is a tracked file, so it moves with the branch and merges like code |
+| `WISH.md`, `DESIGN.md`, `INDEX.md` | Per checkout, travels in git | Tracked documents; you review them the way you review code |
+| Machine-local brainstorm notes | Per checkout | Gitignored scratch work — only the reviewed design travels |
+| Git branches and the index | Independent | That is the entire point of the isolation |
+
+<Note>
+  Because `genie.db` is shared and `roadmap.json` is tracked, the two can legitimately diverge after a pull or a
+  rebase. `genie task sync` three-way reconciles them, and the git hooks run it on pull, merge, rewrite, and
+  pre-commit. When both sides moved but only a card's timeline differs, the events are unioned by identity and
+  republished — the card conversation is global state.
+</Note>
 
 ## Cleanup
 
-### Disbanding a Team
+Worktrees are ordinary git worktrees, so git is the tool that removes them:
 
 ```bash
-genie team disband auth-fix
+git worktree list
+git worktree remove <path>
+git worktree prune
 ```
 
-This removes:
-- The team config file (`~/.genie/teams/auth-fix.json`)
-- All agent registry entries for team members
-- tmux windows/panes for team agents
-- Native team directory (`~/.claude/teams/auth-fix/`)
+`genie doctor` observes the worktrees base and reports residue it finds there. `genie doctor --fix` removes only what
+it can prove is safe — v4-era residue and worktrees whose work is already merged and whose tree is clean — and refuses
+anything ambiguous. Nothing else in Genie deletes a working copy, which is deliberate: uncommitted work is never worth
+a tidy directory listing.
 
-<Warning>
-Team disband does **not** delete the worktree directory by default. This preserves uncommitted work. Delete manually if you want to reclaim disk space:
+## Gotchas
 
-```bash
-rm -rf ~/.genie/worktrees/my-api/feat--auth-fix
-```
-</Warning>
-
-### Cleaning Up Orphaned Worktrees
-
-If worktrees accumulate from disbanded teams, clean them up:
-
-```bash
-# List all worktree directories
-ls ~/.genie/worktrees/
-
-# Check which teams are still active
-genie team ls
-
-# Remove worktrees for disbanded teams
-rm -rf ~/.genie/worktrees/<repo>/<team>
-```
-
-## Worktree Gotchas
-
-- **Worktrees share `.genie/` state** via `git rev-parse --git-common-dir`. Changes to wish state in one worktree are visible in all others for the same repo.
-- **Team name IS the branch name** — conventional prefixes (`feat/`, `fix/`, `chore/`) are required.
-- **The `--shared` flag** means git objects are hardlinked. Deleting the parent repo's objects can break worktrees. Don't run `git gc --prune` on the parent while worktrees exist.
+- **One database, many checkouts.** Moving a card in a worktree moves it everywhere. That is the feature, but it does
+  mean a stray `genie task move` in a side worktree is not a local experiment.
+- **The base SHA is sticky.** Groups of one wish share the recorded base on purpose. If you genuinely want a newer
+  base, ask for it with `--re-resolve` rather than deleting state.
+- **`genie context` needs an integration branch.** With no local `dev` and no remote HEAD, it refuses and names the
+  remedy (`git remote set-head origin -a`) instead of guessing a base.
+- **Don't garbage-collect the parent out from under a worktree.** Linked worktrees share the parent's object store;
+  pruning it while they exist is how you lose commits that only they reference.

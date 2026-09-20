@@ -1,313 +1,119 @@
 # Genie Architecture
 
-This document describes the internal architecture of the Genie CLI, including the unified serve model, service topology, agent lifecycle, and data flow.
+Engineering-internal view of how the pieces fit. The operator-facing version is
+[Architecture → Overview](/genie/architecture/overview).
 
-## Serve/Daemon Unification
+## No service topology
 
-The `genie serve` command is the **single infrastructure owner**. It starts and manages all background services in one process. The older `genie daemon` command is now a thin redirect to `genie serve --headless`.
+There is none, and that is the design. Genie has **no daemon, no server, no port, and no resident process**. Every
+command forks, opens what it needs, runs one transaction, and exits.
 
-```
-genie serve             → foreground with TUI (default)
-genie serve --headless  → services only, no TUI
-genie serve --daemon    → background (detached)
-genie daemon start      → alias for genie serve --headless (deprecated)
-```
+The v4 topology — an embedded PostgreSQL instance (pgserve), a NATS event spine, a scheduler daemon, tmux pane
+orchestration, executor registries, a full-screen console, and a desktop app — was removed in the cutover to the
+lightweight body. v4 is preserved on the [`v4` branch](https://github.com/automagik-dev/genie/tree/v4).
 
-**Key design decision:** The daemon was unified into `serve` so that a single PID file (`~/.genie/serve.pid`) governs all services. The legacy `scheduler.pid` is still checked for backward compatibility but `serve.pid` is canonical.
+## Module map
 
-**Source:** `src/term-commands/serve.ts`, `src/term-commands/daemon.ts`
-
-## Service Topology
-
-`genie serve` starts these services in order:
-
-```
-genie serve (PID file: ~/.genie/serve.pid)
-│
-├── 1. pgserve              Embedded PostgreSQL (data + state)
-│     └── port file: ~/.genie/pgserve.port
-│
-├── 2. tmux -L genie        Agent session server (eternal, survives serve restarts)
-│     └── sessions created on-demand by `genie spawn`
-│
-├── 3. tmux -L genie-tui    TUI session (only in non-headless mode)
-│     └── session: genie-tui (left=nav, right=agent display)
-│
-├── 4. Scheduler daemon     Claims and fires triggers from PG
-│     ├── Event router      Routes PG NOTIFY events to team members
-│     └── Inbox watcher     Polls native inboxes, auto-spawns offline leads
-│
-└── 5. Service registry     In-memory PID tracker for graceful shutdown
-```
-
-### Service Details
-
-| Service | Source | Description |
-|---------|--------|-------------|
-| **pgserve** | `src/lib/db.ts` | Embedded PostgreSQL. `genie serve` owns the process; CLI commands read `~/.genie/pgserve.port` and connect. Data lives at `~/.genie/data/pgserve/`. |
-| **Scheduler** | `src/lib/scheduler-daemon.ts` | Core loop: LISTEN on `genie_trigger_due` for real-time NOTIFY, 30s poll fallback. Uses `SELECT FOR UPDATE SKIP LOCKED` for lease-based claiming. Concurrency capped by `GENIE_MAX_CONCURRENT` (default 5). Collects heartbeats every 60s, reconciles orphans every 5m. |
-| **Event Router** | `src/lib/event-router.ts` | Subscribes to PG NOTIFY channels (`genie_task_stage`, `genie_executor_state`, `genie_message`). Routes actionable events (blocked, error, permission, request) to team-lead mailboxes and runtime event log. |
-| **Inbox Watcher** | `src/lib/inbox-watcher.ts` | Polls `~/.claude/teams/` for unread messages every 30s. Auto-spawns offline team-leads when unread messages are found. |
-| **Session Capture** | `src/lib/session-filewatch.ts`, `src/lib/session-capture.ts`, `src/lib/session-backfill.ts` | Event-driven JSONL capture via `fs.watch` on `~/.claude/projects/`. Reads incrementally from stored offsets, debounced 500ms. Backfill worker processes historical files (newest-first, 64KB chunks, yields to live work). |
-| **Omni Bridge** | `src/services/omni-bridge.ts` | NATS subscriber that routes inbound WhatsApp/Telegram messages to agent sessions via the `IExecutor` interface. Manages per-chat session lifecycle with idle timeout (15min), max concurrency (20), and message buffering. |
-| **Service Registry** | `src/lib/service-registry.ts` | In-memory PID registry for child processes. Used during shutdown: SIGTERM first, 3s grace, then SIGKILL survivors. |
-
-### Shutdown Sequence
-
-1. Stop agent directory watcher
-2. Stop scheduler (drains in-flight triggers)
-3. Kill registered services via service registry
-4. Kill TUI session (agent tmux server is **not** killed — sessions are eternal)
-5. Remove pgserve lockfile
-6. Remove PID file
-7. Force-kill timeout: 10s, then SIGKILL remaining
-
-## Agent Lifecycle
-
-Agents follow this lifecycle: **spawn → register → work → report → shutdown**.
-
-```
-                  ┌──────────┐
-                  │  spawn   │  genie spawn <name>
-                  └────┬─────┘
-                       │
-              ┌────────▼────────┐
-              │    register     │  Agent written to PG (agents table)
-              │  state: spawning│  Pane ID, session, team recorded
-              └────────┬────────┘
-                       │
-              ┌────────▼────────┐
-              │     working     │  Claude Code / Codex / SDK running
-              │  state: working │  Hooks emit runtime events
-              └────────┬────────┘
-                       │
-          ┌────────────┼────────────┐
-          ▼            ▼            ▼
-    ┌──────────┐ ┌──────────┐ ┌──────────┐
-    │   idle   │ │permission│ │ question │
-    │ (prompt) │ │ (awaiting│ │ (awaiting│
-    └────┬─────┘ │ approval)│ │  answer) │
-         │       └────┬─────┘ └────┬─────┘
-         │            │            │
-         └────────────┼────────────┘
-                      │
-              ┌───────▼────────┐
-              │  done / error  │  Task complete or failure
-              └───────┬────────┘
-                      │
-              ┌───────▼────────┐
-              │   suspended    │  Optional: idle timeout or manual stop
-              └───────┬────────┘
-                      │
-              ┌───────▼────────┐
-              │   shutdown     │  Pane killed, registry updated
-              └────────────────┘
+```text
+src/genie.ts                      CLI entry point (commander), 16 registrations
+src/lib/
+  genie-home.ts                   GENIE_HOME resolution and the per-agent home paths built on it
+  genie-config.ts                 Resolved global config; the schema is the key namespace
+  orchestration-mode.ts           The lifecycle-authority selection and its refusal types
+  orca-orchestration-adapter.ts   The closed public `orca orchestration ... --json` boundary
+  orca-lifecycle-mirror.ts        The pure transition -> workspaceStatus map (no I/O)
+  skills-installer.ts             The skills.sh channel — pinned CLI, local delivered source, install record
+  skills-agents.ts                Genie's own mirror of the skills.sh agent registry (detection)
+  workflows-installer.ts          The saved-workflow catalog → ~/.claude/workflows
+  delivery-evidence-verify.ts     Offline release verification against an embedded Sigstore trust root
+  codex-config.ts                 Backup-first removal of the obsolete Genie loopback OTel exporter
+  v5/
+    genie-db.ts                   Per-repo .genie/genie.db open/init (worktree-aware, WAL)
+    sqlite-open.ts                Shared bun:sqlite open primitive (WAL, busy_timeout, migration ladder)
+    task-state.ts                 Task / dependency / ready-set state machine
+    base-state.ts                 Integration-branch resolution + recorded wish-base state
+    roadmap-sync.ts               Three-way reconcile between the database and the git-tracked snapshot
+    TAXONOMY.md                   The docs-in-git / state-in-SQLite contract
+src/term-commands/                Command handlers (board, context, init, mikro, orca, task, wish, ...)
+scripts/mikro/                    The mikro microagent runtime; imported in place, NOT relocated under src/
+skills/                           Skill prompt files — the product
+.claude/workflows/                The saved-workflow catalog
+plugins/genie/                    The Orca plugin payload (symlink-free, tree-only publish ref)
 ```
 
-### Agent States
+## The one database per scope rule
 
-| State | Description |
-|-------|-------------|
-| `spawning` | Agent being initialized, pane created |
-| `working` | Actively producing output |
-| `idle` | At prompt, waiting for input |
-| `permission` | Waiting for permission approval |
-| `question` | Waiting for human answer |
-| `done` | Task completed successfully |
-| `error` | Encountered error |
-| `suspended` | Manually stopped or idle-timeout suspended |
+There is exactly **one** lifecycle database, and it is per-repository.
 
-### Spawn Flow
+| Database | Module | Scope |
+|----------|--------|-------|
+| `<repo>/.genie/genie.db` | `v5/genie-db.ts` | Tasks, dependency edges, lanes, wish-group execution state |
 
-1. **Resolve agent** — Look up name in agent directory (`agents/` AGENTS.md files) or built-in roles
-2. **Create tmux pane** — Split in target session/window on `tmux -L genie` socket
-3. **Register in PG** — Insert into `agents` table with pane ID, session, team, role
-4. **Launch provider** — Start Claude Code, Codex, or Claude SDK in the pane
-5. **Inject identity** — Hooks inject `GENIE_AGENT_NAME` and team context via `identity-inject` handler
+Worktrees resolve it through `git rev-parse --git-common-dir`, so all linked worktrees of one repository share it and a
+task created in one is immediately visible in another with no sync step. It uses WAL and a `busy_timeout`, so concurrent
+writers surface clean claim conflicts rather than `SQLITE_BUSY` flake.
 
-### Auto-Resume
+v6 opens **no machine-scope lifecycle database**. The global `~/.genie/genie.db` existed only to hold the Omni approval
+queue and inbox; with Omni removed there is nothing for it to hold.
 
-When a pane dies unexpectedly, the scheduler's heartbeat collector detects the dead pane. If `autoResume` is enabled (default), the agent is respawned with its original configuration. Resume attempts are tracked (`resumeAttempts`, `maxResumeAttempts`) to prevent infinite loops.
+### Schema versioning
 
-**Source:** `src/term-commands/agent/spawn.ts`, `src/lib/agent-registry.ts`, `src/lib/scheduler-daemon.ts`
+`CURRENT_SCHEMA_VERSION` is **2**. The ladder lives in `sqlite-open.ts`'s `initOrValidate`: `OpenSqliteOptions.migrations`
+is an array of `{from, to, apply}` applied in ascending `from` order when `version < schemaVersion`, each step in one
+transaction, re-stamping `PRAGMA user_version` at the end. **After the ladder runs the database falls through to the
+current-version branch** — `schemaIsCurrent`, then `ensureSchema` — so additive backfills still apply to a
+just-migrated database exactly as they do to one already at `schemaVersion`. An unbridgeable gap still throws
+`ForeignDbError` rather than guessing.
 
-## Data Flow
+The 1 → 2 step drops the machine-local `hire_roster` table. `task import` of a snapshot that still carries the key
+ignores it rather than failing.
 
-```
-┌──────────────────────────────────────────────────────────────────┐
-│                        CLI Commands                               │
-│  genie spawn / work / send / task / team / ...                   │
-└───────────┬──────────────────────────────────────┬───────────────┘
-            │ write                                │ read
-            ▼                                      ▼
-┌──────────────────────────────────────────────────────────────────┐
-│                      PostgreSQL (pgserve)                         │
-│                                                                   │
-│  agents        — agent identity + state                          │
-│  agent_templates — spawn templates for re-spawn                  │
-│  executors     — executor instances (v4 model)                   │
-│  triggers      — scheduled trigger rows                          │
-│  runs          — trigger execution history                       │
-│  schedules     — cron/one-shot schedule definitions              │
-│  runtime_events — structured event log                           │
-│  sessions      — Claude session JSONL capture                    │
-│  tasks         — task/wish tracking                              │
-│  messages      — task conversation messages                      │
-│                                                                   │
-│  NOTIFY channels:                                                │
-│    genie_trigger_due    → scheduler claims                       │
-│    genie_task_stage     → event router                           │
-│    genie_executor_state → event router                           │
-│    genie_message        → event router                           │
-└───────────┬──────────────────────────────────────┬───────────────┘
-            │ NOTIFY                               │ query
-            ▼                                      ▼
-┌─────────────────────┐              ┌─────────────────────────────┐
-│   Scheduler Daemon  │              │        Event Router          │
-│                     │              │                              │
-│ • Claims triggers   │              │ Listens on NOTIFY channels:  │
-│ • Fires agents      │              │ • task stage changes         │
-│ • Heartbeat (60s)   │              │ • executor state changes     │
-│ • Orphan recon (5m) │              │ • new messages               │
-│ • Lease recovery    │              │                              │
-└─────────────────────┘              │ Routes to:                   │
-                                     │ 1. Task conversation         │
-                                     │ 2. Team-lead mailbox         │
-                                     │ 3. Runtime event log         │
-                                     └─────────────────────────────┘
+## Lifecycle authority
 
-┌──────────────────────────────────────────────────────────────────┐
-│                      Agent Sessions (tmux)                        │
-│                                                                   │
-│  tmux -L genie         Agent socket (eternal, survives restarts) │
-│    └── session per team/agent                                    │
-│         └── window per agent                                     │
-│              └── pane running Claude Code / Codex / SDK          │
-│                                                                   │
-│  tmux -L genie-tui     TUI socket (owned by serve)              │
-│    └── session: genie-tui                                        │
-│         └── window 0: left=nav (OpenTUI), right=agent display   │
-└──────────────────────────────────────────────────────────────────┘
+Authority is an **explicit mode**, never inferred. `standalone` is the default, including when `orchestration.mode` is
+absent; installing or opening Orca changes nothing.
+
+`genie setup --orchestration-mode orca` probes the shipped plugin payload and a compatible Orca runtime before
+atomically switching. After that, Genie refuses local `genie.db` lifecycle reads and writes and refuses roadmap writes,
+syncs, and exports. Switching back imports no Orca state. **There is no fallback database in either direction** — if
+Orca is unavailable, the operation fails.
+
+The refusal is a second, non-exempt commander `preAction`, not the workspace hook. `WORKSPACE_EXEMPT`
+(`src/lib/interactivity.ts`) holds **21 entries** — every verb that self-resolves its own state or touches none, which
+includes all three `ORCA_FORBIDDEN` verbs — so the workspace hook short-circuits on exactly the verbs the Orca check
+needs to see, and can never carry that check itself.
+
+```text
+ORCA_FORBIDDEN = { task (every subverb except sync), board, idea }
 ```
 
-<Warning>
-**The hook system is gone.** Genie once ran an in-process handler chain, blocking and non-blocking — branch guard, git-freeze guard, identity injection, Omni approval, audit context, and SessionStart context/freshness injection. All of it was deleted in the `skills-everywhere` wish: there is no hook command, no handler chain, and no lifecycle hook of any kind in a Genie release. The controls those handlers approximated now live where they are actually enforceable — server-side branch protection on `main`, worktree isolation, sandbox permissions, and operator policy carried in briefs and `AGENTS.md`. Passages below that describe hook handlers as live (identity injection during spawn, `runtime-emit-*` event emission) are historical. See the [release notes](/genie/release-notes) for what is gone and what to do instead.
-</Warning>
+## Delivery
 
-### Event Flow Example: Agent Completes a Task
+Three surfaces, three delivery paths, one record each.
 
-1. Agent finishes work, Claude Code emits `Stop` event
-2. `runtime-emit-asst` hook fires, writes `assistant` event to `runtime_events` table
-3. Agent state updated to `done` in `agents` table
-4. PG fires `NOTIFY genie_executor_state` with `agent_id:old_state:done`
-5. Event router picks up the notification
-6. Event router delivers to team-lead mailbox (PG + native inbox)
-7. Event router writes event to runtime event log
-8. Inbox watcher detects unread message, ensures team-lead is spawned
+1. **The binary** — `install.sh`, then `genie update`. Verified offline from the release's own signed delivery evidence
+   before extraction; `gh attestation verify` is an advisory cross-check whose `unavailable` failures never block.
+2. **The skills** — the pinned skills.sh CLI run over the **local delivered tree** under `$GENIE_HOME/skills`, never a
+   GitHub ref. Retirement of what this release drops runs **before** the install pass, backup-first and EXDEV-safe.
+   The record at `$GENIE_HOME/skills-install.json` is `genie uninstall`'s removal authority and `genie doctor`'s
+   comparison basis.
+3. **The Orca plugin** — published as a tree-only git ref whose root *is* `plugins/genie`, because Orca's loader rejects
+   any install tree containing a symlink and the repo root has `docs -> .docs-vendor/genie`.
 
-## Directory Structure
+Post-delivery convergence is an **argv-only handoff**: `genie update` invokes the freshly installed binary as
+`update --post-delivery-converge`. Pre-contract binaries reject that at commander parse time, which is the whole point —
+an environment-variable-only signal was ignored by an old target once, and it performed a second full update.
 
-```
-src/
-├── genie.ts                    CLI entry point (commander)
-├── genie-commands/             Setup/utility commands (setup, doctor, update)
-├── term-commands/              CLI command handlers
-│   ├── agent/                  genie agent namespace (spawn, stop, resume, ...)
-│   ├── serve.ts                genie serve — infrastructure owner
-│   ├── daemon.ts               genie daemon — deprecated alias for serve
-│   ├── team.ts                 genie team — create, hire, fire, list, disband
-│   ├── task.ts                 genie task — CRUD + board + project + releases
-│   ├── agents.ts               Legacy top-level agent commands
-│   └── ...                     Other command files
-├── lib/                        Core modules
-│   ├── db.ts                   PostgreSQL connection + pgserve management
-│   ├── agent-registry.ts       Agent identity CRUD (PG-backed)
-│   ├── scheduler-daemon.ts     Trigger claiming + heartbeats + orphan recon
-│   ├── event-router.ts         PG NOTIFY → mailbox/event-log routing
-│   ├── inbox-watcher.ts        Native inbox polling + auto-spawn
-│   ├── service-registry.ts     In-memory PID registry for shutdown
-│   ├── runtime-events.ts       Structured event log (PG)
-│   ├── session-capture.ts      JSONL ingestion core (filewatch + backfill)
-│   ├── session-filewatch.ts    fs.watch on ~/.claude/projects/
-│   ├── session-backfill.ts     Lazy historical JSONL ingestion
-│   ├── team-manager.ts         Team configuration management
-│   ├── mailbox.ts              Message delivery (disk + tmux injection)
-│   ├── tmux.ts                 tmux pane/session helpers
-│   ├── orchestrator/           Session monitoring + state detection
-│   ├── providers/              Provider implementations (claude, codex, sdk, pty)
-│   │   └── registry.ts         Auto-registering provider lookup
-│   └── ...                     Other modules
-├── services/                   External service integrations
-│   ├── omni-bridge.ts          NATS → agent session routing (WhatsApp, etc.)
-│   ├── executor.ts             IExecutor interface for Omni bridge
-│   └── executors/              Executor implementations (claude-code, claude-sdk)
-├── tui/                        Terminal UI (OpenTUI-based) — a skin over the CLI, not an alternate control plane. Every action shows its `genie …` command before executing. See [`SPAWN-TEAM-RESOLUTION.md`](SPAWN-TEAM-RESOLUTION.md).
-│   ├── app.tsx                 TUI application root
-│   └── ...                     TUI components
-├── types/                      Shared types (genie-config Zod schema)
-└── skills/                     Skill prompt files
+## Key design decisions
 
-~/.genie/                       Global state directory (GENIE_HOME)
-├── serve.pid                   Canonical PID file for genie serve
-├── scheduler.pid               Legacy PID file (backward compat)
-├── pgserve.port                Port lockfile for pgserve
-├── data/pgserve/               PostgreSQL data directory
-├── logs/scheduler.log          Structured JSON scheduler log
-├── workers.json                Global worker registry (legacy)
-├── teams/                      Team configuration files
-├── sessions.json               Global session store
-└── prompts/                    Generated system prompts for teams
-
-<repo>/.genie/                  Per-repo state (shared across worktrees)
-├── state/<slug>.json           Wish state files
-├── mailbox/<worker>.json       Worker mailboxes
-├── chat/<team>.jsonl           Team chat logs
-└── wishes/                     Wish definitions
-```
-
-## Provider System
-
-The provider system abstracts how agents are launched. Each provider implements the `ExecutorProvider` interface and is auto-registered at import time.
-
-```
-Provider Registry (src/lib/providers/registry.ts)
-│
-├── claude      ClaudeCodeProvider   — Claude Code CLI in a tmux pane
-├── claude-sdk  ClaudeSdkProvider    — Claude SDK (streaming API, no CLI)
-├── codex       CodexProvider        — OpenAI Codex CLI
-└── app-pty     AppPtyProvider       — Generic PTY process (any CLI tool)
-```
-
-| Provider | Source | Description |
-|----------|--------|-------------|
-| **claude** | `src/lib/providers/claude-code.ts` | Default. Builds a Claude Code command with flags (`--model`, `--allowedTools`, `--continue`, etc.), launches in tmux pane, injects system prompt. |
-| **claude-sdk** | `src/lib/providers/claude-sdk.ts` | Programmatic Claude API. Uses streaming with tool-use support. SDK events, permissions, and stream handling are split into dedicated modules (`claude-sdk-events.ts`, `claude-sdk-permissions.ts`, `claude-sdk-stream.ts`). |
-| **codex** | `src/lib/providers/codex.ts` | OpenAI Codex CLI. Builds command with Codex-specific flags. |
-| **app-pty** | `src/lib/providers/app-pty.ts` | Generic PTY wrapper for arbitrary CLI tools. Used for non-AI processes that need tmux pane management. |
-
-### Provider Selection
-
-Provider is determined by the `model` field in agent templates. The `executor-types.ts` module defines the `ExecutorProvider` interface that all providers implement: `name`, `buildCommand()`, `detectState()`, and lifecycle hooks.
-
-## Orchestrator
-
-The orchestrator module (`src/lib/orchestrator/`) monitors and controls Claude Code sessions running in tmux panes.
-
-| Module | Description |
-|--------|-------------|
-| `state-detector.ts` | Analyzes terminal output to determine agent state (`idle`, `working`, `permission`, `question`, `error`, `complete`, `tool_use`). Uses regex pattern matching with confidence scoring (0–1). |
-| `patterns.ts` | Pattern library for detecting permission prompts, errors, idle states, working indicators, and completion markers from Claude Code terminal output. |
-
-The state detector reads the last N lines of a pane's output (default 50) and matches against the pattern library. This is used by the auto-approve engine, idle timeout detection, and the `genie agent answer` command.
-
-## Key Design Decisions
-
-1. **pgserve as single source of truth** — All agent state, events, tasks, and sessions are in PostgreSQL. File-based state (`workers.json`, `mailbox/`) exists for backward compatibility and edge cases (mailbox delivery when PG is unavailable).
-
-2. **Eternal agent tmux server** — `tmux -L genie` is never killed by `genie serve stop`. Agent sessions survive serve restarts. Only the TUI session (`tmux -L genie-tui`) is owned by serve.
-
-3. **Hook system as event bus** — Claude Code's hook protocol is leveraged to emit runtime events, enforce branch protection, inject identity, and auto-spawn teammates. All hooks have a 15s hard timeout.
-
-4. **Lease-based scheduling** — Triggers use `SELECT FOR UPDATE SKIP LOCKED` for distributed claiming. Idempotency keys prevent double-fire. Jitter is applied when >3 triggers fire simultaneously to prevent thundering herd.
-
-5. **Session capture is lazy** — Live filewatch has priority. Backfill processes historical files in background, yielding to live work. Offsets are committed in the same PG transaction as content.
+- **Documents in git, state in SQLite.** A human reviews a plan as a diff; a machine reads the ready set as a query.
+  Neither is asked to do the other's job.
+- **Reviewer ≠ engineer.** The review verdict is independent evidence. A chat verdict never advances state — the
+  orchestrator persists it into `WISH.md` and is the only actor that runs `task done`.
+- **Nothing runs inside the agent's event loop.** No hooks, no MCP server, no injected session context. A Genie release
+  cannot block, rewrite, or delay a tool call.
+- **Aggregate the report, keep the list.** Every doctor and installer surface prints one line per check and carries the
+  full list under `--json` or in the record. Per-item output has twice hidden a real failure in noise.
+- **Backup before you remove, and prove before you delete.** Every removal path — skills retirement, legacy leftovers,
+  `init`'s config rewrites, `uninstall` — copies first, acts only on what it can prove it owns, and reports what it
+  preserved.

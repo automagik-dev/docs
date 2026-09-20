@@ -1,131 +1,135 @@
 ---
 title: "Boards"
 sidebarTitle: "Boards"
-description: "Kanban-style pipeline boards for visualizing and managing task flow."
+description: "The kanban view Genie derives by query — lanes, cards, and where the state actually lives."
 ---
 
-# Boards
-
-A **board** is a Kanban-style pipeline that organizes tasks into columns. Each column represents a stage in a workflow, with optional gates that control when tasks can advance.
-
-## How Boards Work
-
-Boards replace the legacy `task_types` system with richer, project-scoped pipeline management. Every board has an ordered set of columns, and tasks move through them left-to-right.
-
-```text
-┌─────────┐  ┌───────┐  ┌───────────┐  ┌──────┐  ┌───────┐  ┌────────┐  ┌────┐  ┌──────┐
-│ Triage  │→│ Draft │→│ Brainstorm│→│ Wish │→│ Build │→│ Review │→│ QA │→│ Ship │
-└─────────┘  └───────┘  └───────────┘  └──────┘  └───────┘  └────────┘  └────┘  └──────┘
-  agent       human      human+agent    human     agent       human      agent    human
-```
-
-## Columns
-
-Each column has:
-
-| Property | Description |
-|----------|-------------|
-| `name` | Machine-readable identifier (e.g., `build`) |
-| `label` | Human-readable display name (e.g., `Build`) |
-| `gate` | Who can advance tasks: `human`, `agent`, or `human+agent` |
-| `action` | Skill invoked when a task enters this column (e.g., `/work`) |
-| `auto_advance` | Whether tasks auto-advance when the gate clears |
-| `roles` | Which roles can move tasks into this column |
-| `color` | Display color (hex code) |
-| `position` | Column ordering (0-indexed) |
-
-## Column Gates
-
-Gates control task flow. They define who can move a task into a column:
-
-| Gate | Meaning |
-|------|---------|
-| `human` | Requires human approval to advance |
-| `agent` | An agent can auto-advance the task |
-| `human+agent` | Either a human or an agent can advance |
-
-When `auto_advance` is `true` and the gate is `agent`, the task moves forward automatically when the linked skill completes. For example, a task in `build` (gate: `agent`, action: `/work`) will auto-advance to `review` when the work skill finishes.
-
-## Board Templates
-
-Templates are reusable board blueprints. Genie ships five built-in templates:
-
-| Template | Stages | Use case |
-|----------|--------|----------|
-| **software** | triage, draft, brainstorm, wish, build, review, qa, ship | Full delivery pipeline |
-| **sales** | lead, qualified, proposal, negotiation, closed-won, closed-lost | Sales pipeline |
-| **hiring** | sourcing, screening, interview, offer, hired | Recruitment pipeline |
-| **ops** | identified, planning, in-progress, done | Operations workflow |
-| **bug** | triage, draft, build, review, qa, ship | Bug fix pipeline |
-
-Create a board from a template (see the [Board CLI reference](/genie/cli/boards) for all commands):
+A **board** is a kanban view over the cards in `.genie/genie.db`. It is **derived by query**: there is no stored view
+state, no cached layout, and nothing to refresh. Every invocation re-groups the live rows and exits.
 
 ```bash
-genie board create "Sprint 12" --from software
+genie board                      # every card in this repository
+genie board --board <ref>        # scope to one board, by id or name
+genie board --wish <slug>        # scope to one wish
+genie board --json               # the same read, as JSON
 ```
 
-## Projects and Boards
+<Note>
+  `--board` and `--wish` fail closed on an empty value. `--board ""` — an unset shell variable — is refused rather than
+  silently widening the read to every card in the repository.
+</Note>
 
-Boards are scoped to projects. A project can have multiple boards (e.g., one for features, one for bugs). When you set an active board with `genie board use`, that board becomes the default for task operations in the current repo.
+## Two Renders
+
+Which render you get depends on the scope, not on a setting:
+
+| Scope | Render |
+|-------|--------|
+| Unscoped, or a board that defines no lanes | Status columns: **Ready**, **In Progress**, **Done** |
+| `--board <ref>` where that board defines lanes | The board's own lanes, in their declared order |
+
+In the status render, **blocked is a badge, never a column**. A blocked card folds into Ready carrying `⛔`, so you see
+it next to the work it is holding up instead of in a siding of its own. Cards also carry liveness and comment-count
+badges, so a claimed card that stopped heartbeating is visible at a glance.
+
+## Lanes
+
+A board created without `--lanes` gets the six lifecycle lanes. A lane may declare the skill that carries a card
+onward:
+
+| Lane | Action |
+|------|--------|
+| Idea | `/brainstorm` |
+| Brainstorm | `/wish` |
+| Wish | `/work` |
+| Work | `/review` |
+| Review | — |
+| Done | — |
+
+A card's rendered lane is the lane stored on it; a card with no lane falls into the board's first lane rather than
+disappearing from the view.
 
 ```bash
-# Set active board for this repo
-genie board use "Sprint 12"
-
-# Tasks now default to this board
-genie task create "Add auth" --stage build
+genie board create "Sprint 12"                     # the six lifecycle lanes
+genie board create "Bugs" --lanes triage,fix,ship  # or your own
+genie board list                                   # boards with lane and card counts
+genie board list --json
 ```
 
-Global boards (no project scope) are also supported for cross-project workflows.
+## The Roadmap Board
 
-## Board Lifecycle
+`genie idea <text...>` captures a one-line idea into the **roadmap** board's Idea lane, creating that board if it does
+not exist yet. It is the cheapest way to get something out of your head and onto a lane that the lifecycle already
+knows how to move.
+
+## Moving Cards
 
 ```bash
-# Create from template
-genie board create "Q2 Sprint" --from software --project myapp
-
-# View columns
-genie board columns "Q2 Sprint"
-
-# Set as active
-genie board use "Q2 Sprint"
-
-# Export for sharing
-genie board export "Q2 Sprint" --output q2-sprint.json
-
-# Import on another machine
-genie board import --json q2-sprint.json
+genie task move <id> --to <lane>                   # the flag is --to, never --lane
+genie task adopt <id> --board <ref> --lane <name>  # place a laneless, pre-board card once
 ```
+
+The target lane must be one the card's board defines. `adopt` exists for cards created before the board did: it is a
+one-time placement, not a second way to move a card.
+
+<Note>
+  On a lane-defining board, `genie board --board <ref> --json` also reconciles each card's lane from its wish's
+  `WISH.md` status cell before emitting — the one write a board read ever performs. It is best-effort: a card whose
+  wish cannot be read keeps the lane it already had, because one unreadable document must never suppress the board.
+</Note>
+
+## The JSON Contract
+
+`--json` is the machine surface, and its laneless shape is frozen: cards grouped by the four raw statuses —
+`blocked`, `ready`, `in_progress`, `done` — regardless of the three columns the human render collapses them into.
+
+A scoped, lane-defining board emits a richer aggregate instead: the lanes, and every card, dependency, and event, all
+read inside **one** SQLite transaction, so the lane definition the cards are grouped into is the one that was stored
+alongside them. The response carries a size budget; when a board is large, embedded card history is thinned — with the
+real counts kept truthful — and a note on stderr says so before anything silently disappears.
 
 ## Relationship to Tasks
 
-Tasks link to boards via `board_id` and track their current column via `column_id`. When you move a task (`genie task move`), the column_id and stage update together. The board's column pipeline validates that the target stage exists.
+A card is a task row. It carries its board, its lane, its wish slug and group, its dependency edges, its claim, and
+its stage log. `genie task status <id>` shows one card's detail; the board is just the grouped view of many.
 
-## Database Storage
+Dependency edges are what make the ready set real: a card is `ready` when nothing it depends on is still open, which
+is exactly what `genie context --wish <slug>` hands to a spawn.
 
-Boards are stored in PostgreSQL:
+## Where Board State Lives
 
-| Table | Purpose |
-|-------|---------|
-| `boards` | Board metadata and column definitions (JSONB) |
-| `board_templates` | Reusable board blueprints |
-| `tasks.board_id` | Links a task to its board |
-| `tasks.column_id` | Tracks which column the task is in |
+| Location | What it holds | Tracked in git |
+|----------|---------------|----------------|
+| `<repo>/.genie/genie.db` | Cards, lanes, dependency edges, events — SQLite in WAL mode | No |
+| `<repo>/.genie/roadmap.json` | The **canonical** board snapshot | Yes |
+
+The database is per repository and shared by every linked worktree, resolved via `git rev-parse --git-common-dir`, so
+a card created in one worktree is instantly visible in another. `genie task sync` three-way reconciles the database
+against `roadmap.json`, and the git hooks run it on pull, merge, rewrite, and pre-commit — which is how the board
+travels with the branch instead of living on one machine.
+
+<Warning>
+  When Orca owns the lifecycle authority, `genie board` exits **2** with one fixed message naming the remedy,
+  `genie setup --orchestration-mode standalone`. Genie keeps no fallback database in either direction.
+</Warning>
 
 ## Best Practices
 
 <AccordionGroup>
-  <Accordion title="Use templates as starting points">
-    Start with a built-in template and customize columns for your workflow. The `software` template maps directly to Genie skills.
+  <Accordion title="Let the lanes match the lifecycle">
+    The default six lanes mirror brainstorm → wish → work → review. A board whose lanes disagree with the loop makes
+    every card need a manual move.
   </Accordion>
-  <Accordion title="Keep column counts manageable">
-    More than 8-10 columns creates cognitive overhead. If you need more, consider splitting into multiple boards.
+  <Accordion title="Scope the read, don't scan the board">
+    `--wish <slug>` answers "what is left on this wish" far better than reading every card. `--board` and `--wish`
+    compose.
   </Accordion>
-  <Accordion title="Set gate types intentionally">
-    Use `agent` gates for stages that can run autonomously (build, qa). Use `human` gates for stages that need judgment (review, ship).
+  <Accordion title="Treat roadmap.json as the source of truth">
+    It is the tracked file, so it is what review, merge, and history see. If the database and the snapshot disagree
+    after a pull, run `genie task sync` rather than hand-editing either one.
   </Accordion>
-  <Accordion title="One active board per repo">
-    Use `genie board use` to set the default. This simplifies task operations by removing the need to specify `--board` on every command.
+  <Accordion title="Use the badge, not a column, for blocked work">
+    A block is a property of a card, not a stage. Record why it is blocked on the card so the badge means something to
+    whoever reads the board next.
   </Accordion>
 </AccordionGroup>
-

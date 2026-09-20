@@ -2,96 +2,185 @@
 title: "Onboarding"
 sidebarTitle: "Onboarding"
 icon: "rocket"
-description: "The first 15 minutes — install, smoke test, first wish, first PR, first monitor."
+description: "The first 15 minutes — install, verify, scaffold, describe the work, watch it, ship it."
 ---
 
-<Note>
-  This is the 15-minute walkthrough. If you want the 60-second smoke test, jump to the [Quickstart](/genie/quickstart). If you want to be narrated through step-by-step inside your agent, run [`/wizard`](/genie/skills/wizard) — same flow, inline.
-</Note>
+The 15-minute tour. You install the CLI, confirm the host is healthy, scaffold one repository, describe one piece of
+work to the agent you already use, watch the board, and merge the pull request that comes back.
 
-The first 15 minutes with Genie, end to end. You'll install the CLI, smoke-test it, run your first wish, open your first PR, and check your first monitor.
+<Note>
+  For the five-minute version, read the [Quickstart](/genie/quickstart). Genie is a planning-and-execution layer for AI
+  coding agents: skills, plain-markdown documents in git, and a single per-repo SQLite file. There is **no daemon** —
+  every command opens the database, runs one transaction, and exits.
+</Note>
 
 <Steps>
   <Step title="Install the CLI">
-    Run the bootstrap script. See [Installation](/genie/installation) for manual / Homebrew / source paths.
+    Run the bootstrap script. [Installation](/genie/installation) covers the npm, Bun, and from-source routes.
 
     ```bash
     curl -fsSL https://raw.githubusercontent.com/automagik-dev/genie/main/install.sh | bash
     ```
 
-    Verify:
+    The release verifies **offline, from its own signed delivery evidence** — a signed descriptor whose digest is bound
+    to the downloaded tarball before anything is extracted, checked against a trust root embedded in the binary. No
+    GitHub credential is needed, and none is used. A `gh attestation verify` cross-check runs on top only when a usable
+    `gh` is present; a host without one prints one line saying the cross-check was unavailable and proceeds. A `gh`
+    that ran and says the artifact does not verify aborts the install.
 
+    <Note>
+      Stable is declared for **Linux and macOS**, and both run in the release gate. Windows is unsupported — WSL2 works
+      in practice but is not part of the tested matrix.
+    </Note>
+
+    See [Verifying installs](/genie/security/verifying-installs) if you want to reproduce the verification yourself.
+  </Step>
+
+  <Step title="Verify the host">
     ```bash
     genie doctor
     ```
+
+    Doctor is a diagnostic, not a repair tool. It reports the resolved binary and its version, whether the CLI is on
+    your `PATH`, which lifecycle authority owns your state (`standalone` or `orca`), whether git is present and you
+    are inside a repository, the per-repo `.genie/genie.db` and its schema version, one `skills:` line per agent skill
+    home, and the resolved repair budgets.
+
+    ```text
+    Genie Doctor
+    ────────────────────────────────
+      ✓ genie version              v<version>
+      ✓ genie on PATH
+      ✓ orchestration authority    mode=standalone
+      ✓ inside a git repository
+      ✓ genie.db                   .genie/genie.db (schema v<n>)
+      ✓ skills: claude    19/19 @ v<version>
+      ✓ skills: agents    19/19 @ v<version>
+      ✓ skills: goose     not detected
+      ✓ budgets: maxEscalationsPerGroup=<n> (default)
+    ```
+
+    `not detected` is a pass, not a failure: it means that agent's config home does not exist on this machine, and
+    Genie never invents one.
+
+    <Warning>
+      Doctor is a **read-only observer** of the skills channel. It compares the install record against what is on disk
+      and reports the drift — it never installs, retires, or repairs anything on that surface, **not even under
+      `--fix`**. `genie update` owns every mutation there, so `genie update` is the remedy every warning names.
+    </Warning>
   </Step>
 
-  <Step title="Smoke test it">
-    Open your agent in a project directory and run:
+  <Step title="Scaffold the repository">
+    From inside the repository you want to work in:
 
     ```bash
-    genie
+    genie init
     ```
 
-    Genie scaffolds `.genie/`, `AGENTS.md`, and git hooks on a fresh repo. Confirmation output should mention the scaffolding it performed. See [Quickstart](/genie/quickstart) for the full expected terminal output.
-  </Step>
-
-  <Step title="Run the wizard">
-    [`/wizard`](/genie/skills/wizard) is the guided tour through your first Genie session — five phases from environment check to your first merged PR. It calls the right loop skill at each step, so you get to see the whole loop in action without memorizing skill names first.
+    It scaffolds the per-repo state:
 
     ```text
-    /wizard
+    .genie/
+      wishes/<slug>/WISH.md        → the plan for work bigger than one task (git-tracked)
+      brainstorms/<slug>/DESIGN.md → the reviewed design behind a wish (git-tracked)
+      INDEX.md                     → the hand-written index (git-tracked)
+      roadmap.json                 → the canonical board snapshot (git-tracked)
+      genie.db                     → tasks, lanes, dependency edges (SQLite, gitignored)
     ```
 
-    If you close your agent halfway through, the next `/wizard` invocation picks up where you left off.
+    `init` also retires, **backup-first**, only the historical MCP registrations Genie can prove it owns: a
+    marker-owned block in `.codex/config.toml`, and in `.mcp.json` only a `genie` server whose command is a genie
+    binary with args exactly `["mcp"]`. Every other server and every other key is preserved byte-for-byte, and a
+    symlinked file is skipped rather than rewritten.
+
+    <Note>
+      All linked worktrees of one repository **share** `genie.db`, resolved through `git rev-parse --git-common-dir`.
+      A card created in one worktree is instantly visible in another — there is no sync step. The git-tracked
+      `roadmap.json` is the canonical snapshot; `genie task sync` three-way reconciles the database against it, and the
+      git hooks run it on pull, merge, rewrite, and pre-commit.
+    </Note>
   </Step>
 
-  <Step title="Your first wish">
-    When the wizard asks "What's the first thing you'd like to build or fix?", pick something concrete. A good first wish is small, self-contained, and observable.
+  <Step title="Open your agent and describe the work">
+    The skills are already in your agent's own global skill home — the skills.sh channel delivered them on install and
+    refreshes them on every `genie update`. Nothing to paste, nothing to register — Genie installs no agent profiles
+    and no runtime hooks. In Claude Code a skill is a slash command; in other runtimes you invoke it by name or in
+    plain language.
+
+    For **one decided task**, say what you want in one sentence:
 
     ```text
-    Add a dark mode toggle to the settings page
+    /wish Add a dark mode toggle to the settings page
     ```
 
-    The wizard routes you through [`/brainstorm`](/genie/skills/brainstorm) (if the idea needs sharpening) and then [`/wish`](/genie/skills/wish). One decided task comes back as a merge-ready PR; work that is bigger than one task becomes a `WISH.md` instead — scope, acceptance criteria, execution groups.
+    [`/wish`](/genie/skills/wish) then delivers that task end to end with no plan at all: it admits the task, builds it
+    in its own worktree, runs the gate, hands the commit to an independent reviewer, and opens a merge-ready PR. Work
+    that turns out to be bigger than one task becomes a `WISH.md` — scope, acceptance criteria, execution groups — for
+    [`/work`](/genie/skills/work) to execute.
+
+    For something still vague, start a stage earlier:
+
+    ```text
+    /brainstorm A way to notify users when a long job finishes
+    ```
+
+    [`/brainstorm`](/genie/skills/brainstorm) settles scope and success criteria with you and produces a design that
+    goes through its own review before any wish is written.
+
+    <Tip>
+      The full lifecycle is brainstorm → design review → wish → plan review → work → implementation review. See
+      [The Genie Loop](/genie/skills/loop-overview) for the whole picture.
+    </Tip>
+  </Step>
+
+  <Step title="Watch it">
+    ```bash
+    genie board                 # live kanban, derived by query
+    genie task status <id>      # one card: detail, dependencies, stage log
+    ```
+
+    `genie board` stores no view state — every render is a fresh query against `.genie/genie.db`, so there is nothing
+    to refresh and nothing to get stale. Narrow it with `--board`, `--wish`, or take the whole thing as `--json`.
+
+    `genie task status <id>` shows one card's detail, its dependency edges, its declared assignment, and its stage log
+    — the handoff messages and gate pointers written while the work ran.
   </Step>
 
   <Step title="Review and ship">
-    [`/review`](/genie/skills/review) gates the wish. A **SHIP** verdict means the plan is clear enough to execute. Then [`/work`](/genie/skills/work) dispatches agents per execution group and opens a pull request targeting `dev` when everything lands.
+    Review is done by a **different subagent** from the one that wrote the code, and it returns one of three verdicts:
 
-    If review returns **FIX-FIRST**, [`/fix`](/genie/skills/fix) closes the gaps automatically — max two loops before escalation.
-  </Step>
+    | Verdict | Meaning | What happens next |
+    |---------|---------|-------------------|
+    | `SHIP` | The work meets the criteria with evidence | The orchestrator records the evidence and opens the PR |
+    | `FIX-FIRST` | Specific, bounded gaps block acceptance | [`/fix`](/genie/skills/fix) closes them, then re-review |
+    | `BLOCKED` | The work cannot proceed without a decision | It comes back to you |
 
-  <Step title="Monitor what you shipped">
-    Once the PR is open, keep an eye on progress:
+    <Warning>
+      A chat verdict does not advance anything. The **orchestrator** persists the review evidence into `WISH.md` and is
+      the only actor that runs `genie task done`. If you read SHIP in a transcript but the wish still says
+      `IN_PROGRESS`, the evidence was never written — that is the state that is true.
+    </Warning>
 
-    ```bash
-    genie status <wish-slug>            # progress per group
-    genie events list --since 10m        # recent activity across all agents
-    ```
+    The durable wish statuses are `DRAFT`, `FIX-FIRST`, `APPROVED`, `IN_PROGRESS`, `BLOCKED`, and `SHIPPED`. They live
+    in `WISH.md`, in git, so you review the plan's history the same way you review code.
 
-    For long-running work or multiple parallel wishes, [`/pm`](/genie/skills/pm) is the playbook — copilot, autopilot, and pair modes for orchestrating a backlog.
+    The last step is yours: agents open the pull request, **you** merge it.
   </Step>
 </Steps>
-
-## If something breaks
-
-<CardGroup cols={2}>
-  <Card title="Gate flagged FIX-FIRST" icon="wrench" href="/genie/skills/fix">
-    The fix skill applies severity-tagged gap lists and re-reviews automatically. Two loops max.
-  </Card>
-  <Card title="Agent went silent" icon="radio" href="/genie/cli/agents">
-    `genie ls` shows agent status. `genie kill <name>` and `genie resume <name>` handle stuck or crashed agents.
-  </Card>
-</CardGroup>
 
 ## What's next
 
 <CardGroup cols={2}>
   <Card title="The Genie Loop" icon="arrows-rotate" href="/genie/skills/loop-overview">
-    The canonical plan → review → work → ship → monitor lifecycle.
+    The canonical brainstorm → wish → work → review lifecycle, and the skill behind each phase.
   </Card>
-  <Card title="Core concepts" icon="book" href="/genie/concepts/wishes">
-    Understand wishes, agents, teams, and skills in depth.
+  <Card title="Wishes" icon="scroll" href="/genie/concepts/wishes">
+    What a `WISH.md` contains, how execution groups work, and where the state lives.
+  </Card>
+  <Card title="Skills" icon="wand-magic-sparkles" href="/genie/concepts/skills">
+    The 19 shipped skills, how they reach your agent, and how to write your own.
+  </Card>
+  <Card title="The CLI" icon="terminal" href="/genie/cli/infrastructure">
+    The 16 top-level commands — init, setup, config, context, doctor, mikro, orca, update, uninstall, and the rest.
   </Card>
 </CardGroup>

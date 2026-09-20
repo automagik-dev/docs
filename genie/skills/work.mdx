@@ -24,27 +24,28 @@ Orchestrate execution of an approved wish. The orchestrator never executes direc
 5. **Local review** — run `/review` per group against acceptance criteria. On FIX-FIRST, dispatch fix subagent (max 2 loops).
 6. **Quality review** — dispatch review subagent for quality pass (security, maintainability, perf).
 7. **Validate** — run the group validation command, record evidence.
-8. **Signal completion** — notify the leader via `genie send`.
+8. **Hand back** — the worker posts exactly one `genie task report` on the card.
 9. **Repeat** until all groups done.
 10. **Handoff** — `All work tasks complete. Run /review.`
 
 ## Dispatch
 
-All dispatch uses the `genie spawn` command:
+All dispatch goes through the runtime's own subagent surface. Genie starts no
+processes and opens no panes of its own:
 
 | Need | Method |
 |------|--------|
-| Implementation task | `genie spawn engineer` |
-| Review task | `genie spawn reviewer` (never same agent as engineer) |
-| Fix task | `genie spawn fixer` (separate from reviewer) |
+| Implementation task | One worker subagent per independent execution group |
+| Review task | A different subagent running `/review` — never the one that wrote the code |
+| Fix task | A fixer subagent running `/fix`, separate from the reviewer |
 | Quick validation | `Bash` tool directly — no subagent needed |
 
 ## State Management
 
-- **Agents signal** completion via `genie send` to the leader.
-- **Leader tracks** state via `genie status <slug>` and marks groups complete via `genie done <ref>`.
-- Agents do NOT call `genie done` — that is the leader's responsibility.
-- If a group gets stuck, the leader can use `genie reset <ref>` to retry.
+- **Workers hand back** on the card: one `genie task report <id> --worker <name> -- '<outcome>; <validation> → <result>'` per claim.
+- **The coordinator tracks** state with `genie task list --wish <slug>` or `genie board --wish <slug>`, and completes a group with `genie task done <id>`.
+- Workers do NOT call `genie task done` — that is the coordinator's responsibility.
+- A stale claim is reclaimed by posting `reclaim: from <previous>, idle <duration> — <reason>` as a comment before the new `genie task checkout`.
 
 ## Escalation
 
@@ -57,16 +58,21 @@ When a subagent fails or fix loop limit (2) is exceeded:
 
 ## Task Lifecycle Integration
 
-When PostgreSQL tasks exist, `/work` integrates with the task system at each step:
+Task state lives in the per-repo SQLite database `.genie/genie.db`. When a card
+exists for the work, `/work` drives it at each step:
 
 | Event | Command |
 |-------|---------|
-| Claim task before starting | `genie task checkout #<seq>` |
-| Log progress during execution | `genie task comment #<seq> "Building group N..."` |
-| Move task on group completion | `genie task move #<seq> --to review --comment "Group N complete"` |
-| Mark parent task done | `genie task done #<parent-seq> --comment "All groups shipped"` |
+| Record the dispatch | `genie task comment <id> --worker orchestrator -- 'dispatch: <role> — <wave>/<group>'` |
+| Claim the card before mutating | `genie task checkout <id> --worker <name>` |
+| Move the card to another lane | `genie task move <id> --to review` |
+| Hand the group back | `genie task report <id> --worker <name> -- '<outcome>; <validation> → <result>'` |
+| Relay the review verdict | `genie task comment <id> --worker orchestrator -- 'review: SHIP — validation: <command> → pass'` |
+| Complete the group | `genie task done <id>` |
 
-Task integration is graceful — if no PG task exists, the work flow proceeds without task commands.
+Task integration is graceful — with no card, the flow proceeds from WISH.md
+alone. Under `orchestration.mode = orca` the local writes are refused by design
+and the same moments are posted through the Orca surface.
 
 ## Rules
 
