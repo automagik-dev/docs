@@ -28,7 +28,8 @@ always "produce a new build", never "resume this one".
 A dev release that failed after its tag was pushed **cannot be re-run**. `version.yml` allocates a fresh build number on
 every run and only calls `release.yml` after its own atomic push of the new `[auto-version]` child succeeds. Once dev's
 tip already *is* that child, every re-run of the Version run rebuilds a sibling, detects the pinned next tag, and skips
-the Release job. `release.yml`'s manual dispatch offers only `channel=stable`, and `release-guard.sh` rejects a human
+the Release job — the run's audit names it `release-race.next-tag-pin-skipped.detected` (`audit-next-tag.yml`).
+`release.yml`'s manual dispatch offers only `channel=stable`, and `release-guard.sh` rejects a human
 dev dispatch.
 
 So: **land any commit on dev through a normal pull request.** The next Version run ships the same tree under the next
