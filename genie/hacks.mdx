@@ -23,10 +23,10 @@ These aren't theoretical. They're patterns from real Genie users solving real pr
   <Card title="Teams & coordination" icon="users" href="#hack-3-pipeline-parallelization">
     Multi-agent speed and org-scale patterns
   </Card>
-  <Card title="Skills & automation" icon="wand-magic-sparkles" href="#hack-5-overnight-batch-execution">
+  <Card title="Skills & automation" icon="wand-magic-sparkles" href="#hack-5-custom-skill-for-repeated-workflows">
     Batch runs and custom workflows
   </Card>
-  <Card title="Hooks & integration" icon="plug" href="#hack-7-auto-spawn-on-wish-creation">
+  <Card title="Hooks & integration" icon="plug" href="#hack-6-auto-spawn-on-wish-creation">
     Event-driven automation and external tools
   </Card>
 </CardGroup>
@@ -120,7 +120,7 @@ genie status my-feature
 
 **Problem:** You have multiple wishes in flight across different parts of the codebase. Teams step on each other, cause merge conflicts, and duplicate work.
 
-**Solution:** Use separate worktrees per team — Genie does this automatically with `genie team create`. Each team gets an isolated git worktree branching from `dev`, so they can't interfere with each other. Coordinate merges through the `/dream` orchestrator which handles dependency ordering.
+**Solution:** Use separate worktrees per team — Genie does this automatically with `genie team create`. Each team gets an isolated git worktree branching from `dev`, so they can't interfere with each other.
 
 ```bash
 # Each team gets its own worktree — zero conflicts during development
@@ -132,64 +132,17 @@ genie team create ui-team --repo . --wish ui-refresh
 # ~/.genie/worktrees/myapp/auth-team/  → branch: team/auth-team
 # ~/.genie/worktrees/myapp/api-team/   → branch: team/api-team
 # ~/.genie/worktrees/myapp/ui-team/    → branch: team/ui-team
-
-# When wishes are SHIP-ready, use /dream to merge in dependency order
-# /dream picks SHIP-ready wishes, resolves ordering, merges to dev sequentially
 ```
 
-**Benefit:** Zero merge conflicts during development. Each team operates independently. The `/dream` orchestrator handles merge ordering so dependent wishes merge in the right sequence.
+**Benefit:** Zero merge conflicts during development. Each team operates independently.
 
-**When to use:** When you have 2+ wishes that touch different parts of the codebase. Essential for teams running overnight batch execution where merge order matters.
+**When to use:** When you have 2+ wishes that touch different parts of the codebase.
 
 ---
 
 ## Skills & automation
 
-### Hack 5: Overnight Batch Execution
-
-**Problem:** You have 5 approved wishes queued up. Running them one-by-one during work hours wastes your time monitoring agents.
-
-**Solution:** Use the `/dream` skill to batch-execute SHIP-ready wishes overnight. Dream picks wishes from your brainstorm backlog, builds a dependency-ordered plan, spawns parallel agents, reviews PRs, and produces a wake-up report.
-
-```bash
-# Queue wishes during the day
-/brainstorm    # Explore ideas
-/wish          # Crystallize into structured plans
-/review        # Get SHIP approval on plans
-
-# At end of day, kick off overnight batch
-/dream
-
-# Dream shows you the execution plan:
-# DREAM.md — Execution Plan
-# ┌─────────┬──────────────────┬─────────────┐
-# │ Order   │ Wish             │ Dependencies│
-# ├─────────┼──────────────────┼─────────────┤
-# │ 1       │ auth-overhaul    │ none        │
-# │ 1       │ api-v2           │ none        │
-# │ 2       │ ui-refresh       │ api-v2      │
-# │ 3       │ integration-test │ all         │
-# └─────────┴──────────────────┴─────────────┘
-# Confirm? [y/N]
-
-# Wake up to DREAM-REPORT.md:
-# ✅ auth-overhaul  — PR #142, merged to dev, QA passed
-# ✅ api-v2         — PR #143, merged to dev, QA passed
-# ⚠️  ui-refresh     — PR #144, FIX-FIRST (2 issues), fix loop exhausted
-# ✅ integration-test — PR #145, merged to dev, QA passed
-```
-
-**Benefit:** Wake up to completed PRs instead of starting work from scratch. A typical overnight run ships 3-5 wishes while you sleep.
-
-**When to use:** When you have 2+ SHIP-ready wishes in your brainstorm backlog. Best triggered at end of day — give it 8+ hours for complex wish sets.
-
-<Info>
-See the [/dream skill reference](/genie/skills/dream) for the full phase breakdown and configuration options.
-</Info>
-
----
-
-### Hack 6: Custom Skill for Repeated Workflows
+### Hack 5: Custom Skill for Repeated Workflows
 
 **Problem:** You keep typing the same sequence of commands for a recurring task — like running migrations, seeding test data, and restarting the dev server. It's error-prone and tedious to explain each time.
 
@@ -234,7 +187,7 @@ See [Skills concept guide](/genie/concepts/skills) for frontmatter options and t
 
 ## Hooks & integration
 
-### Hack 7: Auto-Spawn on Wish Creation
+### Hack 6: Auto-Spawn on Wish Creation
 
 **Problem:** After creating a wish with `/wish`, you still have to manually create a team and spawn agents. That's 2-3 extra commands before work begins.
 
@@ -265,7 +218,7 @@ See [Skills concept guide](/genie/concepts/skills) for frontmatter options and t
 
 **Benefit:** Zero-friction from idea to execution. Type `/wish`, describe what you want, and agents start working immediately after the plan is written.
 
-**When to use:** When you want a fully autonomous pipeline where brainstorming flows directly into execution. Combine with `/dream` for batch mode.
+**When to use:** When you want a fully autonomous pipeline where brainstorming flows directly into execution.
 
 <Warning>
 This auto-spawns a team for every wish creation. Add a confirmation step or status check if you want human approval before execution begins.
@@ -273,7 +226,7 @@ This auto-spawns a team for every wish creation. Add a confirmation step or stat
 
 ---
 
-### Hack 8: Slack/Discord Integration via NATS Hooks
+### Hack 7: Slack/Discord Integration via NATS Hooks
 
 **Problem:** You want to monitor agent progress from Slack or Discord instead of watching tmux panes. You also want to trigger agents from chat.
 
@@ -310,9 +263,9 @@ for await (const msg of sub) {
 nats sub "genie.agent.>" --raw
 ```
 
-**Benefit:** Real-time visibility into agent work from anywhere. No need to SSH into the server or watch tmux. Teams can monitor overnight `/dream` runs from their phones.
+**Benefit:** Real-time visibility into agent work from anywhere. No need to SSH into the server or watch tmux. Teams can monitor overnight runs from their phones.
 
-**When to use:** Remote teams, overnight batch runs, or any scenario where you're not sitting in front of the terminal. Especially useful with `/dream` for wake-up notifications.
+**When to use:** Remote teams, overnight batch runs, or any scenario where you're not sitting in front of the terminal.
 
 <Info>
 See the [Omni events reference](/omni/cli/events) for the full list of NATS subjects and payload formats — the event stream this hack subscribes to is Omni's.
