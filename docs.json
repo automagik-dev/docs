@@ -71,7 +71,6 @@
             "group": "Power Skills",
             "pages": [
               "genie/skills/council",
-              "genie/skills/dream",
               "genie/skills/refine",
               "genie/skills/trace",
               "genie/skills/report",
