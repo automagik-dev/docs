@@ -58,7 +58,7 @@ Installing Genie is **two steps and a check** — there is no plugin registratio
 </Steps>
 
 <Note>
-  **Genie ships exactly one plugin, and it is the Orca plugin.** There is no Claude Code plugin, no plugin marketplace registration, and no editor-specific integration to install. Skills reach your agent through skills.sh; everything else is the signed binary.
+  **Genie ships no editor plugin.** There is no Claude Code plugin, no Orca plugin (retired in 2026-09), no plugin marketplace registration, and no editor-specific integration to install. Skills reach your agent through skills.sh; everything else is the signed binary.
 </Note>
 
 ### npm
@@ -100,9 +100,6 @@ genie setup
   </Card>
   <Card title="Shell integration" icon="keyboard">
     Shell aliases and tmux keybindings to keep the hot-path commands a keystroke away.
-  </Card>
-  <Card title="Orchestration mode" icon="plug">
-    `genie setup --orchestration-mode standalone|orca` selects which lifecycle authority owns your board state.
   </Card>
 </CardGroup>
 
@@ -219,7 +216,7 @@ What that means in practice:
 - Your project's local `.genie/` state directory is preserved.
 
 <Note>
-  There is no plugin to unregister. Genie ships one plugin, the Orca plugin, and it is installed and removed through Orca — not through `genie uninstall`.
+  There is no plugin to unregister. If you installed the retired Orca plugin, remove it through Orca; `genie uninstall` does not touch it.
 </Note>
 
 ## What's next
