@@ -36,125 +36,35 @@
             "group": "Getting Started",
             "pages": [
               "genie/index",
-              "genie/features",
               "genie/installation",
-              "genie/quickstart",
-              "genie/onboarding"
+              "genie/quickstart"
             ]
           },
           {
-            "group": "Core Concepts",
+            "group": "Skills",
             "pages": [
-              "genie/concepts/wishes",
-              "genie/concepts/agents",
-              "genie/concepts/teams",
-              "genie/concepts/boards",
-              "genie/concepts/projects",
-              "genie/concepts/skills",
-              "genie/concepts/byoa"
-            ]
-          },
-          {
-            "group": "The Genie Loop",
-            "pages": [
-              "genie/skills/loop-overview",
-              "genie/skills/wizard",
+              "genie/skills/index",
               "genie/skills/brainstorm",
               "genie/skills/wish",
-              "genie/skills/review",
               "genie/skills/work",
-              "genie/skills/fix",
-              "genie/skills/pm"
-            ]
-          },
-          {
-            "group": "Power Skills",
-            "pages": [
+              "genie/skills/review",
               "genie/skills/council",
-              "genie/skills/refine",
-              "genie/skills/trace",
-              "genie/skills/report",
-              "genie/skills/docs",
-              "genie/skills/learn",
-              "genie/skills/brain",
-              "genie/skills/genie-hacks",
-              "genie/skills/genie"
+              "genie/skills/fix"
             ]
           },
           {
-            "group": "CLI Reference",
+            "group": "Reference",
             "pages": [
-              "genie/cli/session",
-              "genie/cli/team",
-              "genie/cli/tasks",
-              "genie/cli/boards",
-              "genie/cli/projects",
-              "genie/cli/observability",
-              "genie/cli/dispatch",
-              "genie/cli/agents",
-              "genie/cli/messaging",
-              "genie/cli/export-import",
-              "genie/cli/spawn",
-              "genie/cli/directory",
-              "genie/cli/infrastructure",
-              "genie/cli/registry",
-              "genie/cli/releases-tags-types",
-              "genie/cli/database",
-              "genie/cli/scheduling"
-            ]
-          },
-          {
-            "group": "Configuration",
-            "pages": [
-              "genie/config/setup",
-              "genie/config/files",
-              "genie/config/worktrees",
-              "genie/config/tmux"
-            ]
-          },
-          {
-            "group": "Security & Trust",
-            "pages": [
-              "genie/security/index",
-              "genie/security/distribution-sovereignty",
-              "genie/security/verifying-installs",
-              "genie/security/key-rotation",
-              "genie/incident-response/canisterworm"
-            ]
-          },
-          {
-            "group": "Architecture",
-            "pages": [
-              "genie/architecture/overview",
-              "genie/architecture/state",
-              "genie/architecture/postgres",
-              "genie/architecture/messaging",
-              "genie/architecture/scheduler",
-              "genie/architecture/transcripts"
-            ]
-          },
-          {
-            "group": "Observability",
-            "pages": [
-              "genie/observability/detectors"
-            ]
-          },
-          {
-            "group": "Hacks & Tips",
-            "pages": [
-              "genie/hacks"
-            ]
-          },
-          {
-            "group": "Release Notes",
-            "pages": [
+              "genie/workflows",
+              "genie/cli-reference",
               "genie/release-notes"
             ]
           },
           {
-            "group": "Contributing",
+            "group": "Security",
             "pages": [
-              "genie/contributing"
+              "genie/security/index",
+              "genie/incident-response/canisterworm"
             ]
           }
         ]
@@ -205,7 +115,7 @@
         ]
       },
       {
-        "product": "RLMX",
+        "product": "mikro",
         "icon": "brain-circuit",
         "description": "RLM algorithm CLI for coding agents",
         "groups": [
