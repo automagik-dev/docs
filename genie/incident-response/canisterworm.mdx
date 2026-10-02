@@ -23,7 +23,7 @@ Se você instalou qualquer versão listada abaixo entre **2026-04-21 e 2026-04-2
 
 O caminho preferencial agora é começar com `genie sec scan`. Os checks manuais abaixo continuam válidos como confirmação adicional, fallback, ou triagem em hosts onde o CLI não está disponível.
 
-> **Nota v6:** o Genie v6 removeu o comando `genie sec`, e o CLI atual não traz scanner de host. Onde este documento manda rodar `genie sec`, use os checks manuais da seção 2 e o veredicto da tabela da seção 3. Se o host foi afetado, isole a máquina, preserve as evidências e rotacione as credenciais a partir de outro host confiável. Para verificar uma release do Genie, veja [Security and releases](/genie/security/index).
+> **Nota v6:** o Genie não tem mais o comando `genie sec`, e o CLI atual não traz scanner de host. Onde este documento manda rodar `genie sec`, use os checks manuais da seção 2 e o veredicto da tabela da seção 3. Se o host foi afetado, isole a máquina, preserve as evidências e rotacione as credenciais a partir de outro host confiável. Para verificar uma release do Genie, veja [Security and releases](/genie/security/index).
 
 ---
 
@@ -85,7 +85,7 @@ Execute todos os checks abaixo. Anote resultados antes de seguir para o Passo 2.
 
 ### Usando `genie sec scan` (recomendado)
 
-> **Nota v6:** esta subseção descreve o `genie sec scan`, removido no Genie v6. No v6, siga direto para os checks manuais a partir da seção 2.1.
+> **Nota v6:** esta subseção descreve o `genie sec scan`, que o Genie não tem mais. No v6, siga direto para os checks manuais a partir da seção 2.1.
 
 Rode primeiro:
 
@@ -224,7 +224,7 @@ ss -tnp 2>/dev/null | grep -iE "api-monitor|icp0|tdtqy|cjn37|143\.198\.237\.25"
 | `env-compat.cjs`, `public.pem` ou `check-env.js` presentes | **INFECTADO** | Execute o Passo 3 completo |
 | `pgmon.service` ativo ou conexão C2 detectada | **INFECTADO ATIVO** | Desconecte a rede **imediatamente**, depois Passo 3 |
 
-> **Nota v6:** as linhas que citam `genie sec scan` dependem de um comando removido no Genie v6. Decida pelas demais linhas, que usam os checks manuais da seção 2.
+> **Nota v6:** as linhas que citam `genie sec scan` dependem de um comando que o Genie não tem mais. Decida pelas demais linhas, que usam os checks manuais da seção 2.
 
 ---
 
@@ -547,7 +547,7 @@ Em Sophos, OPNsense, pfSense ou similares, crie um grupo `CanisterWorm-C2` com o
 - [ ] Desabilitei auto-update até validar a fonte
 - [ ] Bloqueei IoCs no meu perímetro
 
-> **Nota v6:** os itens que citam `genie sec scan` e `at-risk local material present on host` dependem de um comando removido no Genie v6. No v6, marque esses itens pelos checks manuais da seção 2 e pela lista da seção 1.4.
+> **Nota v6:** os itens que citam `genie sec scan` e `at-risk local material present on host` dependem de um comando que o Genie não tem mais. No v6, marque esses itens pelos checks manuais da seção 2 e pela lista da seção 1.4.
 
 ---
 
@@ -584,7 +584,7 @@ Reportes privados de segurança relacionados a qualquer pacote Namastex: `privac
 |------|--------|---------|
 | 2026-04-23 | 1.0 | Publicação inicial consolidada pós-investigação |
 | 2026-04-24 | 1.1 | Adicionado operator playbook em inglês (§11) com árvore de decisão de três ramos, escalations e template de post-mortem |
-| 2026-10-02 | 1.2 | Notas v6 junto a cada recomendação do scanner que o Genie v6 removeu; link do SECURITY.md corrigido no §11.7 |
+| 2026-10-02 | 1.2 | Notas v6 junto a cada recomendação do scanner que o Genie não tem mais; link do SECURITY.md corrigido no §11.7 |
 
 ---
 
@@ -592,7 +592,7 @@ Reportes privados de segurança relacionados a qualquer pacote Namastex: `privac
 
 The preceding sections are the public advisory for any operator or organization that installed a compromised version. The following section is the **cold-runnable operator playbook** tied to `genie sec scan` status bands. Use it when you already have `@automagik/genie` on the host and you need a step-by-step remediation recipe that matches exactly what the CLI is about to ask of you.
 
-> **v6 note:** Genie v6 removed `genie sec`, and the current CLI has no host scanner. This playbook still shows its commands as they were when it was written. On a v6 host, pick the branch from the manual checks in §2 (the mapping is under §11.2), do each step by hand, verify a Genie release with `scripts/verify-release.sh` as [Security and releases](/genie/security/index) describes, and rotate credentials from a separate trusted host.
+> **v6 note:** Genie no longer has `genie sec`, and the current CLI has no host scanner. This playbook still shows its commands as they were when it was written. On a v6 host, pick the branch from the manual checks in §2 (the mapping is under §11.2), do each step by hand, verify a Genie release with `scripts/verify-release.sh` as [Security and releases](/genie/security/index) describes, and rotate credentials from a separate trusted host.
 
 ### 11.1 When to use this playbook
 

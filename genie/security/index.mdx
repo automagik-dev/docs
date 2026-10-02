@@ -19,8 +19,8 @@ After the CanisterWorm supply-chain compromise, Genie left npm: it now ships onl
 
 Every release is cosign-signed with SLSA provenance, and `genie update` verifies it offline, with no GitHub credential.
 
-- **`install.sh`** reads the channel manifest, downloads the release for your platform and checks its signature and provenance, with `gh attestation verify` and `cosign verify-blob` as the fallback, before it unpacks anything.
-- **`genie update`** checks the release's signed delivery evidence against a Sigstore trust root built into the binary, with the publishing workflow's identity pinned, and checks the downloaded tarball against the digest recorded in that evidence before it extracts anything. When `gh` is installed it also runs `gh attestation verify` as a cross check, and a failure there stops the update.
+- **`install.sh`** reads the channel manifest, downloads the release for your platform and checks its GitHub attestation with `gh attestation verify`, falling back to `cosign verify-blob` on the signature bundle. If neither check passes, it refuses to install, and it unpacks nothing before one does.
+- **`genie update`** checks the release's signed delivery evidence against a Sigstore trust root built into the binary, with the publishing workflow's identity pinned, and checks the downloaded tarball against the digest recorded in that evidence before it extracts anything. It also runs `gh attestation verify` as a cross check. If `gh` reports that the tarball does not verify, the update stops. If the check cannot run, because `gh` is missing or has no credential or no network, the update logs it as unavailable and proceeds on the offline proof.
 - **Channels.** The `.well-known/latest.json` and `dev.json` manifests in the repository decide which release is stable and which is dev. GitHub's "latest release" label does not.
 
 [Installation](/genie/installation) has the install and update commands.
@@ -35,15 +35,15 @@ certificate-oidc-issuer:     https://token.actions.githubusercontent.com
 provenance source-uri:       github.com/automagik-dev/genie
 ```
 
-The same lines are published, byte for byte, in independent channels:
+The same values are published in these places, all in the genie repository:
 
-| Channel | Where |
-|---------|-------|
-| `SECURITY.md` | The root of the [genie repository](https://github.com/automagik-dev/genie/blob/main/SECURITY.md) |
-| `security.txt` | `https://automagik.dev/.well-known/security.txt` |
-| Pinned issue | An issue titled `SIGNING_CERT_IDENTITY_<YYYYMMDD>` in `automagik-dev/genie` |
+| Where | What it is |
+|-------|------------|
+| [`SECURITY.md`](https://github.com/automagik-dev/genie/blob/main/SECURITY.md) | The repository's security policy |
+| [`.well-known/security.txt`](https://raw.githubusercontent.com/automagik-dev/genie/main/.well-known/security.txt) | The repository's `security.txt` |
+| In-repo witnesses | `.github/cosign.pub`, `.github/ISSUE_TEMPLATE/signing-key-fingerprint.md`, `scripts/verify-release.sh` and `install.sh` |
 
-If the channels disagree, do not install, and report it. Inside the repository, `scripts/check-fingerprint-pinning.sh` checks that the files carrying the pin agree, and CI runs it on every pull request that changes `SECURITY.md`, `security.txt`, the pinned-issue template or `.github/cosign.pub`. [Key rotation](/genie/security/key-rotation) is the runbook for changing the identity.
+If any of them disagree, do not install, and report it. `scripts/check-fingerprint-pinning.sh` checks that every copy listed here agrees, and CI runs it on every pull request that changes `SECURITY.md`, `.well-known/security.txt`, the issue template or `.github/cosign.pub`. [Key rotation](/genie/security/key-rotation) is the runbook for changing the identity.
 
 ## Verify a release yourself
 

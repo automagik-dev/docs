@@ -254,6 +254,51 @@ genie config get budgets.maxEscalationsPerGroup --json
 
 ---
 
+## Cost
+
+### Spend where the work needs it
+
+**ID:** `cost-optimization`
+**Category:** cost
+
+**Problem:** Agent usage adds up over long runs and many parallel wishes.
+
+**Solution:** Scope each task tightly, so the agent has a clear finish line: "extract the auth middleware into `src/middleware/auth.ts`" instead of "refactor the codebase". Run the `refine` skill on a brief before you hand it to an agent, and put the mechanical stages of a wish run on a faster model ([Pick the model per stage of a wish run](#pick-the-model-per-stage-of-a-wish-run)). Then read what a run really cost from its own record: in Claude Code, `genie wish report <runId>` prints the tokens and time of each stage of a saved workflow run.
+
+```bash
+genie wish report <runId>   # tokens and time per stage of one saved workflow run
+```
+
+**Benefit:** Spend follows how hard each task is, and you measure it on your own runs.
+
+**When to use:** Before you scale up parallel `work` runs, or when a run costs more than the change was worth.
+
+---
+
+## Integration
+
+### Send results where your team already looks
+
+**ID:** `integration-patterns`
+**Category:** integration
+
+**Problem:** Your team watches chat and CI, and the result of a run should show up there.
+
+**Solution:** Prefer the connectors your agent already has for GitHub and chat, and use the shell or a webhook only for what they do not cover. Every outward write (a chat message, an issue, a workflow dispatch) needs your explicit go-ahead and an exact target. The `report` skill follows the same rule: it files a GitHub issue only when you ask.
+
+```bash
+curl -X POST "$SLACK_WEBHOOK_URL" -H 'Content-Type: application/json' \
+  -d '{"text": "Genie: wish auth-refactor is ready for review"}'
+gh issue create --title "Bug: auth token expiry" --body-file report.md
+gh workflow run ci.yml --ref feat/my-feature
+```
+
+**Benefit:** Results land where people already look, and nothing leaves your machine without a decision.
+
+**When to use:** Teams with chat channels or pipelines that should react to an agent's pull request.
+
+---
+
 ## Debugging
 
 ### Find where a run is stuck

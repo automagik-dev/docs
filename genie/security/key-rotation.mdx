@@ -18,13 +18,21 @@ happens. Routine releases do NOT require rotation.
    the certificate names, is renamed or split. The Fulcio certificate SAN
    embeds the workflow path, so a move changes the certificate identity
    verifiers must accept.
-2. **Repository is renamed.** `automagik-dev/genie` becomes something else.
+2. **Delivery-evidence workflow moves.** `genie update` also verifies a
+   second identity, which every binary embeds
+   (`src/lib/delivery-evidence-verify.ts`): the release's delivery evidence
+   must be signed by `.github/workflows/release-publish.yml@refs/heads/main`.
+   Renaming, splitting or moving that workflow, or signing it from another
+   ref, breaks `genie update` on every host already running a release,
+   because those binaries carry the old identity.
+   `scripts/reconcile-release-assets.sh` carries it too.
+3. **Repository is renamed.** `automagik-dev/genie` becomes something else.
    Both the signer identity regexp and the SLSA provenance `source-uri` must
    move atomically.
-3. **OIDC issuer changes.** GitHub Actions' OIDC token issuer URL changes
+4. **OIDC issuer changes.** GitHub Actions' OIDC token issuer URL changes
    (rare; announced upstream). The pinned
    `certificate-oidc-issuer` must change with it.
-4. **Keyless trust-root incident.** Sigstore / Fulcio announces a trust-root
+5. **Keyless trust-root incident.** Sigstore / Fulcio announces a trust-root
    rotation that requires consumers to re-verify against a new root. Operators
    follow the cosign upstream rotation advisory in addition to this runbook.
 
@@ -67,16 +75,15 @@ ship. Do NOT reduce the grace period to "fix" a broken window.
       witnesses `scripts/check-fingerprint-pinning.sh` checks
       (`.github/ISSUE_TEMPLATE/signing-key-fingerprint.md`,
       `.github/cosign.pub`, `scripts/verify-release.sh`, `install.sh`) and
-      the copies the release and update paths verify against
-      (`src/genie-commands/update.ts`, `src/lib/delivery-evidence-verify.ts`,
-      `scripts/reconcile-release-assets.sh`,
-      `.github/workflows/release-publish.yml`).
-      `git grep -n token.actions.githubusercontent.com` lists them, tests
+      the copies the release and update paths use, such as
+      `src/genie-commands/update.ts`, `scripts/reconcile-release-assets.sh`
+      and `.github/workflows/release-publish.yml`.
+      `git grep -n 'sign-attest.*@refs/heads/main'` lists every copy, tests
       included.
     - Update `SECURITY.md` so its pinned values match the new identity
       byte-for-byte.
-    - Update `/.well-known/security.txt` on the project site (or file the
-      site-repo PR in parallel).
+    - Update `.well-known/security.txt` in the repository, which is served
+      from its raw.githubusercontent.com URL.
     - Update (or open) the tracking issue created in Phase 1 with the final
       values.
 2. Both officers sign the PR via `git commit -S` with a GPG key that appears
