@@ -2,258 +2,124 @@
 title: "Quickstart"
 sidebarTitle: "Quickstart"
 icon: "rocket"
-description: "Five minutes from nothing to your first PR. Bring whatever agent you like — we're not picky."
+description: "Install Genie and deliver one decided task as a pull request with /wish."
 ---
 
-Five minutes. One PR. Whatever agent you already use.
+Your first wish is one decided task. `/wish` checks that the task fits a single wish, makes the change in its own git worktree, runs your repository's checks, has a different agent review the commit and opens a pull request. Merging stays with you.
 
-<Note>
-  **Research Preview** — Genie is experimental. Things will break, APIs will change, and we want your feedback. Honest feedback, not polite feedback. [Tell us on Discord](https://discord.gg/automagik).
-</Note>
+## Before you start
+
+- A git repository whose `origin` is on GitHub, and the GitHub CLI signed in (`gh auth status` says so).
+- An integration branch on `origin` for the pull request to target. `/wish` uses `dev` unless you name another branch, and it refuses `main` and `master`.
+- Checks your repository can run. The gate runs your full check when the repository has git hooks, and otherwise the validation command set for the task, so a wish proves what those checks prove.
+- Claude Code, which runs `/wish` as a saved workflow. In Codex, `$wish` runs the same stages by hand.
+
+## Your first wish
 
 <Steps>
-  <Step title="Install Genie">
-    Run the bootstrap script (see the full [Installation guide](/genie/installation) for alternatives). It installs the CLI, sets up plugins, and configures git hooks.
+<Step title="Install and check">
+  Install Genie (the [installation guide](/genie/installation) lists what the install needs), then run `genie doctor` inside your repository. Its `skills:` lines and its `workflows: catalog` line should pass.
 
-    ```bash
-    curl -fsSL https://raw.githubusercontent.com/automagik-dev/genie/main/install.sh | bash
-    ```
+  ```bash
+  curl -fsSL https://raw.githubusercontent.com/automagik-dev/genie/main/install.sh | bash
+  genie doctor
+  ```
 
-    Verify the install:
+</Step>
+<Step title="Prepare the repository">
+  From the repository root:
 
-    ```bash
-    genie doctor
-    ```
+  ```bash
+  genie init
+  ```
 
-    Expected output:
-    ```text
-    ✓ genie CLI found
-    ✓ Agent detected
-    ✓ tmux available
-    ✓ skills: claude 25/25 @ v5.x.x
-    ✓ skills: agents 25/25 @ v5.x.x
-    ```
-  </Step>
+  `genie init` writes `.genie/INDEX.md` and the `.gitignore` rules that keep Genie's machine-local state out of git. Running it again changes nothing.
+</Step>
+<Step title="Ask for one task">
+  Open Claude Code in the repository and give `/wish` one decided, bounded task. Name the files and the outcome you expect. This is the request from the run in the video below:
 
-  <Step title="Choose Your Agent (or don't — we don't care)">
-    Genie orchestrates agents. It is not an agent. Use whatever you like — we have opinions about orchestration, not about your vendor choices.
+  ```text
+  /wish Delete dead code: src/lib/defaults.ts has no production callers (only a type import of AgentDefaults in src/lib/workspace.ts) and src/__tests__/dir-ls.test.ts reimplements a removed handler and asserts on its own copy. Move the AgentDefaults type into workspace.ts, delete defaults.ts, defaults.test.ts and dir-ls.test.ts.
+  ```
 
-    | Agent | Setup | Notes |
-    |-------|-------|-------|
-    | **Claude Code** | Installed by default | Deepest integration — full transcript + team support |
-    | **Codex** | Works out of the box | OpenAI's agent. Reads Genie's skills from the shared `~/.agents/skills` home |
-    | **Open Claw** | `genie setup --open-claw` | Open-source. Community-maintained adapter |
-    | **Custom (BYOA)** | `genie setup --custom` | Any CLI agent with stdout/stderr. Seriously, anything. |
+  The workflow runs in the background. `/workflows` in Claude Code shows its progress.
+</Step>
+<Step title="Read the report">
+  The run ends in one state:
 
-    Claude Code works out of the box. For others, run the setup command and Genie configures the adapter.
+  | State | Meaning |
+  |-------|---------|
+  | `merge-ready` | The checks pass, the remote matches the local commit, the pull request holds exactly the declared files and the review says SHIP |
+  | `pr-open` | The pull request exists but its checks had not finished; read them again with `gh pr checks` |
+  | `refused` | Admission sent the task elsewhere and nothing was created |
+  | `blocked` | Something stopped the run before or after publishing; the report names it |
+  | `missed` | The repair budget ran out or a stage returned nothing; the branch, commit and worktree are kept |
 
-    <Tip>
-      **You're never locked in.** Switch agents mid-project, mix them on the same team, or write your own adapter.
-      See the [adapter docs](/genie/architecture/overview) if you're the kind of person who builds their own tools.
-    </Tip>
-  </Step>
-
-  <Step title="Paste Into Your Agent">
-    Open your agent in your project directory and paste:
-
-    ```text
-    You are now a Genie-powered agent. Run `genie` to initialize,
-    then use /wizard for guided onboarding.
-    ```
-
-    Genie detects a fresh project and scaffolds everything:
-
-    <Frame>
-      <CodeGroup>
-```bash Scaffold Flow
-$ genie
-🔍 Scanning project...
-
-⚠ No AGENTS.md found — this looks like a fresh project.
-
-Scaffolding your agent workspace...
-  Creating AGENTS.md...        ✓
-  Creating SOUL.md...          ✓
-  Creating .genie/wishes/...   ✓
-  Creating .genie/state/...    ✓
-  Configuring git hooks...     ✓
-
-✨ Project scaffolded successfully!
-
-Your agent workspace is ready:
-  AGENTS.md    → agent directory and roles
-  SOUL.md      → agent identity and principles
-  .genie/      → wishes, state, mailbox, chat
-
-Next: run /wizard for guided onboarding.
-```
-      </CodeGroup>
-    </Frame>
-  </Step>
-
-  <Step title="Brainstorm Your First Idea">
-    Got something you want to build? Tell the brainstorm skill about it:
-
-    ```text
-    /brainstorm Add a dark mode toggle to the settings page
-    ```
-
-    It'll walk you through the thinking you'd do anyway — but faster:
-
-    <AccordionGroup>
-      <Accordion title="Scope" icon="crosshairs">
-        What's in, what's out. The brainstorm skill pushes you to name both edges before you write a line of code.
-      </Accordion>
-      <Accordion title="Constraints" icon="link">
-        Dependencies, breaking changes, hidden invariants. If something is load-bearing, it gets called out here instead of surfacing in review.
-      </Accordion>
-      <Accordion title="Design" icon="compass-drafting">
-        Approach and tradeoffs. This is the "why this way" that your future self will thank you for.
-      </Accordion>
-      <Accordion title="Readiness" icon="circle-check">
-        Is this crisp enough to actually build? If not, the brainstorm keeps probing until it is.
-      </Accordion>
-    </AccordionGroup>
-  </Step>
-
-  <Step title="Create a Wish">
-    When the brainstorm crystallizes, turn it into something agents can execute:
-
-    ```text
-    /wish
-    ```
-
-    <Note>
-      For **one decided task**, `/wish` skips the plan entirely: it admits the task, builds it in its own worktree, gates it, has a different agent review the commit, and opens a merge-ready PR. The walkthrough below shows the other path — work that is bigger than one task, which becomes a `WISH.md` for `/work`.
-    </Note>
-
-    This produces a `WISH.md` — the contract between you and your agents:
-    - Summary and scope (so nobody wanders off)
-    - Acceptance criteria (checkboxes — unambiguous "done")
-    - Execution groups (parallelizable work units)
-    - Validation commands (proof it works)
-  </Step>
-
-  <Step title="Execute and Ship">
-    Let the agents do the work:
-
-    ```text
-    /work
-    ```
-
-    When they're done, validate:
-
-    ```text
-    /review
-    ```
-
-    **SHIP** → PR created. **FIX-FIRST** → fix loop runs automatically. You don't babysit either way.
-  </Step>
+  After every run the skill also runs `genie wish report <runId> --append`, which prints the run's tokens and time per stage.
+</Step>
+<Step title="Merge it yourself">
+  Read the diff and the verdict, then merge the pull request. Genie never merges. The report ends with the command that removes the worktree and the branch after the merge; it refuses a branch that is not merged.
+</Step>
 </Steps>
 
-## What just happened?
+## A real run
 
-You typed four slash commands and got a pull request. Your agent did the actual work. Here's what it looked like:
-
-<Frame>
-  <CodeGroup>
-```bash /brainstorm
-$ /brainstorm Add a dark mode toggle to the settings page
-
-🧠 Brainstorming "dark-mode-toggle"...
-
-Exploring scope...
-  ✓ Dark mode CSS variables
-  ✓ Toggle component in settings
-  ✓ Persistent preference via localStorage
-
-Identifying constraints...
-  ✓ Must avoid FOUC on page load
-  ✓ Existing component tests must pass
-
-Design crystallized → ready for /wish
-  Draft: .genie/brainstorms/dark-mode-toggle/DESIGN.md
-```
-
-```bash /wish
-$ /wish
-
-📋 Converting brainstorm to wish...
-  Source: .genie/brainstorms/dark-mode-toggle/DESIGN.md
-
-Writing WISH.md...
-  ✓ Summary and scope
-  ✓ 4 success criteria
-  ✓ 2 execution groups (1 parallel, 1 sequential)
-
-Wish created: .genie/wishes/dark-mode-toggle/WISH.md
-Status: APPROVED — ready for /work
-```
-
-```bash /work
-$ /work
-
-🔨 Executing wish "dark-mode-toggle"...
-
-Wave 1 (parallel):
-  ✅ Group 1: CSS Variables         engineer  done   14:30
-  ✅ Group 2: Toggle Component      engineer  done   14:32
-
-All groups complete. Running validation...
-  ✓ bun test — 42 passed, 0 failed
-  ✓ bun run typecheck — no errors
-
-Ready for /review
-```
-
-```bash /review
-$ /review
-
-🔍 Reviewing wish "dark-mode-toggle"...
-
-Checking criteria:
-  ✅ Toggle renders in settings page
-  ✅ CSS variables switch between light/dark
-  ✅ Preference persists across sessions
-  ✅ No FOUC on page load
-  ✅ All existing tests pass
-
-Verdict: SHIP ✨
-
-Creating pull request...
-  PR #47: "feat: add dark mode toggle to settings"
-  Branch: feat/dark-mode-toggle → dev
-  URL: https://github.com/myapp/myapp/pull/47
-```
-  </CodeGroup>
+<Frame caption="A time-lapsed replay of a real /wish run in Claude Code. Edited in two places: host details hidden (paths shown as ~/, account plan and quota), and the agent launch line removed.">
+  <video
+    controls
+    playsInline
+    preload="metadata"
+    poster="/genie/videos/quickstart-wish.jpg"
+    src="/genie/videos/quickstart-wish.mp4"
+    title="A real /wish run, time-lapsed"
+    className="w-full aspect-video"
+  />
 </Frame>
 
-| Step | Skill | Output |
-|------|-------|--------|
-| Explore | `/brainstorm` | Design document |
-| Deliver one task | `/wish` | A merge-ready PR (no plan needed) |
-| Plan bigger work | `/wish` (plan entry) | WISH.md with criteria |
-| Build | `/work` | Code changes across execution groups (tracked as PG tasks) |
-| Validate | `/review` | SHIP or FIX-FIRST verdict |
-| Ship | PR created | Ready for you to merge (agents don't push to production — that's your job) |
+The video replays the request above, run in Genie's own repository. It asked no questions, and by its own `genie wish report` it took 19.9 min and 387,079 tokens to reach `merge-ready`. That is one sample from one run: another task, repository or model gives other figures. The status line shows the session ran with Claude Code's permission prompts bypassed.
 
-<Note>
-  Under the hood, Genie tracks every task, board, audit event, and session in an embedded PostgreSQL database. Query it with `genie events summary --today` or `genie task list --by-column` for a Kanban view.
-</Note>
+The report, as the run printed it:
+
+```text
+wish wf_617946b4-8f2 (session b7cfff55-2b82-4b3e-8df0-351c35d8834c, variant unlabeled)
+total: 19.9 min, 387079 tokens, 38 tool calls, 6 agents, state merge-ready
+stage model   tokens  toolCalls       seconds
+admit:scout   claude-sonnet-5-5       77729   10      154
+admit:judge   claude-opus-5-5 58571   1       18
+work:executor claude-opus-5-5 66285   11      82
+gate:check    claude-sonnet-5-5       59186   5       541
+review:diff   claude-opus-5-5 64032   4       84
+publish:pr    claude-sonnet-5-5       61276   7       317
+appended to ~/.genie/metrics/wish-runs.jsonl
+```
+
+## When `/wish` refuses
+
+A read-only scout estimates the change and a judge that never sees the repository picks the route. A task that is too big, or that touches a trust boundary such as workflows, hooks, settings, release scripts or permissions, comes back `refused` with a route and nothing created:
+
+| Route | What to do |
+|-------|------------|
+| `plan` | The task is too big for one pass or touches a trust boundary. Ask `/wish` for a plan and it writes a `WISH.md` for [work](/genie/skills/work) |
+| `brainstorm` | A product decision is still open. Settle it with [brainstorm](/genie/skills/brainstorm) first |
+| `report` | The cause is unknown. Find it with `/report` before asking for the fix |
+
+## Bigger work
+
+Work bigger than one task takes the whole loop: [brainstorm](/genie/skills/brainstorm) settles the design, [wish](/genie/skills/wish) writes the plan, [work](/genie/skills/work) builds it group by group, [review](/genie/skills/review) checks it against the plan and [fix](/genie/skills/fix) closes what review blocks. The [Introduction](/genie/index) shows the loop in one table.
 
 ## What's next
 
 <CardGroup cols={2}>
-  <Card title="Full onboarding walkthrough" icon="route" href="/genie/onboarding">
-    The 15-minute tour — install → smoke test → wizard → first wish → first PR → first monitor.
+  <Card title="The wish skill" icon="wand-magic-sparkles" href="/genie/skills/wish">
+    Everything `/wish` can be asked to do.
   </Card>
-  <Card title="The Genie Loop" icon="arrows-rotate" href="/genie/skills/loop-overview">
-    Plan → Review → Work → Ship → Monitor — the canonical lifecycle and the skills behind each phase.
+  <Card title="Skills catalog" icon="book-open" href="/genie/skills">
+    All 18 skills, one line each.
   </Card>
-  <Card title="Core Concepts" icon="book" href="/genie/concepts/wishes">
-    Understand wishes, agents, teams, and skills in depth.
+  <Card title="Workflows" icon="diagram-project" href="/genie/workflows">
+    The saved workflows behind `/wish` and the other skills.
   </Card>
-  <Card title="Stuck? Ask on Discord" icon="discord" href="https://discord.gg/automagik">
-    Real humans. Real answers. Usually within minutes, not days.
+  <Card title="CLI reference" icon="terminal" href="/genie/cli-reference">
+    `genie wish report`, `genie board` and every other command.
   </Card>
 </CardGroup>
