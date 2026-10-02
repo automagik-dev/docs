@@ -13,7 +13,7 @@ description: "Deliver one decided task as a pull request ready to merge, or plan
 
 Give wish one decided, bounded task. It comes back with a pull request against your integration branch, or with a refusal that names the route the task needs instead. Merging stays with you: wish never merges.
 
-In Claude Code the delivery is the saved workflow `wish`, and every run goes through the same stages:
+In Claude Code the delivery is the saved workflow `wish`, and every admitted run goes through the same stages:
 
 | Stage | What happens |
 |-------|--------------|
@@ -29,7 +29,7 @@ The task is frozen at the start: no stage asks it again, narrows it or widens it
 
 ### The gate at v6.261002.2
 
-At v6.261002.2 the executor runs `bun install --frozen-lockfile` in its worktree before its first commit. In a repository with git hooks, the gate checks that the pre-push hook is live and runs `bun run check` once; in a repository without hooks, it runs the validation command frozen in the contract instead. The [Quickstart](/genie/quickstart) lists what that asks of your repository.
+At v6.261002.2 the executor runs `bun install --frozen-lockfile` in its worktree before its first commit. In a repository with git hooks, the gate checks that husky's pre-push hook (`.husky/_/pre-push`) is in place, then runs `bun run check` once. A repository whose hooks come from another tool fails that check, so its run ends `blocked`. In a repository without hooks, the gate runs the validation command frozen in the contract instead. The [Quickstart](/genie/quickstart) lists what that asks of your repository.
 
 ## When to use it
 

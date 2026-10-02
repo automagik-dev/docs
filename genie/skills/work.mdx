@@ -29,9 +29,11 @@ Every group has a card on the board, and the card's timeline is the record of wh
 |--------|-----|------|
 | Dispatch | Coordinator | `genie task comment` naming the worker and the scope |
 | Claim | Worker | `genie task checkout` before it changes anything |
+| Stale claim reclaimed | New claimant | `genie task comment` starting `reclaim:`, naming the previous claimant, how long it sat idle and why, before the new `genie task checkout` |
 | Handoff | Worker | One `genie task report`: the outcome, what changed and where, the validation result, and one `Ruling:` line per decision it took on your behalf |
 | Review verdict | Coordinator | `genie task comment` with SHIP, FIX-FIRST or BLOCKED; the evidence goes to `WISH.md` |
 | Group done | Coordinator | `genie task done` |
+| Exhausted fix loop or diagnosed route | Coordinator | `genie task comment` starting `blocked:`, naming the cause and the route |
 
 A worker stops to ask only for an irreversible or destructive action, a security decision, a side effect outside its worktree, or a plan too broken to follow. Every other decision is a ruling it takes and records in its report. `genie board --wish <slug>` shows where the groups stand.
 
