@@ -11,7 +11,7 @@ Your first wish is one decided task. `/wish` checks that the task fits a single 
 
 - A git repository whose `origin` is on GitHub, and the GitHub CLI signed in (`gh auth status` says so).
 - An integration branch on `origin` for the pull request to target. `/wish` uses `dev` unless you name another branch, and it refuses `main` and `master`.
-- Checks your repository can run. The gate runs your full check when the repository has git hooks, and otherwise the validation command set for the task, so a wish proves what those checks prove.
+- Checks the gate can run. At v6.261002.2 the worker runs `bun install --frozen-lockfile` in its worktree before its first commit. In a repository with git hooks, the gate checks that husky's pre-push hook is in place and runs `bun run check`, so the repository needs Bun and a `check` script. In a repository without hooks, the gate runs the validation command set for the task instead. A wish proves what that command proves.
 - Claude Code, which runs `/wish` as a saved workflow. In Codex, `$wish` runs the same stages by hand.
 
 ## Your first wish
@@ -95,7 +95,7 @@ appended to ~/.genie/metrics/wish-runs.jsonl
 
 ## When `/wish` refuses
 
-A read-only scout estimates the change and a judge that never sees the repository picks the route. A task that is too big, or that touches a trust boundary such as workflows, hooks, settings, release scripts or permissions, comes back `refused` with a route and nothing created:
+A read-only scout estimates the change and a judge that never sees the repository picks the route. A task that is too big, or that touches a trust boundary, comes back `refused` with a route and nothing created. At v6.261002.2 the trust boundaries are `.github/`, `.husky/`, `.claude/hooks/`, `.claude/settings*.json`, the `package.json` scripts, the lint and commit-message config, release scripts, and auth, secret and permission surfaces:
 
 | Route | What to do |
 |-------|------------|

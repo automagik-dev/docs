@@ -109,15 +109,15 @@ Run it from inside a git repository: outside one, the repository checks warn.
 
 ### Reading the skills lines
 
-`genie doctor` is a **read-only observer** of the skills channel. It compares the install record Genie wrote at `~/.genie/skills-install.json` against what is actually on disk under each agent's skill home, and reports the drift. It never installs, retires, or repairs anything — not even under `--fix`. `genie update` owns every mutation on this surface.
+`genie doctor` is a **read-only observer** of the skills channel. It compares the install record Genie wrote at `~/.genie/skills-install.json` against what is actually on disk under each agent's skill home, and reports the drift. It never installs, retires, or repairs anything, not even under `--fix`. `genie update` owns every mutation on this surface.
 
 | Line | Meaning | What to do |
 |------|---------|------------|
-| `skills: <agent> <n>/<n> @ v<version>` | Every recorded skill is present in that agent's home, installed from release `v<version>` | Nothing |
-| `skills: <agent> not detected` | That agent's config home does not exist on this machine — a perfectly healthy state, reported as a pass | Nothing |
-| `skills: <agent> <n>/<m> @ v<version>` (warn) | Skills are missing from that home | `genie update` |
-| `skills: <agent> <n>/<n> @ v<version> (stale, binary is v<newer>)` (warn) | The skills on disk came from an older release than the binary you are running | `genie update` |
-| `skills: <agent> <n>/<n> @ v<version> (unrecorded)` (warn) | Skills are on disk but no install record exists, so Genie cannot say which release put them there | `genie update` |
+| `skills: <agent> — <n>/<n> @ v<version>` | Every recorded skill is present in that agent's home, installed from release `v<version>` | Nothing |
+| `skills: <agent> — not detected` | That agent's config home does not exist on this machine. That is a healthy state, reported as a pass | Nothing |
+| `skills: <agent> — <n>/<m> @ v<version>` (warn) | Skills are missing from that home | `genie update` |
+| `skills: <agent> — <n>/<n> @ v<version> (stale, binary is v<newer>)` (warn) | The skills on disk came from an older release than the binary you are running | `genie update` |
+| `skills: <agent> — <n>/<n> @ v<version> (unrecorded)` (warn) | Skills are on disk but no install record exists, so Genie cannot say which release put them there | `genie update` |
 | `skills: channel — no install record` (warn) | Genie has never installed the skills channel on this host | `genie update` |
 
 The `workflows: catalog` line reads the same record for the saved workflows. It names any recorded workflow file that was edited by hand, deleted, or left by another release, and it repairs nothing either.
@@ -160,7 +160,7 @@ What that means in practice:
 
 - **Skills you added yourself are left alone.** A skill the record never named is structurally out of reach of the removal.
 - **A directory Genie cannot prove is still its own is preserved, not deleted.** If you edited a Genie skill in place, or the record predates content digests, the directory stays and `genie uninstall` reports it. Data safety beats cleanliness.
-- **A foreign directory that `--copy` overwrote at install time is not restored.** The install snapshots and backs up any foreign same-named skill directory before overwriting it, and tells you where the backup went — but uninstall does not put it back. Restoring it is a manual step.
+- **A foreign directory that `--copy` overwrote at install time is not restored.** The install snapshots and backs up any foreign same-named skill directory before overwriting it, and tells you where the backup went; uninstall does not put it back. Restoring it is a manual step.
 - **If anything could not be removed cleanly**, uninstall keeps `~/.genie` and the install record so the whole operation stays retryable.
 - Your project's local `.genie/` state directory is preserved.
 

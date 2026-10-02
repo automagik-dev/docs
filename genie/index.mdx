@@ -47,7 +47,7 @@ Each review in that table is done by an agent that did not do the work. [council
 
 - Designs, plans and review verdicts are markdown files under `.genie/brainstorms/<slug>/` and `.genie/wishes/<slug>/`. They go through git with your code.
 - Task state lives in one SQLite file per repository, `.genie/genie.db`, which every worktree of that repository shares. `genie board` shows it as a kanban.
-- Nothing runs in the background. Every `genie` command does its work and exits.
+- No Genie process stays running: every `genie` command does its work and exits.
 
 ## What v6.261002.2 ships
 
@@ -69,7 +69,7 @@ Each review in that table is done by an agent that did not do the work. [council
 |-------|--------|-----------------|
 | Claude Code | `~/.claude/skills`, run as `/wish` | Yes, from `~/.claude/workflows` |
 | Codex | The shared `~/.agents/skills`, run as `$wish` | No. The skills run the same stages by hand |
-| Other agents skills.sh supports | Their own skills home, run by name | No. The skills run the same stages by hand |
+| Other agents skills.sh supports | Their own skills home, such as `~/.config/goose/skills`, or the shared `~/.agents/skills`, run by name | No. The skills run the same stages by hand |
 
 ## Next
 
