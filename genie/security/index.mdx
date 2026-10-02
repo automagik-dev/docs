@@ -1,74 +1,68 @@
 ---
-title: "Security & Trust"
-sidebarTitle: "Overview"
+title: "Security and releases"
+sidebarTitle: "Security and releases"
 icon: "shield-check"
-description: "How Genie is signed, distributed, and verified — the trust contract operators inherit at install time."
+description: "How Genie releases are signed, how install and update verify them, how to check one yourself, and how to report a vulnerability."
 ---
 
-Genie ships software that runs with full host privileges. We treat its supply chain as a security boundary, not a logistics problem. This section documents the trust contract you inherit when you install Genie, the verification machinery you can run yourself, and the runbooks for the moments when something goes wrong.
+Genie runs on your machine with your permissions, so every release is signed, and install and update verify the signature before they unpack anything.
 
-## The trust contract
+After the CanisterWorm supply-chain compromise, Genie left npm: it now ships only as signed GitHub Releases. The [incident record](/genie/incident-response/canisterworm) covers what happened and how to check a host.
 
-Every released Genie artifact (per-platform binary, signature pack, installer script) is signed via **cosign keyless** through GitHub Actions OIDC and accompanied by **SLSA Level 3** provenance. There is no long-lived private key, no hardware-backed offline ceremony — instead, every release artifact embeds a Sigstore certificate identifying the workflow path, OIDC issuer, and source-uri that produced it.
+## How a release is signed
 
-Operators verify that identity, not a fingerprint. The pin is **byte-identical across four independent channels**, so an attacker would need to compromise all four to forge a release without detection:
+- Each release is signed with cosign keyless signing through GitHub Actions OIDC. There is no long-lived signing key to steal.
+- Every platform tarball ships with a cosign bundle, SLSA provenance and a GitHub attestation, bound to the source repository and to the workflow that built it.
+- Published release files are never replaced. Every release gets a new version and its own tag.
 
-<CardGroup cols={2}>
-  <Card title="install.sh inlined" icon="code">
-    The bootstrap script that runs `curl -fsSL get.automagik.dev/genie | bash` carries the expected certificate identity at the top of the file. Read it before piping to bash.
-  </Card>
-  <Card title="SECURITY.md" icon="file-shield">
-    The repo-root [SECURITY.md](https://github.com/automagik-dev/genie/blob/main/SECURITY.md) lists the same identity verbatim. Cross-checks the script.
-  </Card>
-  <Card title=".well-known/security.txt" icon="globe">
-    Published at `automagik.dev/.well-known/security.txt` over HTTPS — independent of the GitHub repo. A third pinning channel.
-  </Card>
-  <Card title="Pinned GitHub issue" icon="github">
-    A pinned issue in `automagik-dev/genie` titled `SIGNING_KEY_FINGERPRINT_<YYYYMMDD>` carries the same identity. Updated only via the [key-rotation runbook](/genie/security/key-rotation).
-  </Card>
-</CardGroup>
+## How install and update verify it
 
-If you ever see a mismatch across these four channels, **do not install**. File an issue and we'll investigate before anyone runs anything.
+Every release is cosign-signed with SLSA provenance, and `genie update` verifies it offline, with no GitHub credential.
 
-## Verifying an install yourself
+- **`install.sh`** reads the channel manifest, downloads the release for your platform and checks its signature and provenance, with `gh attestation verify` and `cosign verify-blob` as the fallback, before it unpacks anything.
+- **`genie update`** checks the release's signed delivery evidence against a Sigstore trust root built into the binary, with the publishing workflow's identity pinned, and checks the downloaded tarball against the digest recorded in that evidence before it extracts anything. When `gh` is installed it also runs `gh attestation verify` as a cross check, and a failure there stops the update.
+- **Channels.** The `.well-known/latest.json` and `dev.json` manifests in the repository decide which release is stable and which is dev. GitHub's "latest release" label does not.
 
-```bash
-# Verify the running binary against the pinned cosign identity:
-genie sec verify-install
+[Installation](/genie/installation) has the install and update commands.
 
-# Output:
-# ✅ cosign:  signature matches certificate identity
-# ✅ slsa:    Level 3 provenance attestation valid
-# ✅ source:  binary built from automagik-dev/genie@<commit-sha>
+## The pinned identity
+
+What you verify is the identity of the workflow that signed the release:
+
+```text
+certificate-identity-regexp: ^https://github\.com/automagik-dev/genie/\.github/workflows/sign-attest\.yml@refs/heads/main$
+certificate-oidc-issuer:     https://token.actions.githubusercontent.com
+provenance source-uri:       github.com/automagik-dev/genie
 ```
 
-The verifier runs offline — no calls to Sigstore's transparency log unless you pass `--online` for an extra check. Mismatch produces a structured exit code (`2` = signature-invalid, `3` = identity-mismatch, `4` = provenance-invalid, `5` = no signature material).
+The same lines are published, byte for byte, in independent channels:
 
-For mutating subcommands (`genie sec remediate --apply`), Genie refuses to run on an unverified binary. Override only via the documented `--unsafe-unverified <INCIDENT_ID>` ack contract; every override is recorded in `~/.genie/audit/sec-scan/<scan_id>.jsonl` for forensic review.
+| Channel | Where |
+|---------|-------|
+| `SECURITY.md` | The root of the [genie repository](https://github.com/automagik-dev/genie/blob/main/SECURITY.md) |
+| `security.txt` | `https://automagik.dev/.well-known/security.txt` |
+| Pinned issue | An issue titled `SIGNING_CERT_IDENTITY_<YYYYMMDD>` in `automagik-dev/genie` |
 
-## What lives in this section
+If the channels disagree, do not install, and report it. Inside the repository, `scripts/check-fingerprint-pinning.sh` checks that the files carrying the pin agree, and CI runs it on every pull request that changes `SECURITY.md`, `security.txt`, the pinned-issue template or `.github/cosign.pub`. [Key rotation](/genie/security/key-rotation) is the runbook for changing the identity.
 
-<CardGroup cols={2}>
-  <Card title="Distribution Sovereignty" icon="shield-halved" href="/genie/security/distribution-sovereignty">
-    Why Genie ships through its own CDN with cosign + SLSA verification instead of relying on `npmjs.com`. The threat model + the verification flow.
-  </Card>
-  <Card title="Verifying Installs" icon="badge-check" href="/genie/security/verifying-installs">
-    Step-by-step walkthrough of `genie sec verify-install`, what each verification stage proves, and how to manually cross-check the four pinning channels.
-  </Card>
-  <Card title="Key Rotation" icon="key" href="/genie/security/key-rotation">
-    When and how Namastex rotates the cosign certificate identity — the runbook operators follow if our signing surface changes.
-  </Card>
-  <Card title="CanisterWorm Incident Response" icon="shield-virus" href="/genie/incident-response/canisterworm">
-    Public 2026-04-23 runbook for the npm supply-chain compromise that motivated much of the work documented here.
-  </Card>
-</CardGroup>
+## Verify a release yourself
 
-## Reporting a vulnerability
+From a clone of the genie repository, with `cosign` and `slsa-verifier` installed:
 
-Email `security@namastex.io` with a clear reproduction. We commit to:
+```bash
+# Download every tarball of a release and verify each one (needs gh)
+scripts/verify-release.sh <tag>
 
-- **Acknowledge within 24 hours.**
-- **Confirm or reject within 7 days.**
-- **Coordinate disclosure on a 90-day timeline by default.** Earlier if exploitation is observed.
+# Verify one tarball you already have, with its .bundle and .intoto.jsonl beside it
+scripts/verify-release.sh --local genie-<version>-<platform>.tar.gz
+```
 
-Do not file public GitHub issues for security reports; we'll open the public tracking issue together once mitigation is in flight.
+The script runs `cosign verify-blob` and `slsa-verifier` against the pinned identity. `SECURITY.md` lists the underlying commands for a host where the script cannot run.
+
+## If you suspect a host
+
+Genie has no host scanner, and the `genie sec` command of earlier releases is gone. If a host may have run a compromised build, isolate it, preserve the evidence and rotate its credentials from a separate trusted host. A fresh Genie install on that host proves nothing about the host itself. The [CanisterWorm record](/genie/incident-response/canisterworm) lists the manual checks for that incident.
+
+## Report a vulnerability
+
+Do not open a public issue. Report privately through a [GitHub security advisory](https://github.com/automagik-dev/genie/security/advisories/new) or by email to `privacidade@namastex.ai`. [`SECURITY.md`](https://github.com/automagik-dev/genie/blob/main/SECURITY.md) has the response times.

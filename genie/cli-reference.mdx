@@ -1,3 +1,65 @@
 ---
 title: "CLI reference"
+sidebarTitle: "CLI reference"
+icon: "terminal"
+description: "The help output of the genie CLI at release v6.261002.2, pasted verbatim, with notes on the retired names it still prints."
 ---
+
+Genie v6.261002.2 has 16 CLI commands. Nothing runs in the background: every command does its work and exits.
+
+This is `genie --help` from release `v6.261002.2`, pasted verbatim:
+
+```text
+Usage: genie [options] [command]
+
+Genie CLI - AI-assisted development
+
+Options:
+  -V, --version        output the version number
+  --no-interactive     Disable interactive prompts (exit 2 instead of
+                       prompting)
+  -h, --help           display help for command
+
+Commands:
+  board [options]      Kanban view derived by query (no stored view state)
+  config               Read the resolved genie configuration
+  context [options]    Resolve spawn context: wish/group branch + base SHA, or
+                       the integration branch (versioned JSON)
+  doctor [options]     Run diagnostic checks on genie installation
+  help [command]       display help for command
+  idea <text...>       Capture an idea into the roadmap board Idea lane
+                       (creates the board if absent)
+  init [options]       Initialize Genie state and retire the dead genie mcp
+                       entry in .mcp.json plus marker-owned .codex/config.toml
+                       routing
+  install [options]    Post-install finishing step — invoked by install.sh
+                       after the binary is linked
+  mikro                Run and grow genie mikro microagents (call, bench,
+                       coach, fixtures, init)
+  orca [args...]       Retired: the Orca integration was removed
+  setup [options]      Configure genie settings
+  shortcuts            Manage tmux keyboard shortcuts
+  task                 task state (SQLite, zero-daemon)
+  uninstall [options]  Remove Genie CLI, plugins, marker-owned agents, and
+                       hooks
+  update [options]     Update Genie CLI to the latest version (GitHub Releases)
+  wish                 Work with wish documents and wish runs (lint, report)
+```
+
+For one command's options and subcommands, run `genie <command> --help` or `genie help <command>`.
+
+## Notes on the output
+
+- **`orca` is a retired stub.** The Orca integration was removed. The command stays visible for one more release so that a script still calling it gets a retirement notice instead of an unknown command. It accepts any arguments, writes nothing and exits non-zero. The next release removes it.
+- **`mcp`, in the description of `init`, names a removed verb.** Genie has no MCP server, and `genie mcp` is an unknown command. `genie init` still removes a leftover `genie mcp` entry from a project's `.mcp.json`: it backs the file up first and leaves every other server as it was.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Installation" icon="download" href="/genie/installation">
+    Install, update, verify and uninstall the binary.
+  </Card>
+  <Card title="Release notes" icon="megaphone" href="/genie/release-notes">
+    What earlier releases removed, and what to do instead.
+  </Card>
+</CardGroup>

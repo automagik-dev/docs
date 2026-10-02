@@ -23,6 +23,8 @@ Se você instalou qualquer versão listada abaixo entre **2026-04-21 e 2026-04-2
 
 O caminho preferencial agora é começar com `genie sec scan`. Os checks manuais abaixo continuam válidos como confirmação adicional, fallback, ou triagem em hosts onde o CLI não está disponível.
 
+> **Nota v6:** o Genie v6 removeu o comando `genie sec`, e o CLI atual não traz scanner de host. Onde este documento manda rodar `genie sec`, use os checks manuais da seção 2 e o veredicto da tabela da seção 3. Se o host foi afetado, isole a máquina, preserve as evidências e rotacione as credenciais a partir de outro host confiável. Para verificar uma release do Genie, veja [Security and releases](/genie/security/index).
+
 ---
 
 ## 1. O que aconteceu
@@ -73,6 +75,8 @@ Se qualquer versão maliciosa foi instalada na sua máquina, os itens abaixo for
 
 Sempre que possível, use também a saída do `genie sec scan` para confirmar quais tipos de material estavam presentes no host. A seção `at-risk local material present on host` não mostra segredos, mas lista os caminhos e artefatos locais que o malware provavelmente teria tentado ler.
 
+> **Nota v6:** sem o `genie sec scan`, use a lista acima como checklist do material que estava no host.
+
 ---
 
 ## 2. Passo 1 — Identificar se você foi afetado
@@ -80,6 +84,8 @@ Sempre que possível, use também a saída do `genie sec scan` para confirmar qu
 Execute todos os checks abaixo. Anote resultados antes de seguir para o Passo 2.
 
 ### Usando `genie sec scan` (recomendado)
+
+> **Nota v6:** esta subseção descreve o `genie sec scan`, removido no Genie v6. No v6, siga direto para os checks manuais a partir da seção 2.1.
 
 Rode primeiro:
 
@@ -218,6 +224,8 @@ ss -tnp 2>/dev/null | grep -iE "api-monitor|icp0|tdtqy|cjn37|143\.198\.237\.25"
 | `env-compat.cjs`, `public.pem` ou `check-env.js` presentes | **INFECTADO** | Execute o Passo 3 completo |
 | `pgmon.service` ativo ou conexão C2 detectada | **INFECTADO ATIVO** | Desconecte a rede **imediatamente**, depois Passo 3 |
 
+> **Nota v6:** as linhas que citam `genie sec scan` dependem de um comando removido no Genie v6. Decida pelas demais linhas, que usam os checks manuais da seção 2.
+
 ---
 
 ## 4. Passo 3 — Remediação (apenas se INFECTADO)
@@ -291,6 +299,8 @@ Para ambientes não-interativos (CI, Dockerfiles), o instalador aceita `-s -- --
 > 🔥 **Este é o passo mais importante.** Qualquer credencial presente na máquina no momento da instalação foi exfiltrada. Rotacionar = revogar a existente e emitir uma nova.
 
 Se você executou `genie sec scan`, use a seção `at-risk local material present on host` como checklist para não esquecer nenhuma classe de credencial, carteira, perfil de navegador, ou `.env` local presente no host comprometido.
+
+> **Nota v6:** sem o `genie sec scan`, use a lista da seção 1.4 como checklist.
 
 **npm**
 
@@ -537,6 +547,8 @@ Em Sophos, OPNsense, pfSense ou similares, crie um grupo `CanisterWorm-C2` com o
 - [ ] Desabilitei auto-update até validar a fonte
 - [ ] Bloqueei IoCs no meu perímetro
 
+> **Nota v6:** os itens que citam `genie sec scan` e `at-risk local material present on host` dependem de um comando removido no Genie v6. No v6, marque esses itens pelos checks manuais da seção 2 e pela lista da seção 1.4.
+
 ---
 
 ## 8. Contato e reporte
@@ -572,12 +584,15 @@ Reportes privados de segurança relacionados a qualquer pacote Namastex: `privac
 |------|--------|---------|
 | 2026-04-23 | 1.0 | Publicação inicial consolidada pós-investigação |
 | 2026-04-24 | 1.1 | Adicionado operator playbook em inglês (§11) com árvore de decisão de três ramos, escalations e template de post-mortem |
+| 2026-10-02 | 1.2 | Notas v6 junto a cada recomendação do scanner que o Genie v6 removeu; link do SECURITY.md corrigido no §11.7 |
 
 ---
 
 ## 11. Operator playbook (English) — three-branch decision tree
 
 The preceding sections are the public advisory for any operator or organization that installed a compromised version. The following section is the **cold-runnable operator playbook** tied to `genie sec scan` status bands. Use it when you already have `@automagik/genie` on the host and you need a step-by-step remediation recipe that matches exactly what the CLI is about to ask of you.
+
+> **v6 note:** Genie v6 removed `genie sec`, and the current CLI has no host scanner. This playbook still shows its commands as they were when it was written. On a v6 host, pick the branch from the manual checks in §2 (the mapping is under §11.2), do each step by hand, verify a Genie release with `scripts/verify-release.sh` as [Security and releases](/genie/security/index) describes, and rotate credentials from a separate trusted host.
 
 ### 11.1 When to use this playbook
 
@@ -599,7 +614,15 @@ Use this playbook when **any** of the following is true:
 | `OBSERVED ONLY` | [§11.5 OBSERVED ONLY](#115-observed-only--clear--rescan) | Cache/lockfile/log references; no execution evidence |
 | `NO FINDINGS` | Stop — pin versions, enable `ignore-scripts`, keep monitoring | None in scope |
 
+<Note>
+  **v6 note:** with no scanner, pick the branch from the manual checks in §2. A dropped payload (`env-compat.cjs`, `public.pem`, `check-env.js`), persistence (`pgmon.service`, `/tmp/pglog`, a suspicious `.pth`) or a live C2 connection means §11.3. A malicious version installed or cached means §11.4. Only passive references (cache index, lockfile, shell history) mean §11.5.
+</Note>
+
 > **Non-negotiable first step for any branch:** verify the CLI you are about to trust is genuine. Run `genie sec verify-install` **before** any `remediate`, `restore`, or `rollback` invocation. If that call cannot return exit `0`, read [§11.7 Escalation — `--unsafe-unverified`](#117-escalation----unsafe-unverified) before touching the host.
+
+<Note>
+  **v6 note:** `genie sec verify-install` and `--unsafe-unverified` do not exist in v6, and no supported flag bypasses a failed verification. To check a Genie release, run `scripts/verify-release.sh` from a clone of the genie repository. If it fails, do not run that build.
+</Note>
 
 ### 11.3 LIKELY COMPROMISED — full remediation
 
@@ -670,11 +693,15 @@ unset GENIE_SEC_SCAN_DISABLED
 genie sec scan --all-homes --root / --json
 ```
 
+> **v6 note:** in v6, verify the release with `scripts/verify-release.sh` and replace the scan with the manual checks in §2, keeping their output as your evidence.
+
 Capture the `scan_id` from the output — every subsequent step references it.
 
 #### Step 4 of 7 — Generate a remediation plan, review, apply
 
 `genie sec remediate` is dry-run by default. Generate the plan, read it, then apply.
+
+> **v6 note:** v6 has no `genie sec remediate`. Remove persistence and purge the caches by hand as §4.1 and §4.2 describe, and copy every file before you delete it.
 
 ```bash
 SCAN_ID=<paste-scan-id-from-step-3>
@@ -716,6 +743,8 @@ Any credential the host could read at install time was exfiltrated. Rotation = *
 
 `genie sec remediate --apply` emits a per-host rotation checklist at the end of its run; the table above is the fleet-level order across hosts.
 
+> **v6 note:** without `genie sec remediate`, the table above is the whole rotation checklist.
+
 #### Step 6 of 7 — Rebuild image or restore from pre-compromise snapshot
 
 ```bash
@@ -726,9 +755,13 @@ aws ec2 describe-snapshots --owner-ids self --filters Name=start-time,Values=202
 
 If no clean snapshot exists: re-provision the host from a fresh image, install `@automagik/genie` from the current stable line, run `genie sec verify-install`, and restore workload state from your backup channel (not from the compromised host).
 
+> **v6 note:** to reinstall Genie on the rebuilt host, use `install.sh` from [Installation](/genie/installation): it verifies the signed release before it unpacks anything. v6 has no `genie sec verify-install`.
+
 #### Step 7 of 7 — Write the post-mortem
 
 Use the template in [§11.8 Post-mortem template](#118-post-mortem-template). Paste the `scan_id` from Step 3; the audit log under `$GENIE_SEC_AUDIT_LOG` contains the full action trail keyed off that id.
+
+> **v6 note:** v6 keeps no scan id and no audit log, so record each action and its time by hand as you go.
 
 ### 11.4 LIKELY AFFECTED — purge → rescan → rotate
 
@@ -765,12 +798,16 @@ genie sec scan --all-homes --root "$PWD" --json > /tmp/rescan.json
 jq -r '.status' /tmp/rescan.json
 ```
 
+> **v6 note:** in v6, re-run the cache checks in §2.3 and §2.4 instead. They must print nothing.
+
 #### Step 3 of 4 — Install clean versions
 
 ```bash
 bun install -g @automagik/genie@^4.260422.4
 bun install -g pgserve@^1.1.10
 ```
+
+> **v6 note:** these commands install `4.x` packages. To install Genie v6, use `install.sh` from [Installation](/genie/installation), which verifies the signed release before it unpacks anything.
 
 #### Step 4 of 4 — Rotate credentials that were live during the compromise window
 
@@ -803,6 +840,8 @@ genie sec scan --all-homes --root "$PWD" --json > /tmp/rescan.json
 jq -r '.status' /tmp/rescan.json
 ```
 
+> **v6 note:** in v6, re-run the cache checks in §2.3 instead. They must print nothing.
+
 #### Step 3 of 3 — Do not rotate credentials yet
 
 `OBSERVED ONLY` means we have no evidence the postinstall script executed. **Skip credential rotation** unless later evidence (shell history showing an install + invoke, auditd `execve` of `node scripts/env-compat.cjs`, egress logs to a C2 host) surfaces. If any of those appears, re-classify as `LIKELY AFFECTED` and run §11.4.
@@ -810,6 +849,8 @@ jq -r '.status' /tmp/rescan.json
 ### 11.6 Escalation — rollback
 
 Use `genie sec rollback <scan_id>` when `genie sec remediate --apply` completed but broke something on the host. Rollback walks the audit log in reverse, restoring every quarantined item to its original path with sha256-verified content.
+
+> **v6 note:** v6 has no `genie sec rollback`, `quarantine` or `restore`. Restore a file from the copy you made before you deleted it.
 
 **When to reach for this:** a service fails to start after remediation, a legitimate config file was quarantined, a dependency your application needs is gone. Rollback is safe — it only touches items the audit log recorded.
 
@@ -825,6 +866,8 @@ genie sec restore <quarantine-id>
 ### 11.7 Escalation — `--unsafe-unverified`
 
 `genie sec remediate --apply` refuses to run unless `genie sec verify-install` returned exit `0`. The `--unsafe-unverified <INCIDENT_ID>` flag is the only documented escape hatch. Every invocation is written to `$GENIE_SEC_AUDIT_LOG` with the incident id, the typed ack, and the reason.
+
+> **v6 note:** v6 has no `--unsafe-unverified` flag, and no supported flag bypasses a failed verification. If `scripts/verify-release.sh` fails for a Genie build, do not run that build, and escalate through the contacts in §8.
 
 #### When `--unsafe-unverified` is legitimate
 
@@ -877,7 +920,7 @@ genie sec remediate --apply \
 
 - **"It's faster."** The prompt is the point; verification is the contract.
 - **"The prompt is annoying."** See above.
-- **"I don't have the key locally."** There is no key — the signing identity is a three-value tuple (see [SECURITY.md § Release Signing](../../SECURITY.md#release-signingpinned-identity-cosign-keyless)). If `verify-install` exits `5`, use Context 2.
+- **"I don't have the key locally."** There is no key: the signing identity is a three-value tuple (see [SECURITY.md § Release Signing](https://github.com/automagik-dev/genie/blob/main/SECURITY.md#release-signing--pinned-identity-cosign-keyless)). If `verify-install` exits `5`, use Context 2.
 - **"Our release channel is old."** Upgrade. If that is not possible right now, use Context 2 with the correct release-line identifier.
 
 Any `--unsafe-unverified` invocation whose incident id does not map to one of the three legitimate contexts is treated as an incident of its own by post-hoc review.
@@ -885,6 +928,8 @@ Any `--unsafe-unverified` invocation whose incident id does not map to one of th
 ### 11.8 Post-mortem template
 
 Copy the block below into your incident channel and fill in every field. The `scan_id` ties it to the persisted scan JSON, the audit log, and the remediation plan manifest.
+
+> **v6 note:** on a v6 host, replace the scan id, the plan manifest and the audit log with the output of the manual checks and your own timeline.
 
 ```markdown
 # Post-mortem: CanisterWorm exposure on <host or fleet scope>
