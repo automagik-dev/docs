@@ -1,78 +1,82 @@
 ---
-title: "/work"
-sidebarTitle: "/work"
+title: "work"
+sidebarTitle: "work"
 icon: "hammer"
-description: "Execute an approved wish plan — orchestrate subagents per task group with fix loops, validation, and review handoff."
+description: "Build an approved WISH.md group by group, each group done by a scoped worker and checked by a different reviewer."
 ---
 
-# /work — Execute Wish Plan
+<Card title="work" img="/genie/images/skills/work.svg">
+  Claude Code runs it as `/work` and Codex as `$work`. Other agents take its name or a plain request such as "work this wish".
+</Card>
 
-Orchestrate execution of an approved wish. The orchestrator never executes directly — always dispatches via subagent.
+## What it does
 
-## When to Use
+work executes a plan that review approved. It reads `.genie/wishes/<slug>/WISH.md`, which must carry the status `APPROVED`, or `IN_PROGRESS` when you resume, and sets it to `IN_PROGRESS` before anything starts. The plan stays the source of every instruction.
 
-- An approved wish exists and is ready for execution
-- After `/review` returns SHIP on the plan
-- Orchestrator needs to dispatch implementation tasks to subagents
+- **Order.** It works out the waves from the plan's Execution Strategy and each group's `depends-on`. Dependencies come from the plan: a card that shows as ready on the board can still be waiting on another group.
+- **Workers.** Each group goes to its own worker through your agent's subagents, with its goal, deliverables, criteria, validation, owned files and stop conditions. Workers that write at the same time get separate files or their own worktrees. A worker in a shared checkout never commits or switches branches; only the coordinator does.
+- **Slices.** Inside a group, the thinnest slice that runs end to end goes first, then it widens.
+- **Review.** When a worker hands back, a different reviewer checks the group with [review](/genie/skills/review). A FIX-FIRST goes to [fix](/genie/skills/fix) with the group's repair budget. A separate quality pass looks at security, maintainability and performance.
+- **Done.** Only after SHIP and passing validation does the coordinator post the verdict on the group's card and mark it done.
 
-## Flow
+The wish stays `IN_PROGRESS` through the pull request and CI. Only a merge plus the plan's QA evidence makes it `SHIPPED`.
 
-1. **Load wish** — read `.genie/wishes/<slug>/WISH.md`, confirm scope.
-2. **Pick next task** — select next unblocked pending execution group.
-3. **Self-refine** — dispatch `/refine` on the task prompt with WISH.md as context.
-4. **Dispatch agent** — send the task to a fresh subagent session.
-5. **Local review** — run `/review` per group against acceptance criteria. On FIX-FIRST, dispatch fix subagent (max 2 loops).
-6. **Quality review** — dispatch review subagent for quality pass (security, maintainability, perf).
-7. **Validate** — run the group validation command, record evidence.
-8. **Signal completion** — notify the leader via `genie send`.
-9. **Repeat** until all groups done.
-10. **Handoff** — `All work tasks complete. Run /review.`
+## The card conversation
 
-## Dispatch
+Every group has a card on the board, and the card's timeline is the record of who did what. work posts to it at these moments and no others:
 
-All dispatch uses the `genie spawn` command:
+| Moment | Who | What |
+|--------|-----|------|
+| Dispatch | Coordinator | `genie task comment` naming the worker and the scope |
+| Claim | Worker | `genie task checkout` before it changes anything |
+| Handoff | Worker | One `genie task report`: the outcome, what changed and where, the validation result, and one `Ruling:` line per decision it took on your behalf |
+| Review verdict | Coordinator | `genie task comment` with SHIP, FIX-FIRST or BLOCKED; the evidence goes to `WISH.md` |
+| Group done | Coordinator | `genie task done` |
 
-| Need | Method |
-|------|--------|
-| Implementation task | `genie spawn engineer` |
-| Review task | `genie spawn reviewer` (never same agent as engineer) |
-| Fix task | `genie spawn fixer` (separate from reviewer) |
-| Quick validation | `Bash` tool directly — no subagent needed |
+A worker stops to ask only for an irreversible or destructive action, a security decision, a side effect outside its worktree, or a plan too broken to follow. Every other decision is a ruling it takes and records in its report. `genie board --wish <slug>` shows where the groups stand.
 
-## State Management
+## When to use it
 
-- **Agents signal** completion via `genie send` to the leader.
-- **Leader tracks** state via `genie status <slug>` and marks groups complete via `genie done <ref>`.
-- Agents do NOT call `genie done` — that is the leader's responsibility.
-- If a group gets stuck, the leader can use `genie reset <ref>` to retry.
+- A `WISH.md` that an independent review approved.
+- A wish already `IN_PROGRESS` that stopped and needs to resume.
 
-## Escalation
+One decided task needs no plan: give it to [wish](/genie/skills/wish). An idea without a plan starts at [brainstorm](/genie/skills/brainstorm), or at wish's plan entry when the decisions are already made.
 
-When a subagent fails or fix loop limit (2) is exceeded:
+## Run it
 
-- Mark task **BLOCKED** in wish
-- Create follow-up task with concrete gaps
-- Continue with next unblocked task
-- Include blocked items in final handoff
+| Agent | How it runs |
+|-------|-------------|
+| Claude Code | `/work <slug>` |
+| Codex | `$work <slug>` |
+| Other agents | Its name, or a plain request such as "work this wish" |
 
-## Task Lifecycle Integration
+work has no saved workflow: it runs in your agent's session and hands the groups to that agent's subagents. Without subagents it says so, and does not claim that an independent review took place. Without the `genie` CLI or its database it tracks the groups in `WISH.md`.
 
-When PostgreSQL tasks exist, `/work` integrates with the task system at each step:
+## A recorded run
 
-| Event | Command |
-|-------|---------|
-| Claim task before starting | `genie task checkout #<seq>` |
-| Log progress during execution | `genie task comment #<seq> "Building group N..."` |
-| Move task on group completion | `genie task move #<seq> --to review --comment "Group N complete"` |
-| Mark parent task done | `genie task done #<parent-seq> --comment "All groups shipped"` |
+<Frame caption="Simulated terminal: a replay of a real /work run in Claude Code, built from its saved capture and shortened in time. Edited in two places: host details hidden (paths shown as ~/, account plan and quota), and the agent launch line removed.">
+  <video
+    controls
+    playsInline
+    preload="metadata"
+    poster="/genie/videos/sop-work.jpg"
+    src="/genie/videos/sop-work.mp4"
+    title="A simulated replay of a real /work run"
+    className="w-full aspect-video"
+  />
+</Frame>
 
-Task integration is graceful — if no PG task exists, the work flow proceeds without task commands.
+The run works a single-group wish in a small test repository: an engineer adds the change, a separate reviewer approves it, and the coordinator commits only the reviewed files and marks the card done. The repository has no remote, so the run ends without a pull request and asks how to proceed.
 
-## Rules
+[Read the transcript](/captures/genie/work.capture.txt): the redacted text of the run's final screen and scrollback.
 
-- Never execute directly — always dispatch subagents
-- Never expand scope during execution
-- Never skip validation commands
-- Never overwrite WISH.md from agents
-- Keep work auditable: capture commands + outcomes
-- Run local `/review` per group before signaling done
+## Next
+
+<CardGroup cols={2}>
+  <Card title="review" icon="magnifying-glass-chart" href="/genie/skills/review">
+    How each group is checked.
+  </Card>
+  <Card title="Skills catalog" icon="book-open" href="/genie/skills">
+    Every skill Genie ships, one line each.
+  </Card>
+</CardGroup>

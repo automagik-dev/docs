@@ -1,107 +1,72 @@
 ---
-title: "/council"
-sidebarTitle: "/council"
+title: "council"
+sidebarTitle: "council"
 icon: "users"
-description: "Convene real AI agents for multi-perspective deliberation on architecture, design, and strategy decisions."
+description: "Put a consequential decision through independent lenses, dissent included, and get one synthesis back. It changes nothing."
 ---
 
-# /council — Multi-Perspective Review
+<Card title="council" img="/genie/images/skills/council.svg">
+  Claude Code runs it as `/council` and Codex as `$council`. Other agents take its name or a plain request such as "put this to a council".
+</Card>
 
-Convene a panel of 10 specialist perspectives to brainstorm, critique, and vote on a decision.
+## What it does
 
-## When to Use
+council takes one decision and has it assessed by separate lenses, each in its own subagent, then integrates their answers into a single recommendation. It only assesses: it edits no file, changes no configuration and carries out no plan unless you explicitly ask for that.
 
-- Architecture decisions needing diverse viewpoints
-- During `/wish` to generate approaches with tradeoffs
-- During `/review` to surface risks and blind spots
-- Deadlocked discussions needing fresh angles
+| Lens | What it looks at |
+|------|------------------|
+| Architecture | Contracts, coupling, failure modes, operability, long-term cost |
+| Delivery | Sequencing, testability, migration, rollback, the evidence needed to ship |
+| Product | User value, usability, scope discipline, compatibility |
+| Security | Trust boundaries, permissions, data exposure, abuse cases |
+| Dissent | The strongest evidence-backed case against the emerging consensus |
 
-## Council Members
+Every lens gets the same brief: the decision, its constraints, the evidence and the known unknowns, and nothing else. No lens sees the session or another lens's answer, so none of them can echo the room. Each returns a verdict (`support`, `support-with-conditions`, `oppose` or `insufficient-evidence`), a confidence, its key evidence, risks, required conditions and unknowns.
 
-| Member | Focus | Lens |
-|--------|-------|------|
-| **questioner** | Challenge assumptions | "Why? Is there a simpler way?" |
-| **benchmarker** | Performance evidence | "Show me the benchmarks." |
-| **simplifier** | Complexity reduction | "Delete code. Ship features." |
-| **sentinel** | Security oversight | "Where are the secrets? What's the blast radius?" |
-| **ergonomist** | Developer experience | "If you need to read the docs, the API failed." |
-| **architect** | Systems thinking | "Talk is cheap. Show me the code." |
-| **operator** | Operations reality | "No one wants to run your code." |
-| **deployer** | Zero-config deployment | "Zero-config with infinite scale." |
-| **measurer** | Observability | "Measure, don't guess." |
-| **tracer** | Production debugging | "You will debug this in production." |
+One synthesizer then writes the decision: `proceed`, `proceed-with-conditions`, `revise`, `stop` or `gather-evidence`, with the consensus, the dissent, the conditions, the evidence gaps, one bounded next action and how conflicts were resolved. Dissent stays in the dissenting lens's own words, attributed to it, even when the other lenses disagree. A lens that returned nothing is listed as not convened and never counted. Lenses that run on the same model through the same runtime are separate roles, and the report says so.
 
-## Modes
+## When to use it
 
-### Lightweight Mode (Default)
+- A decision that is expensive to reverse: an architecture choice, a migration, a security boundary, a change of scope.
+- A choice where you want the case against it argued before you commit.
 
-When no council members are hired in the team, all perspectives are simulated in a single session. One agent plays all roles — faster, lower cost, good for most decisions.
+council sits outside the delivery loop. Bring it a decision at any point, then take the outcome to [brainstorm](/genie/skills/brainstorm) or [wish](/genie/skills/wish). Inside a brainstorm, the lead can convene its own council for one contested decision.
 
-### Full Spawn Mode
+## Run it
 
-When council members are hired in the team (`genie team hire council`), real agents deliberate via `genie chat` and reach consensus. Higher-quality since each member runs in its own context.
+| Agent | How it runs |
+|-------|-------------|
+| Claude Code | `/council <decision>` runs the saved workflow `council`: every lens in the table at once, then the synthesis. See [Workflows](/genie/workflows) |
+| Codex | `$council <decision>` sends the lenses to subagents by hand, with the same brief and the same response shapes |
+| Other agents | Its name, or a plain request such as "put this to a council" |
 
-```bash
-# Hire all 10 council members
-genie team hire council
-```
+By hand, the skill picks the lenses the decision needs, always with dissent and at least one other lens. Add constraints, evidence or unknowns to the request and every lens receives them.
 
-## Smart Routing
+## A recorded run
 
-Not every decision needs all 10 perspectives. Topics are routed to the relevant subset:
+<Frame caption="Simulated terminal: a replay of a real /council run in Claude Code, built from its saved capture and shortened in time. Edited in two places: host details hidden (paths shown as ~/, account plan and quota), and the agent launch line removed.">
+  <video
+    controls
+    playsInline
+    preload="metadata"
+    poster="/genie/videos/sop-council.jpg"
+    src="/genie/videos/sop-council.mp4"
+    title="A simulated replay of a real /council run"
+    className="w-full aspect-video"
+  />
+</Frame>
 
-| Topic | Members |
-|-------|---------|
-| Architecture | questioner, benchmarker, simplifier, architect |
-| Performance | benchmarker, questioner, architect, measurer |
-| Security | questioner, simplifier, sentinel |
-| API Design | questioner, simplifier, ergonomist, deployer |
-| Operations | operator, tracer, measurer |
-| Observability | tracer, measurer, benchmarker |
-| Full Review | all 10 |
+The run asks whether a small test repository should move its tests from `bun:test` to `node:test`. The session probes the repository first and hands that evidence to the lenses. Architecture, product, security and dissent oppose, delivery supports with conditions, and the synthesis is `gather-evidence`: nobody has named a machine without Bun yet, so nothing justifies the move.
 
-**Default:** Core trio — questioner, benchmarker, simplifier.
+[Read the transcript](/captures/genie/council.capture.txt): the redacted text of the run's final screen and scrollback.
 
-## Output Format
+## Next
 
-```markdown
-## Council Advisory
-
-### Topic: [Detected Topic]
-### Mode: [Lightweight / Full Spawn]
-### Members Consulted: [List]
-
-### Perspectives
-
-**questioner:**
-- [Key point]
-- Vote: [APPROVE/REJECT/MODIFY]
-
-**simplifier:**
-- [Key point]
-- Vote: [APPROVE/REJECT/MODIFY]
-
-### Vote Summary
-- Approve: X | Reject: X | Modify: X
-
-### Synthesized Recommendation
-[Council's collective advisory]
-
-### User Decision Required
-The council advises [recommendation]. Proceed?
-```
-
-## Auto-Invocation Triggers
-
-The council can be triggered automatically by other skills:
-
-- **During `/review`**: when an architecture decision has significant tradeoffs, `/review` may invoke `/council` for specialist input before rendering a verdict.
-- **During `/brainstorm`**: when the Decisions dimension stays unfilled after 2+ exchanges, `/brainstorm` suggests running `/council` to break the deadlock.
-
-## Rules
-
-- Advisory only — never block progress based on council vote
-- Never invoke all 10 for simple decisions
-- Each perspective must be distinct — no rubber-stamping
-- Always synthesize votes into a recommendation
-- The council advises, the user decides
+<CardGroup cols={2}>
+  <Card title="Workflows" icon="diagram-project" href="/genie/workflows">
+    The saved workflows behind council and the other skills.
+  </Card>
+  <Card title="Skills catalog" icon="book-open" href="/genie/skills">
+    Every skill Genie ships, one line each.
+  </Card>
+</CardGroup>

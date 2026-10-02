@@ -1,98 +1,103 @@
 ---
-title: "/wish"
-sidebarTitle: "/wish"
+title: "wish"
+sidebarTitle: "wish"
 icon: "sparkles"
-description: "Deliver one decided task end to end — or plan a multi-group wish when the work is bigger than one task."
+description: "Deliver one decided task as a pull request ready to merge, or plan work that is bigger than one task."
 ---
 
-# /wish — One Task Delivered
+<Card title="wish" img="/genie/images/skills/wish.svg">
+  Claude Code runs it as `/wish` and Codex as `$wish`. Other agents take its name or a plain request such as "deliver this".
+</Card>
 
-Give `/wish` a decided, bounded objective and it comes back with a merge-ready pull request against your integration branch — or with a refusal that names the route the request needs instead. When the work is bigger than one task, the same skill writes the plan at `.genie/wishes/<slug>/WISH.md` for `/work` to execute.
+## What it does
 
-<Note>
-  `/wish` used to mean "write a plan". It now means "deliver one task", and the planning path lives on as its plan entry. `/quick` is retired; `/wish` replaces it.
-</Note>
+Give wish one decided, bounded task. It comes back with a pull request against your integration branch, or with a refusal that names the route the task needs instead. Merging stays with you: wish never merges.
 
-## When to Use
-
-- One decided change that should become a green PR in a single pass
-- A multi-group effort that needs a durable plan first (the plan entry below)
-- Prior `/brainstorm` output that is settled enough to build
-
-Not for work whose cause is unknown (`/report` first) or whose product decision is still open (`/brainstorm` first). `/wish` refuses both, by name.
-
-## Delivering one task
+In Claude Code the delivery is the saved workflow `wish`, and every run goes through the same stages:
 
 | Stage | What happens |
 |-------|--------------|
-| **Admit** | A read-only scout reads the repository and estimates the change; a blind judge that never sees the code decides the route and writes the contract — core outcome, declared file set, acceptance criteria — before any code exists |
-| **Work** | One executor works in its own worktree on `wish/<slug>`, edits only the declared files, and makes one conventional commit |
-| **Gate** | The repository's full check runs once; a push never happens over dead git hooks |
-| **Review** | A different, read-only agent scores the exact commit against the criteria written at admission, and blocks if the diff leaves the declared file set |
-| **Repair** | Bounded repair rounds, each re-gated and re-reviewed |
-| **Publish** | One agent pushes the branch, opens the PR, and reads the remote back — base, head, file set and checks |
+| Admit | A read-only scout reads the task and the repository and estimates the change. The script checks the estimate against a fixed size band, and a judge that never sees the repository picks the route and freezes the contract: the outcome, the declared files and the acceptance criteria, written before any code exists |
+| Work | One executor cuts a worktree on `wish/<slug>` from the base branch, edits only the declared files and makes one conventional commit |
+| Gate | A mechanical check of that commit, described below |
+| Review | A different, read-only agent scores the exact commit against the frozen criteria. A diff that leaves the declared files is blocked |
+| Repair | While the gate is red or the verdict is FIX-FIRST, and the repair budget holds, a fixer edits the declared files again, and the gate and the review run on the new commit |
+| Publish | One agent with an allowlist of commands pushes the branch, opens the pull request and reads the remote back. Without the GitHub CLI it stops before pushing anything |
+| Read-back | The script compares the remote head, the pull request's base, head and files, and the checks with what the run set out to deliver |
 
-Merging is never part of it. `/wish` reports `merge-ready`; you merge.
+The task is frozen at the start: no stage asks it again, narrows it or widens it.
 
-### Admission band
+### The gate at v6.261002.2
 
-The scout's estimate is measured against the size band from the wish-duration study: **maximum 25 files, 2,000 insertions, 3 independently reviewable units** (ideal: 10, 800, 2). Anything larger, anything touching a trust-boundary path (CI workflows, git hooks, settings, release scripts, permission surfaces), an open product decision, or an unknown cause comes back **refused**, with the route it needs — `plan`, `brainstorm` or `report` — and nothing created.
+At v6.261002.2 the executor runs `bun install --frozen-lockfile` in its worktree before its first commit. In a repository with git hooks, the gate checks that the pre-push hook is live and runs `bun run check` once; in a repository without hooks, it runs the validation command frozen in the contract instead. The [Quickstart](/genie/quickstart) lists what that asks of your repository.
 
-### What a run returns
+## When to use it
+
+- One decided change that should become a green pull request in a single pass.
+- A task you can state with the files it touches and the outcome you expect.
+- Work bigger than one task, through the plan entry below.
+
+Admission refuses a task that does not fit and names the route it needs, with nothing created: `plan` when the task is too big or touches a trust boundary, `brainstorm` when a product decision is still open, and `report` when the cause is unknown. The Quickstart lists the [trust boundaries at v6.261002.2](/genie/quickstart#when-%2Fwish-refuses).
+
+## What a run returns
 
 | State | Meaning |
 |-------|---------|
-| `merge-ready` | Checks pass, the remote matches the local head, the PR's base, head and file set match the contract, and the verdict is SHIP |
-| `pr-open` | The PR exists, but its checks had not concluded — re-read them before acting |
+| `merge-ready` | The checks pass, the remote head equals the local commit, the pull request's base, head and files match the contract, and the review says SHIP |
+| `pr-open` | The pull request exists but its checks had not finished; read them again with `gh pr checks` |
 | `refused` | Admission chose another route; nothing was created |
-| `blocked` | A worktree, hook, denylist or read-back mismatch stopped the run; the reason names which |
-| `missed` | The repair budget ran out, or a stage returned nothing; the branch, commit, worktree and any PR are preserved and named |
+| `blocked` | Something stopped the run before, during or after publishing; the report names which |
+| `missed` | The repair budget ran out or a stage returned nothing; the branch, commit, worktree and any pull request are kept |
 
-A rerun with the same objective adopts the worktree it left behind when that worktree is clean and nothing has diverged from the remote. `/wish` never deletes a worktree or a branch — after you merge, `git worktree remove <path> && git branch -d wish/<slug>`.
+After every run the skill runs `genie wish report <runId> --append`, which prints the run's tokens and time per stage.
 
-## Plan a multi-group wish
+To retry after `missed` or `blocked`, run wish again with the same task and slug. It adopts the worktree it left behind when that worktree is clean and nothing has diverged from the remote. wish never deletes a worktree or a branch; after you merge, the report ends with the command that removes both, and that command refuses a branch that is not merged.
 
-The direct entry for work bigger than one task: no admission, just the plan. Write `.genie/wishes/<slug>/WISH.md`, then `/review` it, then `/work` executes the approved groups.
+## Plan work bigger than one task
 
-### Wish Document Sections
+Ask wish for a plan and it skips admission. It writes `.genie/wishes/<slug>/WISH.md` from its bundled template: scope in and out, decisions, success criteria, and execution groups, each with its deliverables, acceptance criteria, validation and dependencies. A group that would not fit the admission band becomes a sibling wish. A plan that links a brainstorm design needs that design's SHIP evidence to match its content.
 
-| Section | Required | Notes |
-|---------|----------|-------|
-| Status / Slug / Date | Yes | Status: DRAFT on creation |
-| Summary | Yes | 2–3 sentences: what and why |
-| Scope IN / OUT | Yes | OUT cannot be empty |
-| Decisions | Yes | Key choices with rationale |
-| Success Criteria | Yes | Checkboxes, each testable |
-| Execution Strategy | Yes | Wave-based parallel/sequential plan |
-| Execution Groups | Yes | Goal, deliverables, acceptance criteria, validation |
-| Dependencies | No | `depends-on` / `blocks` using slug |
-| QA Criteria | No | Post-merge verification |
-| Assumptions / Risks | No | Flag what could invalidate the plan |
+Then:
 
-### Execution Strategy
+- `genie wish lint` checks the structure of every plan in the repository and writes nothing.
+- An independent [review](/genie/skills/review) scores the plan. A SHIP is persisted as `APPROVED` in `WISH.md`, which [work](/genie/skills/work) requires.
+- `genie task create --title "<group title>" --wish <slug> --group <group-name>` adds a card for each group, and `genie context --wish <slug>` records the base commit.
 
-Every wish defines waves — this forces the planner to think about ordering, parallelism, and dependencies upfront:
+## Run it
 
-```markdown
-### Wave 1 (parallel)
-| Group | Agent | Description |
-|-------|-------|-------------|
-| 1 | engineer | Task A |
-| 2 | engineer | Task B |
+| Agent | How it runs |
+|-------|-------------|
+| Claude Code | `/wish <task>` runs the saved workflow `wish` in the background. `/workflows` shows its progress. See [Workflows](/genie/workflows) |
+| Codex | `$wish <task>` runs the same stages by hand, as subagents, with the same briefs |
+| Other agents | Its name, or a plain request such as "deliver this", runs the same stages by hand |
 
-### Wave 2 (after Wave 1)
-| Group | Agent | Description |
-|-------|-------|-------------|
-| 3 | engineer | Task C |
-| review | reviewer | Review Groups 1+2 |
-```
+Name an issue number or URL in the request and the scout reads it and the pull request links it. The base branch is `dev` unless you name another; `main` and `master` are refused. The skill passes the repair budget `genie config get budgets.maxEscalationsPerGroup` prints, and the workflow caps it.
 
-Size the plan by the same band: a group that would exceed the admission maxima is a sibling wish, not a bigger group.
+## A recorded run
 
-## Rules
+<Frame caption="Simulated terminal: a replay of a real /wish run in Claude Code, built from its saved capture and shortened in time. Edited in two places: host details hidden (paths shown as ~/, account plan and quota), and the agent launch line removed.">
+  <video
+    controls
+    playsInline
+    preload="metadata"
+    poster="/genie/videos/sop-wish.jpg"
+    src="/genie/videos/sop-wish.mp4"
+    title="A simulated replay of a real /wish run"
+    className="w-full aspect-video"
+  />
+</Frame>
 
-- The objective is frozen: no stage re-asks it, narrows it, or widens it
-- No vague tasks ("improve everything") — every task must be testable
-- The executor edits only the declared file set; a diff that leaves it is blocked
-- OUT scope must contain at least one concrete exclusion
-- Merge, `SHIPPED`, promotion and worktree removal stay with the operator
+This is the same run the [Quickstart](/genie/quickstart) shows as a time-lapsed replay, with its `genie wish report` output.
+
+[Read the transcript](/captures/genie/wish.capture.txt): the redacted text of the run's final screen and scrollback, with each cut marked inline.
+
+## Next
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/genie/quickstart">
+    One task, from `/wish` to a pull request you merge.
+  </Card>
+  <Card title="Skills catalog" icon="book-open" href="/genie/skills">
+    Every skill Genie ships, one line each.
+  </Card>
+</CardGroup>
