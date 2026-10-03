@@ -1,0 +1,110 @@
+ ▐▛███▛█   Claude Code v2.1.285
+▝▜██████▀  Fable 5.1 with high effort
+ ▝▝   ▝▝   ~/workspace/repos/genie
+
+
+❯ /brainstorm quero promover o council socrático (lentes + Sócrates + respostas + síntese, que hoje roda como workflow avulso na pasta genie-launch)
+a um tipo oficial do /council, escolhido por flag, sem duplicar o council.js. Linear NMSTX-766.
+
+● Vou classificar e explorar: primeiro leio o /council atual, o council.js e o workflow socrático avulso em .genie/brainstorms/genie-launch/ para ver
+  o que já existe antes de perguntar qualquer coisa.
+
+  Searched for 1 pattern, listed 2 directories, ran 1 shell command
+
+● Found the persisted script. Now I read the socratic script, the shipped council.js, the /council SKILL.md and the workflows README council section
+  side by side.
+
+  Read 1 file, listed 1 directory, ran 4 shell commands
+
+● Fatos levantados. Antes das perguntas, a classificação:
+
+  Bounded. O fluxo existe e é legível hoje: council.js (5 lentes paralelas + síntese), o SKILL.md que é só porta de entrada, dois testes de paridade e
+  o script socrático persistido do run wf_b001f24d (fases Lenses → Elenchus → Answers → Synthesis, modelo por lente). A única interface de terceiros
+  que o desenho toca é o contrato de roteamento de modelos (scripts/workflow-routing.test.ts), e de forma aditiva. Se você quiser DESIGN.md revisado
+  mesmo assim, diga e eu subo para Architectural.
+
+  O que a leitura fixou:
+
+  - O ticket NMSTX-766 já decide o essencial: socrático é UM tipo ao lado do paralelo, não substitui; base é o script do run wf_b001f24d; entrega via
+    /wish; atualizar SKILL.md e o teste de paridade.
+  - O script do launch usa lentes específicas da campanha (skeptic, linkedin, devs, dissent). A parte reutilizável é o processo: elenchus, respostas
+    com changedMind, síntese que preserva dissidência.
+  - O teste de roteamento exige o texto literal model: modelFor('worker') ou modelFor('reasoner') em cada agent(), e mapeia lens:* → reasoner. Modelo
+    por lente não passa nesse contrato como está.
+  - docs/ não menciona council. Superfície de docs é só o README do catálogo e o SKILL.md.
+
+  Fronteira da rodada 1, cada item com a minha recomendação:
+
+  1. Seletor do tipo. Recomendo args.type: 'parallel' | 'socratic', default parallel, e a porta de entrada aceita /council --type socratic <decisão>.
+     Alternativa: flag booleana --socratic. Prefiro --type porque tipos são um conjunto, e a segunda opção não escala.
+  2. Roster do socrático. Recomendo as mesmas 5 lentes canônicas (mesmo bloco LENSES, paridade intacta). Roster customizado via args.lenses, como no
+[… 82 lines elided …]
+     ## Design Review Evidence
+     … +8 lines
+  ⎿  Updated .genie/INDEX.md (+1 -0)
+      20
+      21  ## Ready
+      22
+      23 +- [DESIGN: council-socratic-type](brainstorms/council-socratic-type/DESIGN.md) — **reviewed SHIP 2026-09-30** (round 3, after one FIX
+         +-FIRST; digest `125f5030…`): promote the Socratic council (Lenses → Elenchus → Answers → Synthesis, model per lens) from the one-off
+         +`wf_b001f24d-1c4` script to an official type of `/council`, chosen by `--type socratic` on the one `council.js` — same five lenses, s
+         +ame schemas, `tier` per lens, a `'per-lens'` value in the routing scanner, parallel type byte-for-byte unchanged. Linear NMSTX-766. N
+         +ext route: wish
+      24  - [DESIGN: genie-launch](brainstorms/genie-launch/DESIGN.md) — **reviewed SHIP 2026-09-29** (round 2, after FIX-FIRST): the launch fo
+          undation before Felipe's first public posts. README rewrite + `UPGRADING.md` (skills first, animated mascot, one-paste install), v6 d
+          ocs down to ≤15 public skills-first pages, media (skill cards, simulated-terminal SOP videos backed by real captures, the real /wish
+          capture), then org and profile pages with Felipe approving each write. Tracked in Linear project "gtm - opensource" (NMSTX-739..771).
+           Next route: wish
+      25  - [WISH: observe-skill-bundle](wishes/observe-skill-bundle/WISH.md) — **APPROVED 2026-09-17** (direct wish, no brainstorm): fix the P
+          hoenix observability tooling merged in #2936 so it works for anyone running Phoenix locally, then ship it as the `observe` skill. The
+           one live wish with real open work — not one of the five groups has executed, `skills/observe` does not exist and `observe` is absent
+           from `SHIPPED_SKILLS` in `scripts/release-docs.test.ts`. It edits the shipped skill roster, so it lands after the stable cut and ahe
+          ad of the wish-v7 program
+      26  - [WISH: dsh-workflow-fork](wishes/dsh-workflow-fork/WISH.md) — **APPROVED** (orchestrator, 2026-09-20), re-planned 2026-09-19 agains
+          t the route Group 0 chose: run the catalog on DSH's first-party `ctx.workflowEngine` with a loader, and do **not** fork `omdsh-dev/ds
+          h_workflow` (`automagik-dev/dsh_workflow` is not created, and Groups 1–3 are delivered in genie, moot, or deferred behind a named tri
+          gger). Group 0's evidence is accepted (#3008 merged): a loader that splits `export const meta` off the body and drops `effort` from `
+          agent()` options ran `.claude/workflows/council.js` to completion on host `dsh 0.1.5-rc.2` (`6 agents`, `decision: gather-evidence`),
+           with 35 option removals across 7 of 9 scripts and every `effort`-named schema field preserved. The loader itself is `plugins/dsh-wor
+          kflow-loader` (#3011 merged; payload wiring and a boot smoke in #3015), and its smoke, on #3015's branch (still in review), proved a
+          real Host boots with the row active after catching two loader defects. Residual work this wish still owns: the cross-body engine comp
+          arator, the recorded `council` integration run, and the deferred adapters. Awaiting the re-review that gates the residual work; the c
+          ards stay unclaimed
+  ⎿  (what this command changed; a convenience view, not a review or audit of the command)
+
+● Design pronto, SHIP com review independente verificado.
+
+  Arquivos
+
+  - ~/workspace/repos/genie/.genie/brainstorms/council-socratic-type/DESIGN.md (carimbado SHIP, digest 125f5030…, reviewer
+    review-agent-opus-5.5, 2026-09-30T14:57:43Z; verify passou)
+  - ~/workspace/repos/genie/.genie/INDEX.md (uma linha nova em ## Ready; a modificação pré-existente do seu trabalho do launch ficou
+    intacta)
+  - Cópia de segurança em ~/…/DESIGN-council-socratic-type.md
+
+  Nada foi commitado nem staged.
+
+  Como foi o review. Três rodadas no mesmo reviewer Opus com contexto limpo. Rodada 1 FIX-FIRST com 4 major e 5 minor, todos conferidos contra o
+  código antes de corrigir: faltava o meta.phases no escopo, o tier não viajava no responded (daria modelFor(undefined) e TypeError sem args.model),
+  os critérios não tinham método de prova, e a extensão do scanner não dizia quais linhas mudam. Rodada 2 SHIP com 3 minors de precisão, corrigidos.
+  Rodada 3 SHIP.
+
+  Decisões fechadas além da rodada 1. O meta declara as quatro fases como literal e o tipo paralelo nunca entra em Elenchus e Answers, precedente do
+  Repair no wish.js. O roster sai de uma linha rosterFor pinada em texto pelo teste de paridade, junto com o call site, para o paralelo não perder o
+  all-opus por acidente. O scanner ganha 'per-lens' nas linhas 185 e 192, rejeita .tier em script sem mapa e rejeita literal sob rótulo per-lens.
+  lenses[].tier entra no retorno dos dois tipos. O precedente é citado pelo record da sessão (10 agentes, 679k tokens, 4,6 min), não pelo journal, e o
+  run ao vivo de prova roda por caminho explícito do branch do PR.
+
+  Um resto para o wish. O reviewer deixou um minor de wording na rodada 3: Decision 4 e Risk 1 não mencionam a rejeição de tier literal sob
+  'per-lens', que o escopo e o critério 2 já cobrem. Não editei porque qualquer mudança invalidaria o carimbo; o wish ajusta de passagem.
+
+  Próxima rota: /wish sobre o design, entrega em um PR (script, dois testes, SKILL.md, README), e o PR anexado no NMSTX-766.
+
+✻ Sautéed for 9m 44s · done 2:58 PM
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  Fable 5.1 | hi | genie | (dev) | █░░░░░░░░░ 16% | ContextQ:S(92)
+  ⤸resumable | Eff:B(76) | Compacts:0 | 14m
+  ⏵⏵ bypass permissions on (shift+tab to cycle) · PR #3081 · ← 1 agent

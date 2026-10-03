@@ -2,177 +2,125 @@
 title: "Installation"
 sidebarTitle: "Installation"
 icon: "download"
-description: "Install Genie CLI, configure prerequisites, and verify your setup."
+description: "Install the signed Genie binary and its skills, then check the result with genie doctor."
 ---
 
 <Note>
-  Genie runs on **Linux** and **macOS**. Windows is not supported today (WSL2 works but is not on the tested matrix). You'll also need Node.js 18+ or Bun, Claude Code (or another agent), tmux, Git, and — recommended — the GitHub CLI.
+  Genie runs on **Linux** and **Apple Silicon macOS**. Windows is not supported; WSL2 works but is not on the tested matrix.
 </Note>
 
-## Prerequisites
+## Before you install
 
-| Tool | Required | Purpose |
-|------|----------|---------|
-| [Node.js](https://nodejs.org/) 18+ or [Bun](https://bun.sh/) | Yes | Runtime for the CLI |
-| [Claude Code](https://docs.anthropic.com/en/docs/claude-code) | Yes | AI agent backend (or swap for [Codex, Open Claw, or a BYOA adapter](/genie/concepts/byoa)) |
-| [tmux](https://github.com/tmux/tmux) | Yes | Agent process management |
-| [Git](https://git-scm.com/) | Yes | Version control and worktrees |
-| [GitHub CLI](https://cli.github.com/) (`gh`) | Recommended | PR creation and issue tracking |
+The `genie` binary carries its own runtime, so the CLI needs nothing else to run. The install and the skills need a few tools:
+
+| Tool | What needs it |
+|------|---------------|
+| curl and tar | `install.sh` downloads and unpacks the release with them |
+| [Git](https://git-scm.com/) | Genie keeps its state per repository and works in git worktrees |
+| [Node.js](https://nodejs.org/) with `npx` on your PATH | The skills step runs the pinned [skills.sh](https://skills.sh) CLI through `npx` |
+| A coding agent | [Claude Code](https://docs.anthropic.com/en/docs/claude-code) runs the skills and the saved workflows; Codex and the other agents skills.sh supports run the skills |
+| [GitHub CLI](https://cli.github.com/) (`gh`), signed in | `/wish` opens its pull requests with it |
 
 ## Install Genie
-
-Pick the path that matches how you manage tools on your machine. The one-line bootstrap is the fastest; npm/Bun are the most familiar; "from source" is for contributors.
-
-### Homebrew (macOS / Linuxbrew)
-
-<Warning>
-  A first-class Homebrew tap (`automagik/tap/genie`) is on the roadmap but not published yet. Until then, macOS users can run the one-line bootstrap below — it auto-detects Homebrew and uses it to install any missing prerequisites (Node, tmux, gh). Track the tap rollout in the [GitHub release workflow](https://github.com/automagik-dev/genie).
-</Warning>
-
-```bash
-# Coming soon — tap not yet public
-brew tap automagik/tap
-brew install automagik/tap/genie
-```
-
-### One-line bootstrap
-
-The bootstrap script detects your system and installs via the best available method (including Homebrew on macOS for prerequisites):
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/automagik-dev/genie/main/install.sh | bash
 ```
 
-Installing Genie is **two steps and a check** — there is no plugin registration step:
+To read the script before it runs, download it first:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/automagik-dev/genie/main/install.sh > install.sh
+less install.sh
+bash install.sh
+```
+
+The script does three things:
 
 <Steps>
-  <Step title="Install the signed binary">
-    Downloads and installs the signed `genie` release for your platform and links it onto your `PATH`.
+  <Step title="Fetch and verify the signed release">
+    It reads the stable channel manifest, downloads the release for your platform and verifies its signature and provenance before it unpacks anything.
   </Step>
-  <Step title="Install the skills">
-    The binary then runs the pinned [skills.sh](https://skills.sh) CLI against its own delivered skill tree, which writes Genie's skills — `wish`, `work`, `review`, `brainstorm`, and the rest — into every agent skill home skills.sh supports on this machine. `genie update` repeats this step on every update, so the skills on disk always match the binary you are running.
+  <Step title="Link the binary">
+    It installs the binary under `~/.genie` and links `genie` into `~/.local/bin`. When that directory is not on your PATH yet, it adds one line to your shell's startup file and tells you to open a new shell.
   </Step>
-  <Step title="Run genie doctor">
-    Verifies prerequisites, config, and the skills channel, then prints a green checklist (or tells you what's missing).
+  <Step title="Hand over to genie install">
+    `genie install` delivers the skills through skills.sh into every agent skills home it detects, copies the saved workflows into `~/.claude/workflows`, and records what landed in `~/.genie/skills-install.json`.
   </Step>
 </Steps>
 
-<Note>
-  **Genie ships no editor plugin.** There is no Claude Code plugin, no Orca plugin (retired in 2026-09), no plugin marketplace registration, and no editor-specific integration to install. Skills reach your agent through skills.sh; everything else is the signed binary.
-</Note>
+An agent counts as detected when its own home directory, such as `~/.claude` or `~/.codex`, already exists. Genie never creates one. Each detected agent gets the skills in its own skills home: `~/.claude/skills` for Claude Code, and the shared `~/.agents/skills` for Codex and the other agents that read it.
 
-### npm
+### Install the binary without the skills
 
-```bash
-npm install -g @automagik/genie
-```
-
-### Bun
+The script passes its arguments to `genie install`. Its `--integrations` option is your consent for the skills step: any value other than `none` installs the skills to every detected agent. To install only the binary:
 
 ```bash
-bun install -g @automagik/genie
+curl -fsSL https://raw.githubusercontent.com/automagik-dev/genie/main/install.sh | bash -s -- --integrations none
 ```
 
-### From source
+`--skip-integrations` does the same. `genie install` then writes no install record and reports `skills: skipped (consent: none)`.
+
+### Coming from an earlier version
+
+Older Genie releases were installed globally through a package manager. When `install.sh` finds one of those installs, it prints the exact command that removes it, because the older `genie` would otherwise keep running ahead of the new one on your PATH. The [release notes](/genie/release-notes) list what v6 removed and what to do instead.
+
+## Skills without the Genie CLI
+
+The skills are published through [skills.sh](https://skills.sh), so an agent can use them without the Genie CLI:
 
 ```bash
-git clone https://github.com/automagik-dev/genie.git
-cd genie
-bun install
-bun run build
-bun link
+npx skills add automagik-dev/genie -g
 ```
 
-## Post-install setup
-
-After installing, run the setup wizard:
-
-```bash
-genie setup
-```
-
-<CardGroup cols={2}>
-  <Card title="Session management" icon="layer-group">
-    tmux session naming and window layout, so every agent lands in a predictable pane.
-  </Card>
-  <Card title="Terminal preferences" icon="terminal">
-    Default shell, timeouts, and read-line counts tuned to your environment.
-  </Card>
-  <Card title="Shell integration" icon="keyboard">
-    Shell aliases and tmux keybindings to keep the hot-path commands a keystroke away.
-  </Card>
-</CardGroup>
-
-## Skills for any agent
-
-Genie's skills are published through [skills.sh](https://skills.sh), so any agent that reads skills can use them — Claude Code, Codex, Cursor, and the rest. To install them machine-wide, for every agent skills.sh supports, with no prompts:
-
-```bash
-npx skills add automagik-dev/genie -g --all
-```
-
-The flags matter:
-
-- `-g` installs at global scope, under your home directory. Without it the bare `npx skills add automagik-dev/genie` is **project-scoped**: it writes the skills into the current working directory and leaves nothing machine-wide.
-- `--all` answers both the agent picker and the skill picker for you — it is shorthand for `--skill '*' --agent '*' -y` — and installs every Genie skill into every agent skills.sh supports for global installs, rather than prompting. Agents skills.sh does not support at global scope (currently Eve and PromptScript) are skipped.
-- `--copy` writes plain files instead of symlinks — add it when your agent or sandbox does not follow links.
-
-Starting with the release that ships the skills.sh channel, `genie update` performs this global install itself — run `genie doctor` to see whether your version reports the skills surface. On earlier versions, run the command above once and again after each update. The `npx skills add` command is also how people who want Genie's skills without the Genie CLI install them, and how you get a project-scoped copy inside a single repository.
+- `-g` installs for your user, under your home directory. Without it the command is project scoped: it writes the skills into the current directory and nothing machine wide.
+- The command asks which agents and which skills to install. `--agent` and `--skill` answer those questions on the command line.
+- `--all` answers both with everything: every skill, and every agent skills.sh knows, which creates a skills home for agents you do not use. Name your agents with `--agent` instead.
+- `--copy` writes plain files instead of symlinks, for an agent or sandbox that does not follow links.
 
 ### The public command tracks `main`, not a release
 
 <Warning>
-  `npx skills add automagik-dev/genie -g --all` installs the **repository's default branch (`main`)** — and it does so **regardless of any `@<ref>` suffix you add**. Writing `automagik-dev/genie@v5.260830.21` does not pin the tag: skills.sh 1.5.23 binds the third segment of its source spec to the *skill filter*, not to a git ref, so that spec resolves to `main`'s tree with a skill filter applied. A `#fragment` is the only ref form the CLI honours.
+  `npx skills add automagik-dev/genie` installs the skills on the repository's default branch, `main`, whatever `@<ref>` suffix you add: the skills CLI treats that suffix as a skill filter, so the command still resolves to `main`. `main` can be ahead of or behind any release.
 
-  The consequence: the public command tracks `main`, which can be ahead of or behind any published release. **`genie update` installs the exact delivered release** — Genie points the same CLI at the signed tarball's own skill tree under `$GENIE_HOME/skills`, a local path source that skills.sh does resolve correctly. If you need the skills that match your binary, use `genie update`, not the public command.
+  `genie install` and `genie update` point the same CLI at the skill tree inside the signed release you are running. Use them when you need the skills that match your binary.
 </Warning>
 
 ## Verify your install
-
-Run the diagnostic tool to confirm the CLI, prerequisites, and local config are wired up:
 
 ```bash
 genie doctor
 ```
 
+`genie doctor` checks the binary, your repository and the skills channel, and suggests a remedy for every line that needs one. An excerpt from a healthy install of v6.261003.1, with the home directory shortened to `~`:
+
 ```text
-Genie Doctor
-────────────────────────────────────────
-
-Prerequisites:
-  ✓ tmux
-  ✓ jq
-  ✓ bun / node
-  ✓ Claude Code
-
-Installer Resolution:
-  ✓ Resolved binary ...
-
-Configuration:
-  ✓ Genie config exists ~/.genie/config.json
-  ✓ Setup complete
-
-Skills channel:
-  ✓ skills: claude    25/25 @ v5.260831.6
-  ✓ skills: agents    25/25 @ v5.260831.6
-  ✓ skills: goose     not detected
-  ✓ skills: windsurf  not detected
-
-────────────────────────────────────────
+  ✔ genie version — 6.261003.1
+  ✔ genie on PATH — ~/.local/bin/genie
+  ✔ git present — /usr/local/bin/git
+  ✔ skills: claude — 18/18 @ v6.261003.1
+  ✔ skills: agents — 18/18 @ v6.261003.1
+  ✔ skills: goose — not detected
+  ✔ skills: windsurf — not detected
+  ✔ workflows: catalog — 12/12 in ~/.claude/workflows @ v6.261003.1
 ```
+
+Run it from inside a git repository: outside one, the repository checks warn.
 
 ### Reading the skills lines
 
-`genie doctor` is a **read-only observer** of the skills channel. It compares the install record Genie wrote at `~/.genie/skills-install.json` against what is actually on disk under each agent's skill home, and reports the drift. It never installs, retires, or repairs anything — not even under `--fix`. `genie update` owns every mutation on this surface.
+`genie doctor` is a **read-only observer** of the skills channel. It compares the install record Genie wrote at `~/.genie/skills-install.json` against what is actually on disk under each agent's skill home, and reports the drift. It never installs, retires, or repairs anything, not even under `--fix`. `genie update` owns every mutation on this surface.
 
 | Line | Meaning | What to do |
 |------|---------|------------|
-| `skills: <agent> <n>/<n> @ v<version>` | Every recorded skill is present in that agent's home, installed from release `v<version>` | Nothing |
-| `skills: <agent> not detected` | That agent's config home does not exist on this machine — a perfectly healthy state, reported as a pass | Nothing |
-| `skills: <agent> <n>/<m> @ v<version>` (warn) | Skills are missing from that home | `genie update` |
-| `skills: <agent> <n>/<n> @ v<version> (stale, binary is v<newer>)` (warn) | The skills on disk came from an older release than the binary you are running | `genie update` |
-| `skills: <agent> <n>/<n> @ v<version> (unrecorded)` (warn) | Skills are on disk but no install record exists, so Genie cannot say which release put them there | `genie update` |
+| `skills: <agent> — <n>/<n> @ v<version>` | Every recorded skill is present in that agent's home, installed from release `v<version>` | Nothing |
+| `skills: <agent> — not detected` | That agent's config home does not exist on this machine. That is a healthy state, reported as a pass | Nothing |
+| `skills: <agent> — <n>/<m> @ v<version>` (warn) | Skills are missing from that home | `genie update` |
+| `skills: <agent> — <n>/<n> @ v<version> (stale, binary is v<newer>)` (warn) | The skills on disk came from an older release than the binary you are running | `genie update` |
+| `skills: <agent> — <n>/<n> @ v<version> (unrecorded)` (warn) | Skills are on disk but no install record exists, so Genie cannot say which release put them there | `genie update` |
 | `skills: channel — no install record` (warn) | Genie has never installed the skills channel on this host | `genie update` |
+
+The `workflows: catalog` line reads the same record for the saved workflows. It names any recorded workflow file that was edited by hand, deleted, or left by another release, and it repairs nothing either.
 
 <Note>
   **Restart required.** After any install or update, most agents only pick up new skills on the *next* session start. If a skill doesn't autocomplete, restart your agent session before assuming the install failed.
@@ -182,20 +130,22 @@ Skills channel:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `GENIE_HOME` | `~/.genie` | Relocates all global state |
-| `GENIE_AGENT_NAME` | — | Agent identity used by the CLI |
-| `GENIE_TEAM` | — | Default team when `--team` omitted |
-| `GENIE_IDLE_TIMEOUT_MS` | — | Auto-suspend idle agents |
+| `GENIE_HOME` | `~/.genie` | Relocates all of Genie's global state: config, install record, backups and worktrees |
+| `GENIE_AGENT_NAME` | none | Worker identity for task claims and stage log entries |
+| `GENIE_AGENT_ID` | none | Worker identity when `GENIE_AGENT_NAME` is unset; with neither set, the identity is `cli` |
+| `GENIE_WORKTREES_DIR` | `<GENIE_HOME>/worktrees` | Moves the worktrees directory out of `GENIE_HOME` |
+| `GENIE_CHANNEL` | `stable` | Read by `install.sh`: set it to `dev` to install the latest dev build |
 
 ## Updating
 
 ```bash
-genie update          # Stable channel
-genie update --next   # Development builds
+genie update            # update on your current channel
+genie update --dev      # switch to the dev channel
+genie update --stable   # switch back to the stable channel
 ```
 
 <Note>
-  `genie update` swaps the signed binary and then reinstalls the skills channel from the tree that shipped inside that release, so the skills on disk always match the binary. A failed skills install never rolls the binary back: the command prints the exact remedy, exits non-zero, and stays retryable. Run `genie doctor` afterwards to confirm the skills lines are green.
+  `genie update` verifies the signed release offline, swaps the binary and then reinstalls the skills and the saved workflows from the tree that shipped inside that release, so what is on disk always matches the binary. A failed skills install never rolls the binary back: the command prints the exact remedy, exits non-zero, and stays retryable. Run `genie doctor` afterwards to confirm the skills lines are green.
 </Note>
 
 ## Uninstalling
@@ -204,37 +154,29 @@ genie update --next   # Development builds
 genie uninstall
 ```
 
-Uninstall is **record-driven and digest-verified**. It reads `~/.genie/skills-install.json` and, for each agent skill home that record names, deletes only the skill directories that record named *and* whose content still hashes to the digest recorded at install time. Then it removes the install record, runs the legacy collectors for assets older Genie releases left behind, removes the `~/.local/bin` CLI symlinks, and removes the global `~/.genie` directory.
+Uninstall is **record-driven and digest-verified**. It reads `~/.genie/skills-install.json` and, for each agent skill home that record names, deletes only the skill directories that record named *and* whose content still hashes to the digest recorded at install time. The saved workflows get the same treatment in `~/.claude/workflows`. Then it removes the install record, the `~/.local/bin` links and the `~/.genie` directory, keeping `~/.genie/state-backups`.
 
 What that means in practice:
 
 - **Skills you added yourself are left alone.** A skill the record never named is structurally out of reach of the removal.
 - **A directory Genie cannot prove is still its own is preserved, not deleted.** If you edited a Genie skill in place, or the record predates content digests, the directory stays and `genie uninstall` reports it. Data safety beats cleanliness.
-- **A foreign directory that `--copy` overwrote at install time is not restored.** The install snapshots and backs up any foreign same-named skill directory before overwriting it, and tells you where the backup went — but uninstall does not put it back. Restoring it is a manual step.
+- **A foreign directory that `--copy` overwrote at install time is not restored.** The install snapshots and backs up any foreign same-named skill directory before overwriting it, and tells you where the backup went; uninstall does not put it back. Restoring it is a manual step.
 - **If anything could not be removed cleanly**, uninstall keeps `~/.genie` and the install record so the whole operation stays retryable.
-- It does **not** remove the npm/Bun package itself — the command will remind you to also run `bun remove -g @automagik/genie` or `npm uninstall -g @automagik/genie`.
 - Your project's local `.genie/` state directory is preserved.
-
-<Note>
-  There is no plugin to unregister. If you installed the retired Orca plugin, remove it through Orca; `genie uninstall` does not touch it.
-</Note>
 
 ## What's next
 
 <CardGroup cols={2}>
-  <Card title="Configure your setup" icon="sliders" href="/genie/config/setup">
-    Tune session layout, shortcuts, shell integration, and provider adapters.
-  </Card>
-  <Card title="Learn the CLI" icon="terminal" href="/genie/cli/agents">
-    Tour the `genie` command surface — agents, spawning, events, and more.
-  </Card>
   <Card title="Quickstart" icon="rocket" href="/genie/quickstart">
-    Five-minute smoke test from install to first pull request.
+    Deliver one task as a pull request with `/wish`.
   </Card>
-  <Card title="Full onboarding walkthrough" icon="route" href="/genie/onboarding">
-    The 15-minute tour: install → smoke test → wizard → first wish → first PR → first monitor.
+  <Card title="Skills catalog" icon="book-open" href="/genie/skills">
+    The skills the install delivered, one line each.
   </Card>
-  <Card title="Security & Trust" icon="shield-check" href="/genie/security">
-    How Genie is signed, distributed, and verified — the trust contract, the verification stack, and the path away from npm.
+  <Card title="CLI reference" icon="terminal" href="/genie/cli-reference">
+    Every `genie` command, from `genie --help` at the release tag.
+  </Card>
+  <Card title="Security and releases" icon="shield-check" href="/genie/security">
+    How each release is signed and verified.
   </Card>
 </CardGroup>

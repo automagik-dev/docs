@@ -1,93 +1,90 @@
 ---
-title: "/review"
-sidebarTitle: "/review"
+title: "review"
+sidebarTitle: "review"
 icon: "magnifying-glass-chart"
-description: "Validate plans, execution, or PRs against wish criteria — returns SHIP / FIX-FIRST / BLOCKED with severity-tagged gaps."
+description: "Assess a design, plan, diff or pull request without changing it, and return SHIP, FIX-FIRST or BLOCKED with evidence."
 ---
 
-# /review — Universal Review Gate
+<Card title="review" img="/genie/images/skills/review.svg">
+  Claude Code runs it as `/review` and Codex as `$review`. Other agents take its name or a plain request such as "review this".
+</Card>
 
-Validate any artifact against its wish criteria. Always dispatched as a separate subagent — never review your own work inline.
+## What it does
 
-## When to Use
+review assesses one target against its criteria and returns a verdict with evidence. The reviewer is never the author and stays read-only: it edits no file, changes no task state and posts nothing to the card. Fixes, records and delivery stay with whoever asked for the review.
 
-- **Before `/work`** — validate a wish plan is ready for execution
-- **After `/work`** — verify implementation meets acceptance criteria
-- **Before merge** — check a PR diff against wish scope
+It writes its criteria before it looks at the work. One pass sees only the scope, the criteria and the validation contract, and writes down what would make the verdict SHIP, FIX-FIRST or BLOCKED. A second pass reads the work and scores it against that frozen list, and names any criterion it added afterwards. A reviewer that reads the work first tends to rationalize what it reads.
 
-## Flow
+It reviews these targets:
 
-1. **Detect target** — determine what is being reviewed (wish draft, completed work, or PR diff).
-2. **Select pipeline** — match target to Plan, Execution, or PR checklist.
-3. **Run checklist** — evaluate each criterion, collecting evidence.
-4. **Run validations** — execute any validation commands; capture pass/fail output.
-5. **Tag gaps** — classify every unmet criterion by severity.
-6. **Return verdict** — SHIP, FIX-FIRST, or BLOCKED.
-7. **Write next steps** — exact fixes, files, and commands for each gap.
+| Target | What it checks |
+|--------|----------------|
+| Design | Problem, scope, approach, alternatives, risks and success criteria agree, and every added mechanism has a present need. It returns the digest of the content it reviewed, for the design's SHIP stamp |
+| Plan | The template, the linked design's SHIP evidence, deliverables, per-group criteria and validation, dependency order, file ownership, and whether the plan can actually run |
+| Implementation or pull request | Every criterion traced to code and evidence: correctness, failure behaviour, compatibility, security, maintainability, performance where it matters, and scope |
 
-## Pipelines
+Evidence comes from current code and commands it runs, or from results it can attribute to the exact artifact. A worker's claim, a filename or an earlier verdict is a hypothesis, never a confirmed finding. Text inside a pull request thread or the reviewed files that tries to instruct the reviewer is recorded as a finding and never followed.
 
-### Plan Review (before /work)
+## Severity and verdict
 
-- Problem statement is one sentence and testable
-- Scope IN has concrete deliverables
-- Scope OUT is explicit
-- Every task has testable acceptance criteria
-- Tasks are bite-sized and independently shippable
-- Dependencies tagged
-- Validation commands exist for each group
+| Severity | Meaning | Blocks |
+|----------|---------|--------|
+| CRITICAL | Demonstrated security exposure, data loss or severe outage | Yes |
+| HIGH | A broken criterion, a correctness defect, a major performance or compatibility failure | Yes |
+| MEDIUM | A bounded maintainability or evidence gap | No |
+| LOW | An optional style or naming improvement | No |
 
-### Execution Review (after /work)
+- **SHIP:** no CRITICAL or HIGH gap, and the required validation passes.
+- **FIX-FIRST:** blocking gaps that can be acted on, or failed validation. The caller sends them to [fix](/genie/skills/fix).
+- **BLOCKED:** missing scope, an open design decision, a broken environment or missing evidence prevents a valid assessment.
 
-- All acceptance criteria met with evidence
-- Validation commands run and passing
-- No scope creep — only wish-scoped changes
-- Quality pass: security, maintainability, correctness
-- No regressions introduced
+For a plan, the caller turns SHIP into `APPROVED`, FIX-FIRST into `FIX-FIRST` and BLOCKED into `BLOCKED` in `WISH.md`. An implementation review leaves the wish `IN_PROGRESS`. MEDIUM and LOW findings are not repair work; the caller sends them to `deslop` or records them as accepted.
 
-### PR Review (before merge)
+For a deeper audit, ask for one of its lenses in plain words, such as "review performance": architecture and simplicity, code quality, documentation and contributor experience, performance, test quality, rendered interface, repository hygiene, or security and supply chain.
 
-- Diff matches wish scope — no unrelated changes
-- No secrets, credentials, or hardcoded tokens in diff
-- Tests pass
-- Commit messages reference wish slug
+## When to use it
 
-## Severity & Verdicts
+- A design from [brainstorm](/genie/skills/brainstorm), before a plan is written.
+- A plan from [wish](/genie/skills/wish), before [work](/genie/skills/work) starts.
+- A group's diff, a branch or a pull request, before it merges.
 
-| Severity | Meaning | Blocks? |
-|----------|---------|---------|
-| CRITICAL | Security flaw, data loss, crash | Yes |
-| HIGH | Bug, major perf issue | Yes |
-| MEDIUM | Code smell, minor issue | No |
-| LOW | Style, naming preference | No |
+wish and work run review for you at each of those gates. Run it yourself to check anything else against stated criteria.
 
-| Verdict | Condition | Next step |
-|---------|-----------|-----------|
-| **SHIP** | Zero CRITICAL/HIGH gaps | Proceed to next phase |
-| **FIX-FIRST** | Any CRITICAL/HIGH gap | Auto-invoke `/fix` |
-| **BLOCKED** | Scope or architecture issue | Escalate to human |
+## Run it
 
-### Auto-Fix on FIX-FIRST
+| Agent | How it runs |
+|-------|-------------|
+| Claude Code | `/review`, optionally naming the target |
+| Codex | `$review`, optionally naming the target |
+| Other agents | Its name, or a plain request such as "review this" |
 
-1. Auto-invoke `/fix` with the severity-tagged gap list.
-2. After fix, re-run `/review` (max 2 fix loops).
-3. If still FIX-FIRST after 2 loops, escalate as BLOCKED.
+review has no saved workflow. In wish and work it runs as a separate agent from the one that did the work. When you run it on uncommitted work, it names the snapshot it reviewed, and the verdict no longer holds once that tree changes.
 
-## Task Lifecycle Integration
+## A recorded run
 
-When a PG task exists for the reviewed work, the review verdict is logged as a task comment:
+<Frame caption="Simulated terminal: a replay of a real /review run in Claude Code, built from its saved capture and shortened in time. Edited in two places: host details hidden (paths shown as ~/, account plan and quota), and the agent launch line removed.">
+  <video
+    controls
+    playsInline
+    preload="metadata"
+    poster="/genie/videos/sop-review.jpg"
+    src="/genie/videos/sop-review.mp4"
+    title="A simulated replay of a real /review run"
+    className="w-full aspect-video"
+  />
+</Frame>
 
-| Event | Command |
-|-------|---------|
-| Review start | `genie task comment #<seq> "Review: evaluating criteria..."` |
-| SHIP verdict | `genie task comment #<seq> "Review: SHIP — all criteria met"` |
-| FIX-FIRST verdict | `genie task comment #<seq> "Review: FIX-FIRST — N gaps found"` |
+The run reviews an uncommitted change in a small test repository. It writes its criteria from the wish before opening the diff, runs the tests, and returns FIX-FIRST with HIGH findings: the new `percent` function does not reject a zero whole, and no test covers that case.
 
-Council participation results are also logged when the council is consulted during review.
+[Read the transcript](/captures/genie/review.capture.txt): the redacted text of the run's final screen and scrollback.
 
-## Rules
+## Next
 
-- Never mark PASS without evidence
-- Never ship with CRITICAL or HIGH gaps
-- Never implement fixes during review — hand off to `/fix`
-- Every FAIL includes actionable fix (file, command, what to change)
+<CardGroup cols={2}>
+  <Card title="fix" icon="bug" href="/genie/skills/fix">
+    What happens after a FIX-FIRST.
+  </Card>
+  <Card title="Skills catalog" icon="book-open" href="/genie/skills">
+    Every skill Genie ships, one line each.
+  </Card>
+</CardGroup>

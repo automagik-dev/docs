@@ -1,0 +1,92 @@
+---
+title: "Skills catalog"
+sidebarTitle: "Skills catalog"
+icon: "book-open"
+description: "The 18 skills Genie v6.261003.1 ships, one line each."
+---
+
+A skill is a markdown procedure your agent loads by name. Genie v6.261003.1 ships 18. `genie install` and `genie update` deliver them through skills.sh into every agent skills home Genie detects: `~/.claude/skills` for Claude Code, and the shared `~/.agents/skills` for Codex and the other agents that read it.
+
+Claude Code runs a skill as `/wish`, Codex as `$wish`, and any other agent by its name or by a plain request. Each card shows both forms.
+
+## The loop
+
+The skills that take a change from an idea to a pull request, plus council for the decisions along the way. Each has its own page.
+
+<CardGroup cols={2}>
+  <Card title="brainstorm" img="/genie/images/skills/brainstorm.svg" href="/genie/skills/brainstorm">
+    Settles an open idea with you, one round at a time, into a `DESIGN.md` that an independent reviewer approves.
+  </Card>
+  <Card title="wish" img="/genie/images/skills/wish.svg" href="/genie/skills/wish">
+    Takes one decided task to a merge-ready pull request, or refuses it and names the route it needs.
+  </Card>
+  <Card title="work" img="/genie/images/skills/work.svg" href="/genie/skills/work">
+    Runs an approved `WISH.md` in dependency order, one scoped worker per group, and ends at an implementation review.
+  </Card>
+  <Card title="review" img="/genie/images/skills/review.svg" href="/genie/skills/review">
+    Reads a design, plan, diff or pull request without changing it and returns SHIP, FIX-FIRST or BLOCKED with evidence.
+  </Card>
+  <Card title="council" img="/genie/images/skills/council.svg" href="/genie/skills/council">
+    Puts a consequential decision through independent lenses, dissent included, and returns a synthesis. It edits nothing.
+  </Card>
+  <Card title="fix" img="/genie/images/skills/fix.svg" href="/genie/skills/fix">
+    Repairs the blocking gaps of a FIX-FIRST review within a bounded budget, each repair checked by a different reviewer.
+  </Card>
+</CardGroup>
+
+## More skills
+
+<CardGroup cols={2}>
+  <Card title="authoring" img="/genie/images/skills/authoring.svg">
+    Writes or revises a Genie skill so it meets the shipped contract: frontmatter, house size, starter card and runtime-neutral voice.
+  </Card>
+  <Card title="deslop" img="/genie/images/skills/deslop.svg">
+    Removes what only adds reading work from the prose, code or interface in scope, keeping its meaning, voice and behaviour.
+  </Card>
+  <Card title="docs" img="/genie/images/skills/docs.svg">
+    Audits documentation and developer experience against the live product, and writes or fixes docs when you ask.
+  </Card>
+  <Card title="genie" img="/genie/images/skills/genie.svg">
+    Routes a Genie question, operation, bug or planned work to the right skill, and resumes a related wish.
+  </Card>
+  <Card title="genie-hacks" img="/genie/images/skills/genie-hacks.svg" href="/genie/hacks">
+    Searches the community's Genie patterns by problem or category, and helps you contribute your own.
+  </Card>
+  <Card title="merge" img="/genie/images/skills/merge.svg">
+    Finishes an in-progress merge or rebase by the intent of both sides, then re-runs the full gate on the merged tree.
+  </Card>
+  <Card title="refine" img="/genie/images/skills/refine.svg">
+    Rewrites a prompt with official OpenAI or Claude guidance, keeping its intent and scope. It never runs the prompt.
+  </Card>
+  <Card title="report" img="/genie/images/skills/report.svg">
+    Investigates a failure to its root cause and hands the diagnosis to fix. It opens a GitHub issue only when asked.
+  </Card>
+  <Card title="research" img="/genie/images/skills/research.svg">
+    Answers a question from the sources that own the facts, cites every claim and writes the notes into your repository.
+  </Card>
+  <Card title="skill-audit" img="/genie/images/skills/skill-audit.svg">
+    Audits the shipped skill catalogue for overlap, staleness and drift, and proposes keep, improve, merge or retire for each skill.
+  </Card>
+  <Card title="verify" img="/genie/images/skills/verify.svg">
+    Proves a completion claim with fresh evidence: the gate's exit code, the real diff, the remote checks and the reviewer's verdict.
+  </Card>
+  <Card title="workfly" img="/genie/images/skills/workfly.svg">
+    Turns a procedure worth repeating into a saved workflow, checked by a static test and adversarial refuters.
+  </Card>
+</CardGroup>
+
+## Workflows behind the skills
+
+These skills start a saved workflow. In Claude Code the skill runs the workflow from `~/.claude/workflows`, or from your repository's own `.claude/workflows/` when it carries one. In Codex and other agents without saved workflows, the same skill runs the stages by hand.
+
+| Skill | Saved workflow |
+|-------|----------------|
+| `brainstorm` | `brainstorm` |
+| `council` | `council` |
+| `docs` | `docs-audit` |
+| `research` | `research-sweep` |
+| `skill-audit` | `skill-audit-sweep`, and `skill-intake` for candidate skills from outside the catalog |
+| `wish` | `wish` |
+| `workfly` | `workfly` |
+
+These workflows have no skill in front of them: `evidence-gate`, `observability-review`, `pm-ledger-verify` and `test-simplify`. [Workflows](/genie/workflows) describes each of the 12.

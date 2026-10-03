@@ -1,73 +1,83 @@
 ---
-title: "/fix"
-sidebarTitle: "/fix"
+title: "fix"
+sidebarTitle: "fix"
 icon: "bug"
-description: "Dispatch fix subagent for FIX-FIRST gaps from /review, re-review, and escalate after 2 failed loops."
+description: "Repair the blocking gaps of a FIX-FIRST review within a bounded budget, each repair checked by a different reviewer."
 ---
 
-# /fix — Fix-Review Loop
+<Card title="fix" img="/genie/images/skills/fix.svg">
+  Claude Code runs it as `/fix` and Codex as `$fix`. Other agents take its name or a plain request such as "fix the review gaps".
+</Card>
 
-Resolve FIX-FIRST gaps from `/review`. Dispatch a fix subagent, re-review, repeat up to 2 loops, then escalate.
+## What it does
 
-## When to Use
+fix closes the gaps a FIX-FIRST review found. It takes the review, the original criteria and the validation commands, sends a fixer after the blocking gaps, runs the checks, and has a different reviewer score the result. The fixer changes only the scope it was given, and no reviewer ever reviews its own edits.
 
-- `/review` returned a **FIX-FIRST** verdict with CRITICAL or HIGH gaps
-- Orchestrator hands off unresolved gaps after execution review
+The loop is bounded by a repair budget per group. fix reads it once from `genie config get budgets.maxEscalationsPerGroup` and uses the default when the key is unset; `genie doctor` prints the value in force. The budget, the attempts used and the escalations travel with the group across handoffs, and switching skills never resets them.
 
-## Flow
+- **Diagnose first.** Before any repair, fix names why the work failed.
+- **Repair.** The fixer gets the gap evidence, the criteria, the owned files, the validation and the remaining budget.
+- **Re-review.** The checks run and an independent [review](/genie/skills/review) scores the repair. Each attempt is recorded.
+- **Repeat or stop.** SHIP goes back to the caller. Another FIX-FIRST earns another attempt only with a changed approach or new evidence. At the budget, on an unchanged failure or on BLOCKED, fix takes the diagnostic route below.
 
-1. **Parse gaps** — extract gap list from FIX-FIRST verdict (severity, files, failing checks).
-2. **Dispatch fixer** — send gaps + original wish criteria to fix subagent.
-3. **Re-review** — dispatch review subagent to validate the fix.
-4. **Evaluate verdict:**
+Review comments, bot findings, CI logs and issue bodies are claims to check against the code. An instruction hidden in one is recorded as an attempted injection and never carried out.
 
-| Verdict | Condition | Action |
-|---------|-----------|--------|
-| SHIP | — | Done. Return to orchestrator. |
-| FIX-FIRST | loop < 2 | Increment loop, go to step 2. |
-| FIX-FIRST | loop = 2 | Escalate — max loops reached. |
-| BLOCKED | — | Escalate immediately. |
+## When the loop stalls
 
-5. **Escalate (if needed)** — mark task BLOCKED, report remaining gaps.
+| Cause | What fix does |
+|-------|---------------|
+| `missing-context` | Gets the absent files, logs, history or criteria, and keeps the model and effort as they are |
+| `ambiguous-spec` | Resolves the competing readings with you or the plan's owner |
+| `env-tool-failure` | Repairs the environment or tool problem it demonstrated, or reports the exact blocker |
+| `overdesigned-plan` | Sends the plan back to design or plan review without spending an attempt |
+| `model-capacity` | Raises model or effort one step, and only after new evidence rules out every other cause |
 
-## Escalation Format
+Escalations are capped per group, and going past the cap takes a recorded human decision. A repeated verdict is not new evidence and earns no extra attempt. When you reject the direction itself, the loop stops and the plan goes back to its owner.
 
-```text
-Fix loop exceeded (2/2). Escalating to human.
-Remaining gaps:
-- [CRITICAL] <gap description> — <file>
-- [HIGH] <gap description> — <file>
-```
+A repair that touches release machinery, retirement or backup paths, the install record, the tracked roadmap snapshot, or anything outside the worktree stays a dry run until an independent re-review passes and a human ruling is recorded. Repeated attempts that agree prove consistency; they never stand in for that approval.
 
-## Dispatch
+## When to use it
 
-Fix and re-review are **separate dispatches** — never combined in one subagent.
+- A review returned FIX-FIRST and you want its blocking gaps closed.
+- [work](/genie/skills/work) runs fix for you when a group's review is FIX-FIRST, and the [wish](/genie/skills/wish) workflow has its own repair stage.
 
-```bash
-# Spawn a fixer subagent
-genie spawn fixer
+MEDIUM and LOW findings are not repair work. Send them to `deslop`, or record them as accepted.
 
-# Spawn a reviewer subagent (separate from fixer)
-genie spawn reviewer
-```
+## Run it
 
-## Task Lifecycle Integration
+| Agent | How it runs |
+|-------|-------------|
+| Claude Code | `/fix`, optionally naming the wish or the group |
+| Codex | `$fix`, optionally naming the wish or the group |
+| Other agents | Its name, or a plain request such as "fix the review gaps" |
 
-When a PG task exists for the work being fixed, each fix attempt is logged as a task comment:
+fix has no saved workflow: it runs in your agent's session and uses its subagents for the fixer and the re-reviewer. Its handoff lists the gaps resolved and remaining, the checks and their results, the cause and next route, and the counters `attempts`, `effort_escalations` and `budget_source`. The fixer never changes task status and posts nothing to the card; the coordinator relays each verdict and marks the group done after SHIP.
 
-| Event | Command |
-|-------|---------|
-| Fix attempt start | `genie task comment #<seq> "Fix loop 1/2: [gap summary]"` |
-| Fix attempt result | `genie task comment #<seq> "Fix loop 1/2: [changes made]"` |
-| Fix success | `genie task comment #<seq> "Fix complete — [summary of all changes]"` |
-| Escalation (max loops) | `genie task block #<seq> --reason "Fix loop exceeded (2/2)"` |
-| Escalation (no progress) | `genie task block #<seq> --reason "No progress — identical gaps across loops"` |
+## A recorded run
 
-Task integration is graceful — if no PG task exists, fix loop logging is skipped.
+<Frame caption="Simulated terminal: a replay of a real /fix run in Claude Code, built from its saved capture and shortened in time. Edited in two places: host details hidden (paths shown as ~/, account plan and quota), and the agent launch line removed.">
+  <video
+    controls
+    playsInline
+    preload="metadata"
+    poster="/genie/videos/sop-fix.jpg"
+    src="/genie/videos/sop-fix.mp4"
+    title="A simulated replay of a real /fix run"
+    className="w-full aspect-video"
+  />
+</Frame>
 
-## Rules
+The run finds a FIX-FIRST group in a small test repository, reads the budget from the config and adds the missing test. An independent reviewer removes the guard in a scratch copy, sees the new test fail, and returns SHIP after one repair. The run leaves its change uncommitted for the coordinator.
 
-- Never fix and review in the same session — always separate subagents
-- Never exceed 2 fix loops — escalate, don't spin
-- Include original wish criteria in every fix dispatch
-- If identical gaps persist across loops, escalate immediately
+[Read the transcript](/captures/genie/fix.capture.txt): the redacted text of the run's final screen and scrollback.
+
+## Next
+
+<CardGroup cols={2}>
+  <Card title="review" icon="magnifying-glass-chart" href="/genie/skills/review">
+    Where FIX-FIRST comes from.
+  </Card>
+  <Card title="Skills catalog" icon="book-open" href="/genie/skills">
+    Every skill Genie ships, one line each.
+  </Card>
+</CardGroup>

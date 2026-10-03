@@ -1,87 +1,86 @@
 ---
-title: "/brainstorm"
-sidebarTitle: "/brainstorm"
+title: "brainstorm"
+sidebarTitle: "brainstorm"
 icon: "brain"
-description: "Explore ambiguous or early-stage ideas interactively — tracks wish-readiness and crystallizes into a design for /wish."
+description: "Settle an open idea with you, one round at a time, into a design that an independent reviewer approves."
 ---
 
-# /brainstorm — Explore Before Planning
+<Card title="brainstorm" img="/genie/images/skills/brainstorm.svg">
+  Claude Code runs it as `/brainstorm` and Codex as `$brainstorm`. Other agents take its name or a plain request such as "brainstorm this".
+</Card>
 
-Collaborate on fuzzy ideas until they are concrete enough for `/wish`.
+## What it does
 
-## When to Use
+brainstorm turns an idea that still has open decisions into a reviewed design. It asks you what only you can answer, a few questions at a time, until the problem, the scope, the decisions, the risks and the success criteria are settled. It then writes `.genie/brainstorms/<slug>/DESIGN.md` and has a reviewer that did not write it score the design. It changes no code.
 
-- User has an idea but unclear scope or approach
-- Requirements are ambiguous and need interactive refinement
-- User explicitly invokes `/brainstorm`
+A brainstorm runs one round at a time, because a saved workflow cannot wait for a person: you answer between rounds. The state of every round lives in `.genie/brainstorms/<slug>/DRAFT.md`, so a later run with the same slug picks up where the last one stopped.
 
-## Flow
+In each round:
 
-1. **Read context** — scan current code, docs, conventions. Check `.genie/brainstorm.md` for an existing entry matching the topic.
-2. **Init persistence** — create `.genie/brainstorms/<slug>/DRAFT.md` immediately.
-3. **Clarify intent** — one question at a time, prefer multiple-choice.
-4. **Show WRS bar** after every exchange.
-5. **Persist draft** when WRS changes or every 2 minutes.
-6. **Propose approaches** — 2–3 options with trade-offs. Recommend one.
-7. **Crystallize** when WRS = 100 — write `DESIGN.md`, update jar, hand off.
+- A lead reads the draft, scores how ready it is for a wish (the Wish Readiness Score, over problem, scope, decisions, risks and criteria) and plans the round.
+- Read-only scouts look up the facts in your repository. When one decision is contested and hard to reverse, the lead can convene a council instead: a few lenses argue it, dissent always among them, a Socratic questioner tests each lens, and the lenses answer from evidence before a proposal is written.
+- The questions come back to you word for word, through your agent's question prompt. An answer settles only the question it answers; a change to something you already approved comes back as its own question.
 
-## Wish Readiness Score (WRS)
+When nothing is open, the lead writes `DESIGN.md` from the template and the round ledger checks it against the template and the draft. An independent reviewer then returns SHIP, FIX-FIRST or BLOCKED. The verdict is stamped into the design with the digest of the content the reviewer read, so an edit made after the review fails verification. A FIX-FIRST gets one repair and a fresh review per run while the repair budget holds.
 
-Five dimensions, 20 points each. Displayed after every exchange.
+## When to use it
 
-| Dimension | Filled when… |
-|-----------|-------------|
-| **Problem** | One-sentence problem statement is clear |
-| **Scope** | IN and OUT boundaries defined |
-| **Decisions** | Key technical/design choices made with rationale |
-| **Risks** | Assumptions, constraints, failure modes identified |
-| **Criteria** | At least one testable acceptance criterion exists |
+- You have an idea, but the approach, the scope or the boundaries still need decisions.
+- The work is bigger than one task, and you want a reviewed design before [wish](/genie/skills/wish) writes the plan.
 
-```text
-WRS: ██████░░░░ 60/100
- Problem ✅ | Scope ✅ | Decisions ✅ | Risks ░ | Criteria ░
-```
+A task that is already decided goes straight to [wish](/genie/skills/wish). A failure whose cause is unknown goes to `report` first.
 
-## Brainstorm Jar
+## How a run ends
 
-An index at `.genie/brainstorm.md` tracks all topics across sessions with four sections:
+| State | Meaning |
+|-------|---------|
+| `round` | Questions for you. Answer them and run brainstorm again |
+| `done` | `DESIGN.md` carries a verified SHIP stamp. The next route is [wish](/genie/skills/wish) |
+| `answered` | You ended the brainstorm with a recorded verdict and no design |
+| `blocked` | A ledger refusal you must resolve, a BLOCKED review, a spent repair budget, or your stop. A stop is permanent for that slug |
+| `failed` | A stage returned nothing, the ledger could not start, or the review contract is missing |
 
-| Section | Purpose |
-|---------|---------|
-| **Raw** | New ideas, just captured |
-| **Simmering** | Under active discussion |
-| **Ready** | WRS = 100, ready to crystallize |
-| **Poured** | Crystallized into a wish |
+A round can also ask whether to convene a council past the configured ceiling, or what to do with review findings: repair again, settle them yourself, or stop.
 
-## Crystallize
+After every run the skill runs `genie wish report <runId> --append`, which prints the run's tokens and time per stage. It also keeps the brainstorm's entry in `.genie/INDEX.md`: under Simmering while rounds run, under Ready once the design is done.
 
-Triggered automatically when WRS = 100:
+## Run it
 
-1. Write `.genie/brainstorms/<slug>/DESIGN.md` from the draft.
-2. Move entry to Poured in the jar with a wish link.
-3. Auto-invoke `/review` (plan review) on the design.
+| Agent | How it runs |
+|-------|-------------|
+| Claude Code | `/brainstorm <your idea>` runs the saved workflow `brainstorm`, once per round. See [Workflows](/genie/workflows) |
+| Codex | `$brainstorm <your idea>` runs the same rounds by hand, one per turn |
+| Other agents | Its name, or a plain request such as "brainstorm this", runs the same rounds by hand |
 
-## Output Options
+The council ceiling comes from `genie config get budgets.maxCouncilsPerBrainstorm` and the repair budget from `genie config get budgets.maxEscalationsPerGroup`. The review uses the [review](/genie/skills/review) skill installed beside brainstorm; a run without it ends `failed` and names the missing path.
 
-| Complexity | Output |
-|-----------|--------|
-| Standard | Write `DESIGN.md`, auto-invoke `/review` |
-| Small but non-trivial | Write design, ask whether to implement directly |
-| Trivial | Add one-liner to jar (Raw section) |
+## A recorded run
 
-## Handoff
+<Frame caption="Simulated terminal: a replay of a real /brainstorm run in Claude Code, built from its saved capture and shortened in time. Edited in two places: host details hidden (paths shown as ~/, account plan and quota), and the agent launch line removed.">
+  <video
+    controls
+    playsInline
+    preload="metadata"
+    poster="/genie/videos/sop-brainstorm.jpg"
+    src="/genie/videos/sop-brainstorm.mp4"
+    title="A simulated replay of a real /brainstorm run"
+    className="w-full aspect-video"
+  />
+</Frame>
 
-After `/review` returns SHIP on the design:
+The video and the transcript are in Portuguese, as recorded.
 
-```text
-Design reviewed and validated (WRS 100/100). Proceeding to /wish.
-```
+The run was recorded before brainstorm became a saved workflow, so its rounds run inside one session. It ends at a design the reviewer stamped SHIP.
 
-## Rules
+[Read the transcript](/captures/genie/brainstorm.capture.txt): the redacted text of the run's final screen and scrollback, with each cut marked inline.
 
-- One question per message — never batch questions
-- YAGNI and simplicity first
-- Always propose alternatives before recommending
-- Never assume requirements without confirmation
-- No implementation during brainstorm
-- Persist early and often
+## Next
+
+<CardGroup cols={2}>
+  <Card title="wish" icon="sparkles" href="/genie/skills/wish">
+    Turn the reviewed design into a plan, or deliver it as one task.
+  </Card>
+  <Card title="Skills catalog" icon="book-open" href="/genie/skills">
+    Every skill Genie ships, one line each.
+  </Card>
+</CardGroup>

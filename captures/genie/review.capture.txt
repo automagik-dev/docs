@@ -1,0 +1,83 @@
+ ▐▛███▛█   Claude Code v2.1.287
+▝▜██████▀  Opus 5.5 with medium effort
+ ▝▝   ▝▝   ~/sop-fixture
+
+
+❯ /review
+
+  Ran 1 shell command
+
+● Blind criteria first: reading the wish only before the diff.
+
+  Read 2 files
+
+● I've locked in my acceptance criteria for the percent function (correct output, RangeError on zero division, test coverage, passing tests, and no changes to sum/average) before reviewing the diff.
+  Now I'll open the diff and check it against these criteria to decide SHIP, FIX-FIRST, or BLOCKED.
+
+  Ran 2 shell commands
+
+● Review: add-percent, implementation. Verdict: FIX-FIRST
+
+  The bun test suite passes, but the one rule this wish set for a zero whole is missing. percent(1, 0) returns Infinity instead of throwing a RangeError, and no test checks it.
+
+  Target: the uncommitted changes to src/math.ts and src/math.test.ts on wish/add-percent, on top of 53ef20a. The git diff hash was 039be6a4ddfaec4457566a05203ab6115a107b3eb7bb75a5c3464e17db3fbddf. If
+  the working tree changes, this verdict no longer applies.
+  Reviewer: Claude (Opus 5.5), read-only, 2026-10-02. I fixed the criteria from .genie/wishes/add-percent/WISH.md before I opened the diff, and added none afterwards.
+
+  Criteria
+
+  ┌─────┬───────────────────────────────────────────────────────────────────┬────────┬─────────────────────────────────────────────────────────────┐
+  │  #  │                             Criterion                             │ Result │                          Evidence                           │
+  ├─────┼───────────────────────────────────────────────────────────────────┼────────┼─────────────────────────────────────────────────────────────┤
+  │ C1  │ percent is exported; percent(1,4) is 25 and percent(1,3) is 33.33 │ ✅     │ src/math.ts:15; tests at src/math.test.ts:22 and :26 pass   │
+  ├─────┼───────────────────────────────────────────────────────────────────┼────────┼─────────────────────────────────────────────────────────────┤
+  │ C2  │ percent(1,0) throws a RangeError and a test covers it             │ ❌     │ Running it here returns Infinity; no test exists            │
+  ├─────┼───────────────────────────────────────────────────────────────────┼────────┼─────────────────────────────────────────────────────────────┤
+  │ C3  │ Tests cover a whole share, rounding, and whole === 0              │ ❌     │ No test for whole === 0                                     │
+  ├─────┼───────────────────────────────────────────────────────────────────┼────────┼─────────────────────────────────────────────────────────────┤
+  │ C4  │ bun test passes                                                   │ ✅     │ bun test v1.3.14 ran in this review: 5 pass, 0 fail, exit 0 │
+  ├─────┼───────────────────────────────────────────────────────────────────┼────────┼─────────────────────────────────────────────────────────────┤
+  │ C5  │ sum and average unchanged (out of scope)                          │ ✅     │ The diff only adds code after average                       │
+  └─────┴───────────────────────────────────────────────────────────────────┴────────┴─────────────────────────────────────────────────────────────┘
+
+  Findings
+
+  1. HIGH: percent does not reject a zero whole (src/math.ts:16)
+  - What happens: for any call where whole is 0. I ran it in this review: percent(1,0) returns Infinity, percent(-1,0) returns -Infinity, and percent(0,0) returns NaN.
+  - Why it matters: this breaks the wish's Decision #1 and its success criterion. The bad values spread silently, which is exactly what that decision was meant to prevent.
+  - Fix: add a guard that matches the one in average, before the division:
+  if (whole === 0) {
+    throw new RangeError('percent of a zero whole');
+  }
+
+  2. HIGH: no test for a zero whole (src/math.test.ts:20-28)
+  - What happens: the percent block has only two tests, one for the whole share and one for rounding. I read this in the file as it stands now.
+  - Why it matters: it breaks C2 and C3, and the suite passes even though finding 1 is a real bug.
+  - Fix: add test('throws on a zero whole', () => { expect(() => percent(1, 0)).toThrow(RangeError); });
+
+  Not a finding (noted only): rounding with Math.round(x * 10000) / 100 can be off at exact .005 ties because of floating point. The wish already accepts this as a Low risk, and the tests pin the
+  cases it names.
+
+  Coverage and limits
+
+  - I ran bun test, which is this repo's full test gate, and probed the zero-whole cases directly.
+  - There are no shared runtime, dependency or CI changes, so no wider gate applies.
+  - I didn't run any extra audit lens, since this is a small, single-function change.
+
+  For the coordinator
+
+  - Next step: send the two blocking gaps to fix (budget B=2), then review again.
+  - Wish file: the wish stays IN_PROGRESS. Append this evidence under ## Review Results in
+    ~/sop-fixture/.genie/wishes/add-percent/WISH.md.
+  - Card pointer: review: FIX-FIRST — 2 HIGH gaps (percent(x,0) does not throw RangeError; no test for it)
+
+  I made no edits and posted nothing.
+
+✻ Cogitated for 37s · done 2:37 PM
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  Opus 5.5 | med | sop-fixture | (wish/add-percent) | ░░░░░░░░░░ 6% | ContextQ:--
+  ⤸resumable | Eff:--
+  ⏵⏵ bypass permissions on (shift+tab to cycle) · ← for agents

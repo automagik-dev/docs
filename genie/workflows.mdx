@@ -1,0 +1,44 @@
+---
+title: "Workflows"
+sidebarTitle: "Workflows"
+icon: "diagram-project"
+description: "The 12 saved workflows Genie v6.261003.1 ships, one line each."
+---
+
+A saved workflow is a Claude Code script that runs a procedure the same way every time: which agents run, in which order, and what the script checks between them. Genie v6.261003.1 ships 12. `genie install` and `genie update` copy them into `~/.claude/workflows`.
+
+## The catalog
+
+| Workflow | What it does | Skill that starts it |
+|----------|--------------|----------------------|
+| `brainstorm` | Runs one round of a brainstorm whose state lives in `DRAFT.md`, so you answer between rounds, and ends in an independently reviewed `DESIGN.md` | `brainstorm` |
+| `council` | Architecture, delivery, product, security and dissent lenses assess a decision independently, then a synthesis; assess only | `council` |
+| `docs-audit` | Audits every documentation surface against the live product and ranks the drift; assess only | `docs` |
+| `evidence-gate` | Verifies a frozen contract of files, commands and claims against the artifact it covers; its only write is the report | none |
+| `observability-review` | Reviews traced Claude Code sessions in Phoenix and proposes rule changes, each tied to cited evidence; proposal only | none |
+| `pm-ledger-verify` | Adversarial lenses check uncommitted edits to a wish ledger | none |
+| `research-sweep` | Investigates a frozen question against a frozen list of sources and keeps every claim cited; read only | `research` |
+| `skill-audit-sweep` | Sorts the shipped skills into keep, improve, update, merge or retire; assess only | `skill-audit` |
+| `skill-intake` | Assesses candidate skills from outside the catalog and gives each exactly one disposition; changes nothing | `skill-audit` |
+| `test-simplify` | Audits every test file in scope and proposes batches of tests to delete or consolidate; deletes nothing | none |
+| `wish` | Admits one task, works it in a worktree, gates it, has it reviewed independently, repairs within a budget and opens the pull request; merging stays with you | `wish` |
+| `workfly` | Discovers a procedure and builds its saved workflow, checked by a static test and refuters | `workfly` |
+
+## How a workflow runs
+
+In Claude Code, a skill starts its workflow and passes the arguments for you. It runs your repository's own copy in `.claude/workflows/` when there is one, otherwise the copy in `~/.claude/workflows/`, and always by the file's explicit path. `/workflows` in Claude Code shows the runs in progress.
+
+A workflow with no skill in front of it runs when you ask Claude Code to run its file under `~/.claude/workflows/` by path.
+
+Codex and other agents have no saved workflows. There, the skills run the same stages by hand.
+
+## What a run costs
+
+`genie wish report <runId>` prints the tokens and time of one workflow run, per stage, from the run record Claude Code saved. `--append` also adds the run to a ledger at `~/.genie/metrics/wish-runs.jsonl`. The [Quickstart](/genie/quickstart) shows the report of one real `wish` run.
+
+## Keeping the catalog in step
+
+- `genie install` and `genie update` record each workflow file they copy, with its digest, in `~/.genie/skills-install.json`.
+- `genie doctor` prints one read-only `workflows: catalog` line. It names any recorded file that was edited by hand, deleted, or left by another release, and repairs nothing.
+- `genie update` archives a copy it cannot prove under `~/.genie/state-backups/workflows-collision-<timestamp>/`, names it in its output and replaces it. A hand edit is a local override with a backup; a lasting change belongs in the genie repository's workflow catalog.
+- `genie uninstall` removes only the recorded files whose digest still matches, and reports the rest.
