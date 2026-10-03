@@ -52,7 +52,7 @@ Two things this **buys** you, and they are why the trade was made:
 
 **What is gone.** A permission prompt raised by an agent mid-session can no longer be approved from a chat. The path that pushed a live prompt out to an Omni channel and fed the reply back into the session ran inside the hook chain, and went with it.
 
-**What still works.** `genie omni serve` is unchanged in every other respect: it is still the resident NATS bridge, it still drains the approval queue, and the queue and inbox still persist in the global `~/.genie/genie.db`. `genie omni status` and `genie omni inbox` read them without touching the network. CLI-originated approvals still flow through the queue exactly as before.
+**What still worked at that release.** `genie omni serve` was unchanged in every other respect: it was still the resident NATS bridge, it still drained the approval queue, and the queue and inbox still persisted in the global `~/.genie/genie.db`. `genie omni status` and `genie omni inbox` read them without touching the network. CLI-originated approvals still flowed through the queue exactly as before.
 
 <Note>
   **`genie omni` is gone too.** Genie no longer has the Omni runner, its approval queue or its inbox, and nothing in v6 writes to `~/.genie/genie.db` in normal use. `genie doctor --fix-global-db` changes it only when you run it. The advice below still applies: approve in the session, or configure the agent so the prompt never appears.
