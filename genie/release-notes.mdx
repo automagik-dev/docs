@@ -55,7 +55,7 @@ Two things this **buys** you, and they are why the trade was made:
 **What still works.** `genie omni serve` is unchanged in every other respect: it is still the resident NATS bridge, it still drains the approval queue, and the queue and inbox still persist in the global `~/.genie/genie.db`. `genie omni status` and `genie omni inbox` read them without touching the network. CLI-originated approvals still flow through the queue exactly as before.
 
 <Note>
-  **`genie omni` is gone too.** Genie no longer has the Omni runner, its approval queue or its inbox, and v6 writes nothing to `~/.genie/genie.db`. The advice below still applies: approve in the session, or configure the agent so the prompt never appears.
+  **`genie omni` is gone too.** Genie no longer has the Omni runner, its approval queue or its inbox, and nothing in v6 writes to `~/.genie/genie.db` in normal use. `genie doctor --fix-global-db` changes it only when you run it. The advice below still applies: approve in the session, or configure the agent so the prompt never appears.
 </Note>
 
 **What to do instead.** Approve in the session, or avoid the prompt. Configure the agent's sandbox permissions so the operations you trust do not prompt at all: sandbox permission configuration is where a hard control belongs, and it works whether or not anyone is watching a chat. For unattended runs, pre-authorize the tool surface rather than expecting to answer a prompt remotely.

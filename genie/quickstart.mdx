@@ -11,7 +11,8 @@ Your first wish is one decided task. `/wish` checks that the task fits a single 
 
 - A git repository whose `origin` is on GitHub, and the GitHub CLI signed in (`gh auth status` says so).
 - An integration branch on `origin` for the pull request to target. `/wish` uses `dev` unless you name another branch, and it refuses `main` and `master`.
-- Checks the gate can run. At v6.261002.2 the worker runs `bun install --frozen-lockfile` in its worktree before its first commit. In a repository with git hooks, the gate checks that husky's pre-push hook is in place and runs `bun run check`, so the repository needs Bun and a `check` script. In a repository without hooks, the gate runs the validation command set for the task instead. A wish proves what that command proves.
+- Checks the gate can run. At v6.261003.1 the scout reads your repository's root files for its install and check commands: the frozen install for its lockfile, and a `check` script, `make check`, `just check` or `task check`, else a `test` script or `make test`. A command the scout finds runs only in one of those exact forms. With a hook system, such as husky, lefthook, the pre-commit framework or `core.hooksPath`, the gate needs a live `pre-push` or `pre-commit` hook and runs the check once. With no hook system, or no check to find, it runs the validation command frozen for the task, and CI is the authority. A wish proves only what the gate's command proves.
+- A repository you trust. `/wish` runs the repository's own install and check commands, so point it only at repositories you trust.
 - Claude Code, which runs `/wish` as a saved workflow. In Codex, `$wish` runs the same stages by hand.
 
 ## Your first wish
@@ -95,7 +96,7 @@ appended to ~/.genie/metrics/wish-runs.jsonl
 
 ## When `/wish` refuses
 
-A read-only scout estimates the change and a judge that never sees the repository picks the route. A task that is too big, or that touches a trust boundary, comes back `refused` with a route and nothing created. At v6.261002.2 the trust boundaries are `.github/`, `.husky/`, `.claude/hooks/`, `.claude/settings*.json`, the `package.json` scripts, the lint and commit-message config, release scripts, and auth, secret and permission surfaces:
+A read-only scout estimates the change and a judge that never sees the repository picks the route. A task that is too big, or that touches a trust boundary, comes back `refused` with a route and nothing created. At v6.261003.1 the trust boundaries are `.github/`, `.husky/`, `.claude/hooks/`, `.claude/settings*.json`, the `package.json` scripts, the lint and commit-message config, release scripts, and auth, secret and permission surfaces:
 
 | Route | What to do |
 |-------|------------|

@@ -27,9 +27,13 @@ In Claude Code the delivery is the saved workflow `wish`, and every admitted run
 
 The task is frozen at the start: no stage asks it again, narrows it or widens it.
 
-### The gate at v6.261002.2
+### The gate at v6.261003.1
 
-At v6.261002.2 the executor runs `bun install --frozen-lockfile` in its worktree before its first commit. In a repository with git hooks, the gate checks that husky's pre-push hook (`.husky/_/pre-push`) is in place, then runs `bun run check` once. A repository whose hooks come from another tool fails that check, so its run ends `blocked`. In a repository without hooks, the gate runs the validation command frozen in the contract instead. The [Quickstart](/genie/quickstart) lists what that asks of your repository.
+At v6.261003.1 the scout reads the repository's root files for its install and check commands. The install is the frozen install for the root lockfile, and there is none without a lockfile. The check is the first of these the repository has: a `check` script in `package.json`, `make check`, `just check`, `task check`, a `test` script (not the default placeholder that always fails), or `make test`. A command found in the repository runs only when it is exactly one of those forms; anything else counts as not found. Name other commands in your request and the skill passes them as `check` and `install` instead.
+
+The executor runs the install in its worktree before its first commit. With a hook system, the gate first needs a live hook: an executable `pre-push` or `pre-commit` in the hooks directory git resolves, which must sit inside the worktree or the repository's git directory. That covers husky, lefthook, the pre-commit framework and `core.hooksPath`; husky's `.husky/_` directory also needs its `pre-push`. Dead hooks end the run `blocked` with nothing pushed. Then the gate runs the check once. With no hook system, or no check to find, it runs the validation command frozen in the contract instead, and CI is the authority: `merge-ready` needs the pull request's checks to pass.
+
+`/wish` runs the repository's own install and check commands, so point it only at repositories you trust. The [Quickstart](/genie/quickstart) lists what that asks of your repository.
 
 ## When to use it
 
@@ -37,7 +41,7 @@ At v6.261002.2 the executor runs `bun install --frozen-lockfile` in its worktree
 - A task you can state with the files it touches and the outcome you expect.
 - Work bigger than one task, through the plan entry below.
 
-Admission refuses a task that does not fit and names the route it needs, with nothing created: `plan` when the task is too big or touches a trust boundary, `brainstorm` when a product decision is still open, and `report` when the cause is unknown. The Quickstart lists the [trust boundaries at v6.261002.2](/genie/quickstart#when-%2Fwish-refuses).
+Admission refuses a task that does not fit and names the route it needs, with nothing created: `plan` when the task is too big or touches a trust boundary, `brainstorm` when a product decision is still open, and `report` when the cause is unknown. The Quickstart lists the [trust boundaries at v6.261003.1](/genie/quickstart#when-%2Fwish-refuses).
 
 ## What a run returns
 
