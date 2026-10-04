@@ -190,7 +190,7 @@ for p in genie/videos captures/genie genie/images logo favicon.png; do test -e "
 test -z "$(find dist -path '*_internal*' -print -quit)"
 npx wrangler deploy --dry-run --outdir .wrangler/dry-run
 npm run verify
-! git grep -n HOLOCRON_SKIP_BUILD_ERRORS
+! git grep -n HOLOCRON_SKIP_BUILD_ERRORS -- ':!.genie/'
 node -e 'const p=require("./package.json");const d={...p.dependencies,...p.devDependencies};const bad=Object.entries(d).filter(([,v])=>/^[\^~]/.test(v));if(bad.length){console.error(bad);process.exit(1)}'
 ```
 
