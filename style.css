@@ -366,3 +366,50 @@ img[src$="/brand/genie-logo.png"] {
 /* holocron-internal: chat-link-hover */
 .holocron-chat-drawer-messages a[href]:hover { color: var(--gx-magenta) !important; text-shadow: var(--gx-glow-mag); }
 
+/* ---------- product logos (components/product-brand.tsx + the head script in src/server.tsx) ----------
+   Each product uses the Automagik triskele + its wordmark (public/brand/*-logo.png, trimmed
+   copies of the drops). html[data-product] is set before first paint from the URL prefix,
+   so the header shows the right product with no flash. AUTOMAGIK, the site brand, signs
+   the footer. None of them is ever inverted (holocron adds dark:invert to the logo img). */
+/* holocron-internal: logo-omni */
+html[data-product="omni"] .slot-logo img { content: url(/brand/omni-logo.png); }
+/* holocron-internal: logo-mikro */
+html[data-product="mikro"] .slot-logo img { content: url(/brand/mikro-logo.png); }
+footer img[src$="/brand/genie-logo.png"] { content: url(/brand/automagik-logo.png); }
+.genie-switcher img { filter: none !important; mix-blend-mode: normal !important; opacity: 1 !important; }
+
+/* holocron's native text <select> pill, once product-brand.tsx has replaced it */
+/* holocron-internal: switcher-pill */
+div:has(> select[data-genie-logos]) { display: none !important; }
+
+.genie-switcher { position: relative; display: inline-flex; align-items: center; }
+.genie-switcher--compact { margin-left: -6px; } /* sits against the header logo it extends */
+.genie-switcher__button {
+  display: inline-flex; align-items: center; gap: 8px; height: 30px; padding: 0 8px;
+  border: 1px solid transparent; border-radius: 8px; background: transparent;
+  color: var(--gx-dim); cursor: pointer; transition: color .15s, border-color .15s, background .15s;
+}
+.genie-switcher__button:hover, .genie-switcher__button[aria-expanded="true"] {
+  color: var(--gx-head); border-color: var(--gx-border); background: rgba(255, 63, 245, .06);
+}
+.genie-switcher__button:focus-visible { outline: 2px solid var(--gx-magenta); outline-offset: 2px; }
+.genie-switcher__current { display: block; height: 20px; width: auto; }
+.genie-switcher__chevron { width: 12px; height: 12px; flex-shrink: 0; }
+.genie-switcher__menu {
+  position: absolute; top: calc(100% + 8px); left: -8px; z-index: 120;
+  min-width: 190px; margin: 0; padding: 6px; list-style: none;
+  background: var(--gx-raised); border: 1px solid var(--gx-border); border-radius: 12px;
+  box-shadow: 0 0 0 1px rgba(255, 63, 245, .06), 0 18px 60px rgba(0, 0, 0, .6);
+}
+.genie-switcher__menu[hidden] { display: none; }
+.genie-switcher__menu [role="option"] {
+  position: relative; display: flex; align-items: center; padding: 10px 14px;
+  border-radius: 8px; cursor: pointer; outline: none;
+}
+.genie-switcher__menu [role="option"]:hover,
+.genie-switcher__menu [role="option"]:focus-visible { background: rgba(255, 63, 245, .08); }
+.genie-switcher__menu [role="option"][aria-selected="true"]::before {
+  content: ''; position: absolute; left: 3px; top: 10px; bottom: 10px; width: 2px; border-radius: 2px;
+  background: var(--gx-magenta); box-shadow: 0 0 10px rgba(255, 63, 245, .6);
+}
+.genie-switcher__logo { display: block; height: 22px; width: auto; } /* equal heights = aligned triskeles */
