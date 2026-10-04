@@ -135,10 +135,38 @@ export class StraySystemMessageError extends Error {
   }
 }
 
+export class UnsupportedPartError extends Error {
+  constructor(index: number) {
+    super(`Message ${index} carries a part the gateway does not accept`)
+    this.name = 'UnsupportedPartError'
+  }
+}
+
+/** The only part types a turn may carry: the docs chat is text and tool calls. */
+const ALLOWED_PART_TYPES = new Set(['text', 'tool-call', 'tool-result'])
+
+/**
+ * Throws unless every part of `message` is text, a tool call or a tool result whose
+ * output is not of type `content`. File and image parts, and `content` tool output,
+ * can name a URL the AI SDK would download with the global fetch, around the
+ * allowlist, or hand to DeepSeek as `image_url`.
+ */
+function checkParts(message: unknown, index: number): void {
+  const content = (message as { content?: unknown } | null)?.content
+  if (typeof content === 'string') return
+  if (!Array.isArray(content)) throw new UnsupportedPartError(index)
+  for (const part of content as unknown[]) {
+    const { type, output } = (part ?? {}) as { type?: unknown; output?: { type?: unknown } | null }
+    if (typeof type !== 'string' || !ALLOWED_PART_TYPES.has(type)) throw new UnsupportedPartError(index)
+    if (type === 'tool-result' && output?.type === 'content') throw new UnsupportedPartError(index)
+  }
+}
+
 /**
  * holocron's proxy sends its system prompt as messages[0]. That one message becomes
  * the `system` option; any other `system` message (a browser can append one to
- * `modelMessages`) throws, and the gateway answers 400.
+ * `modelMessages`) throws, and the gateway answers 400. In the same pass, every
+ * other message must hold only text, tool-call and tool-result parts (checkParts).
  */
 export function splitSystem(messages: ModelMessage[]): { system: string | undefined; messages: ModelMessage[] } {
   let system: string | undefined
@@ -146,6 +174,7 @@ export function splitSystem(messages: ModelMessage[]): { system: string | undefi
   messages.forEach((message, index) => {
     const role = (message as { role?: unknown } | null)?.role
     if (role !== 'system') {
+      checkParts(message, index)
       rest.push(message)
       return
     }

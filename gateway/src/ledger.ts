@@ -16,7 +16,7 @@ export const MAX_OUTPUT_TOKENS = 1024
 export const MAX_TOOL_BYTES = 16384
 /** Largest request body the gateway reads. */
 export const MAX_BODY_BYTES = 262144
-/** A reservation never settled (its isolate died) is released after this long. */
+/** A reservation never settled (its isolate died) is charged in full after this long. */
 export const RESERVATION_TTL_MS = 600000
 
 /** One token per 2 bytes: real text runs about 4 bytes a token. */
@@ -133,7 +133,9 @@ export class SpendBook {
       this.store.putDay(day, record)
       return null
     }
-    const id = `${day}/${this.newId()}`
+    // The id carries the day and the reserved amount, so a settle that arrives after
+    // expiry knows what expiry already charged.
+    const id = `${day}/${want}/${this.newId()}`
     this.store.addReservation({ id, day, micros: want, createdAt: now })
     this.store.putDay(day, record)
     return id
@@ -141,27 +143,41 @@ export class SpendBook {
 
   /**
    * Closes a reservation at the measured cost. The difference from the reserved
-   * amount is freed; a cost above it is still recorded in full and logged, and so
-   * is a settle that arrives after its reservation expired (the id carries its day).
+   * amount is freed; a cost above it is still recorded in full and logged. A settle
+   * that arrives after its reservation expired adds only what it measured above the
+   * reservation, which expiry already charged (the id carries the day and amount).
    */
   settle(id: string, usd: number): void {
     const reservation = this.store.removeReservation(id)
-    const day = reservation?.day ?? id.split('/')[0] ?? ''
+    const [idDay = '', idMicros = ''] = id.split('/')
+    const day = reservation?.day ?? idDay
     if (!DAY.test(day)) {
       this.log(`spend-ledger ignored settle for unknown id=${JSON.stringify(id)}`)
       return
     }
+    const reserved = reservation?.micros ?? (/^\d+$/.test(idMicros) ? Number(idMicros) : 0)
     // A cost that is not a number is a bug upstream: charge what was reserved.
-    const measured = Number.isFinite(usd) ? Math.max(0, toMicros(usd)) : (reservation?.micros ?? 0)
-    const record = this.store.day(day)
-    record.spentMicros += measured
+    const measured = Number.isFinite(usd) ? Math.max(0, toMicros(usd)) : reserved
     if (!reservation) {
-      this.log(`spend-settle-late id=${id} day=${day} measuredUsd=${usdText(measured)}`)
-    } else if (measured > reservation.micros) {
+      const added = Math.max(0, measured - reserved)
+      this.log(
+        `spend-settle-late id=${id} day=${day} reservedUsd=${usdText(reserved)} measuredUsd=${usdText(measured)} addedUsd=${usdText(added)}`,
+      )
+      this.charge(day, added)
+      return
+    }
+    if (measured > reservation.micros) {
       this.log(
         `spend-overrun id=${id} day=${day} reservedUsd=${usdText(reservation.micros)} measuredUsd=${usdText(measured)}`,
       )
     }
+    this.charge(day, measured)
+  }
+
+  /** Adds `micros` to the day's spend and logs the first crossing of each alert level. */
+  private charge(day: string, micros: number): void {
+    const record = this.store.day(day)
+    record.spentMicros += micros
     for (const level of ALERT_LEVELS) {
       if (record.alerted < level && record.capMicros > 0 && record.spentMicros * 100 >= record.capMicros * level) {
         record.alerted = level
@@ -184,12 +200,18 @@ export class SpendBook {
     return sum
   }
 
-  /** Releases reservations older than RESERVATION_TTL_MS: their turns can no longer settle. */
+  /**
+   * Closes reservations older than RESERVATION_TTL_MS, whose turns can no longer be
+   * relied on to settle, and charges each one in full: the cap fails closed.
+   */
   private expire(now: number): void {
     for (const reservation of this.store.openReservations()) {
       if (now - reservation.createdAt < RESERVATION_TTL_MS) continue
       this.store.removeReservation(reservation.id)
-      this.log(`spend-expired id=${reservation.id} day=${reservation.day} reservedUsd=${usdText(reservation.micros)}`)
+      this.log(
+        `spend-expired id=${reservation.id} day=${reservation.day} reservedUsd=${usdText(reservation.micros)} chargedUsd=${usdText(reservation.micros)}`,
+      )
+      this.charge(reservation.day, reservation.micros)
     }
   }
 }

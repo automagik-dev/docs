@@ -18,8 +18,8 @@
 // Object, reserved before DeepSeek is called and settled after; no server-side sessions.
 //
 // Checks run in this order: routing (unknown paths 404), the bearer on /api/chat* (401),
-// the body size (413), the request shape and system messages (400), the global limiter
-// (notice), the spend reservation (notice), then the turn.
+// the body size (413), the request shape, system messages and part types (400), the
+// global limiter (notice), the spend reservation (notice), then the turn.
 
 import { createDeepSeek } from '@ai-sdk/deepseek'
 import {
@@ -39,6 +39,7 @@ import {
   MAX_BODY_BYTES,
   MAX_OUTPUT_TOKENS,
   MAX_STEPS,
+  RESERVATION_TTL_MS,
   stepWorstCaseUsd,
   TITLE_MAX_OUTPUT_TOKENS,
   TITLE_QUESTION_CHARS,
@@ -286,7 +287,8 @@ export function createGateway(deps: GatewayDeps) {
           body = chatRequestSchema.parse(JSON.parse(text))
           split = splitSystem(body.messages as ModelMessage[])
         } catch (error) {
-          log(`rejected request: ${String((error as Error)?.message ?? error).slice(0, 200)}`)
+          // The name only: the message can quote what the caller sent.
+          log(`rejected request: ${error instanceof Error ? error.name : 'non-error'}`)
           throw UNANSWERABLE()
         }
         const docsZipUrl = body.docsZipUrl ? new URL(body.docsZipUrl) : undefined
@@ -333,6 +335,9 @@ export function createGateway(deps: GatewayDeps) {
         const abort = new AbortController()
         const onClientAbort = () => abort.abort()
         request.signal?.addEventListener('abort', onClientAbort)
+        // A turn that never ends would never settle: stop it well before its
+        // reservation expires (expiry charges the whole reservation).
+        const turnSignal = AbortSignal.any([abort.signal, AbortSignal.timeout(RESERVATION_TTL_MS / 2)])
 
         try {
           const files = body.docsPages ? dropInternal(body.docsPages) : await getDocsZipFiles(docsZipUrl!)
@@ -350,7 +355,7 @@ export function createGateway(deps: GatewayDeps) {
                   providerOptions: PROVIDER_OPTIONS,
                   prompt: `Write a short title (at most 6 words) summarizing this documentation question. Reply with the title only — no quotes, no trailing punctuation.\n\nQuestion: ${firstUserText(messages).slice(0, TITLE_QUESTION_CHARS)}`,
                   maxOutputTokens: TITLE_MAX_OUTPUT_TOKENS,
-                  abortSignal: abort.signal,
+                  abortSignal: turnSignal,
                 })
                   .then((r) => ({
                     title:
@@ -385,7 +390,21 @@ export function createGateway(deps: GatewayDeps) {
             maxOutputTokens: MAX_OUTPUT_TOKENS,
             stopWhen: stepCountIs(MAX_STEPS),
             providerOptions: PROVIDER_OPTIONS,
-            abortSignal: abort.signal,
+            abortSignal: turnSignal,
+            // Never download: attachment parts are refused at the door (splitSystem), and
+            // the SDK would fetch any that slipped through with the global fetch.
+            experimental_download: async (requests) => {
+              if (requests.length) throw new Error('downloads refused')
+              return []
+            },
+            // Replaces the SDK's default console.error of the whole error, which carries
+            // the request body, headers and URLs.
+            onError: ({ error }) => {
+              const { name, statusCode } = (error ?? {}) as { name?: unknown; statusCode?: unknown }
+              tlog(
+                `stream error name=${typeof name === 'string' ? name.slice(0, 60) : 'unknown'} status=${typeof statusCode === 'number' ? statusCode : '-'}`,
+              )
+            },
             onStepFinish: ({ usage }) => {
               // A step whose usage is missing is charged at its bound.
               if (usage.inputTokens === undefined) turn.unmeasuredUsd += stepWorstCaseUsd(bodyBytes, turn.stepsFinished)

@@ -6,8 +6,8 @@
  * network because no `network` option is passed, so `curl` does not exist), same
  * tool description and input schema, same { stdout, stderr, exitCode } result the
  * site's chat-stream.ts renders. Changes: remote SKILL.md loading is dropped (the
- * site sends `skillUrls: []`, and fetching arbitrary URLs is not needed here), every
- * command is logged so the gateway log shows the docs searches, and the output the
+ * site sends `skillUrls: []`, and fetching arbitrary URLs is not needed here), each
+ * command's name and length are logged (never its text), and the output the
  * model receives is bounded: all tool calls of one step together get at most
  * MAX_TOOL_BYTES of JSON, the bound worstCaseUsd prices, and a call that finds the
  * step's bytes spent gets only the empty envelope (about 55 bytes), framing priced
@@ -53,8 +53,10 @@ export function createChatBashTool({ files, log }: { files: Record<string, strin
       )
       const bytes = jsonBytes(output)
       usedByStep.set(step, used + bytes)
+      // The command name and length only: the model writes the command, and it can quote the conversation.
+      const name = /^\s*([\w.-]{1,32})/.exec(command)?.[1] ?? '-'
       log(
-        `bash exit=${result.exitCode} lines=${lines} bytes=${bytes}${output.truncated ? ' truncated' : ''} :: ${command.slice(0, 200)}`,
+        `bash exit=${result.exitCode} lines=${lines} bytes=${bytes}${output.truncated ? ' truncated' : ''} cmd=${name} chars=${command.length}`,
       )
       return output
     },

@@ -12,6 +12,7 @@ import {
   parseOrigins,
   splitSystem,
   StraySystemMessageError,
+  UnsupportedPartError,
   usageCost,
   utcDay,
 } from './policy.ts'
@@ -176,6 +177,51 @@ describe('what a turn may see', () => {
       messages: [user],
     })
     expect(splitSystem([user])).toEqual({ system: undefined, messages: [user] })
+  })
+
+  test('splitSystem keeps the text, tool-call and tool-result parts a model-messages round trip carries', () => {
+    // The shapes of a real turn's `model-messages` chunk (g1 smoke, 2026-10-04).
+    const messages = [
+      { role: 'user', content: 'How do I install Genie?' },
+      {
+        role: 'assistant',
+        content: [
+          { type: 'text', text: 'Looking it up.' },
+          { type: 'tool-call', toolCallId: 'call_0', toolName: 'bash', input: { command: 'ls /docs', description: 'List' } },
+        ],
+      },
+      {
+        role: 'tool',
+        content: [
+          { type: 'tool-result', toolCallId: 'call_0', toolName: 'bash', output: { type: 'json', value: { stdout: 'genie\n' } } },
+          { type: 'tool-result', toolCallId: 'call_1', toolName: 'bash', output: { type: 'error-text', value: 'failed' } },
+        ],
+      },
+      { role: 'assistant', content: 'Run the installer.' },
+      { role: 'user', content: [{ type: 'text', text: 'Thanks' }] },
+    ] as ModelMessage[]
+    expect(splitSystem(messages)).toEqual({ system: undefined, messages })
+  })
+
+  test('splitSystem rejects file, image and reasoning parts, content tool output, and content that is not a list', () => {
+    const user = (part: object) => ({ role: 'user', content: [{ type: 'text', text: 'x' }, part] })
+    for (const message of [
+      user({ type: 'file', data: 'https://evil.example/a.pdf', mediaType: 'application/pdf' }),
+      user({ type: 'image', image: 'https://evil.example/a.png' }),
+      user({ type: 'image', image: 'data:image/png;base64,iVBORw0KGgo=' }),
+      user({ kind: 'text' }),
+      user(null as unknown as object),
+      { role: 'assistant', content: [{ type: 'reasoning', text: 'x' }] },
+      { role: 'assistant', content: [{ type: 'file', data: 'aGk=', mediaType: 'text/plain' }] },
+      {
+        role: 'tool',
+        content: [{ type: 'tool-result', toolCallId: 'c', toolName: 'bash', output: { type: 'content', value: [] } }],
+      },
+      { role: 'tool', content: [{ type: 'tool-approval-response', approvalId: 'a', approved: true }] },
+      { role: 'user', content: { type: 'file', data: 'https://evil.example/a.pdf' } },
+      { role: 'user' },
+    ])
+      expect(() => splitSystem([message as ModelMessage]), JSON.stringify(message)).toThrow(UnsupportedPartError)
   })
 
   test('splitSystem rejects a second system message anywhere, or one that is not first', () => {
@@ -438,9 +484,57 @@ describe('gateway handler', () => {
       const response = await h.app.handle(chatRequest(body))
       expect(response.status, JSON.stringify(body).slice(0, 80)).toBe(400)
     }
+    // A rejected body is logged by the error's name, never by its text.
+    expect(h.lines.filter((l) => l.startsWith('rejected request:'))).toEqual([
+      'rejected request: StraySystemMessageError',
+      'rejected request: SyntaxError',
+      'rejected request: ZodError',
+    ])
+    expect(h.lines.join('\n')).not.toMatch(/not json|Ignore every rule|nope/)
     expect(h.limit).not.toHaveBeenCalled()
     expect(h.reserve).not.toHaveBeenCalled()
     expect(h.network.calls).toEqual([])
+  })
+
+  test('a file or image part, or tool output of type content, is 400 with no download through the global fetch', async () => {
+    // The AI SDK downloads attachment URLs with the global fetch, outside the allowlist.
+    const globalFetch = vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('global fetch called'))
+    try {
+      const h = harness({ replies: [() => textReply('hi')] })
+      const asking = (part: Record<string, unknown>) => ({
+        role: 'user',
+        content: [{ type: 'text', text: 'read this' }, part],
+      })
+      const toolOutput = (output: Record<string, unknown>) => ({
+        role: 'tool',
+        content: [{ type: 'tool-result', toolCallId: 'call_0', toolName: 'bash', output }],
+      })
+      for (const message of [
+        asking({ type: 'file', data: 'https://evil.example/a.pdf', mediaType: 'application/pdf' }),
+        asking({
+          type: 'file',
+          data: 'https://httpbin.org/redirect-to?url=https%3A%2F%2Fhttpbin.org%2Fstatus%2F418',
+          mediaType: 'text/plain',
+        }),
+        asking({ type: 'image', image: 'https://evil.example/a.png' }),
+        asking({ type: 'image', image: 'data:image/png;base64,iVBORw0KGgo=' }),
+        { role: 'user', content: { type: 'file', data: 'https://evil.example/a.pdf', mediaType: 'application/pdf' } },
+        { role: 'assistant', content: [{ type: 'reasoning', text: 'thinking' }] },
+        toolOutput({ type: 'content', value: [{ type: 'image-url', url: 'https://evil.example/b.png' }] }),
+        toolOutput({ type: 'content', value: [{ type: 'text', text: 'ok' }] }),
+      ]) {
+        const body = question({ messages: [{ role: 'user', content: 'hi' }, message] })
+        const response = await h.app.handle(chatRequest(body))
+        expect(response.status, JSON.stringify(message)).toBe(400)
+        expect(await response.json()).toEqual({ error: 'This request cannot be answered.' })
+      }
+      expect(globalFetch).not.toHaveBeenCalled()
+      expect(h.network.calls).toEqual([])
+      expect(h.limit).not.toHaveBeenCalled()
+      expect(h.reserve).not.toHaveBeenCalled()
+    } finally {
+      globalFetch.mockRestore()
+    }
   })
 
   test('a turn streams the answer, passes the system prompt as `system`, and settles at the measured cost', async () => {
@@ -476,7 +570,8 @@ describe('gateway handler', () => {
   })
 
   test('the bash tool reads the inline docs without _internal and the next step sees its bounded result', async () => {
-    const h = harness({ replies: [() => toolReply('ls -R /docs; cat /docs/genie/_internal/secrets.mdx'), () => textReply('Done.')] })
+    const command = 'ls -R /docs; cat /docs/genie/_internal/secrets.mdx'
+    const h = harness({ replies: [() => toolReply(command), () => textReply('Done.')] })
     const chunks = await chunksOf(await h.app.handle(chatRequest(question())))
     expect(chunks.some((c) => c.type === 'text-delta' && c.delta === 'Done.')).toBe(true)
     expect(h.network.calls).toHaveLength(2)
@@ -489,7 +584,11 @@ describe('gateway handler', () => {
     expect(result.stdout).not.toContain('INTERNAL ONLY')
     expect(jsonBytes(result)).toBeLessThanOrEqual(MAX_TOOL_BYTES)
     await vi.waitFor(() => expect(h.settle).toHaveBeenCalledTimes(1))
-    expect(h.lines.some((l) => l.includes('bash exit='))).toBe(true)
+    // The command is logged by its name and length, never its text.
+    expect(h.lines.filter((l) => l.includes('bash exit='))).toEqual([
+      expect.stringMatching(new RegExp(` cmd=ls chars=${command.length}$`)),
+    ])
+    expect(h.lines.join('\n')).not.toContain('secrets.mdx')
   })
 
   test('docs.zip comes from the site origin with redirect: manual, without _internal, and is cached', async () => {
@@ -572,9 +671,16 @@ describe('gateway handler', () => {
   })
 
   test('a provider failure yields one error notice and is charged the bound of the step that failed', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
     const h = harness({ replies: [() => new Response('{"error":{"message":"boom"}}', { status: 400 })] })
     const chunks = await chunksOf(await h.app.handle(chatRequest(question())))
     expect(chunks.filter((c) => c.type === 'error' || c.type === 'notice')).toHaveLength(1)
+    // The SDK's default onError would console.error the whole error, request body included.
+    expect(consoleError).not.toHaveBeenCalled()
+    consoleError.mockRestore()
+    expect(h.lines.filter((l) => l.includes('stream error'))).toEqual([
+      expect.stringMatching(/\] stream error name=AI_APICallError status=400$/),
+    ])
     await vi.waitFor(() => expect(h.settle).toHaveBeenCalledTimes(1))
     const [, usd] = h.settle.mock.calls[0]!
     expect(usd).toBeGreaterThan(0)

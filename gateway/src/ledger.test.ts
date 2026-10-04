@@ -137,18 +137,46 @@ describe('SpendBook', () => {
     expect(book.total(DAY)).toBeCloseTo(0.7, 9)
   })
 
-  test('an expired reservation is released, and a settle that arrives after it is still recorded', () => {
+  test('an expired reservation is charged in full: the day stays spent, it is no longer open', () => {
     const lines: string[] = []
     const book = new SpendBook(undefined, (line) => lines.push(line))
     const id = book.reserve(DAY, 1.5, 2, 0)!
-    expect(book.reserve(DAY, 1, 2, RESERVATION_TTL_MS - 1)).toBeNull()
-    const later = book.reserve(DAY, 1, 2, RESERVATION_TTL_MS)
-    expect(later).not.toBeNull()
-    expect(book.total(DAY)).toBe(1)
-    expect(lines.some((l) => l.startsWith(`spend-expired id=${id} day=${DAY} reservedUsd=1.500000`))).toBe(true)
-    book.settle(id, 0.002)
-    expect(book.total(DAY)).toBeCloseTo(1.002, 9)
-    expect(lines.some((l) => l.startsWith(`spend-settle-late id=${id}`))).toBe(true)
+    expect(book.reserve(DAY, 0.5, 2, RESERVATION_TTL_MS - 1)).not.toBeNull()
+    expect(lines.some((l) => l.startsWith('spend-expired'))).toBe(false)
+    // At the TTL the 1.50 becomes spend instead of being released, so the day stays full.
+    expect(book.reserve(DAY, 0.01, 2, RESERVATION_TTL_MS)).toBeNull()
+    expect(lines).toContain(`spend-expired id=${id} day=${DAY} reservedUsd=1.500000 chargedUsd=1.500000`)
+    expect(book.total(DAY)).toBe(2)
+    // The charge counts toward the day's alerts like any other spend.
+    expect(lines.filter((l) => l.startsWith('spend-alert'))).toEqual([
+      `spend-alert day=${DAY} level=50 reason=spent spentUsd=1.500000 capUsd=2.000000`,
+      expect.stringMatching(new RegExp(`^spend-alert day=${DAY} level=100 reason=refused `)),
+    ])
+  })
+
+  test('a settle that arrives after expiry adds only its excess over the reservation, never the charge twice', () => {
+    const lines: string[] = []
+    const book = new SpendBook(undefined, (line) => lines.push(line))
+    const under = book.reserve(DAY, 0.5, 2, 0)!
+    const over = book.reserve(DAY, 0.25, 2, 0)!
+    const nan = book.reserve(DAY, 0.25, 2, 0)!
+    book.reserve(DAY, 0.01, 2, RESERVATION_TTL_MS)
+    expect(book.total(DAY)).toBeCloseTo(1.01, 9)
+
+    book.settle(under, 0.002)
+    expect(book.total(DAY)).toBeCloseTo(1.01, 9)
+    expect(lines).toContain(
+      `spend-settle-late id=${under} day=${DAY} reservedUsd=0.500000 measuredUsd=0.002000 addedUsd=0.000000`,
+    )
+
+    book.settle(over, 0.4)
+    expect(book.total(DAY)).toBeCloseTo(1.16, 9)
+    expect(lines).toContain(
+      `spend-settle-late id=${over} day=${DAY} reservedUsd=0.250000 measuredUsd=0.400000 addedUsd=0.150000`,
+    )
+
+    book.settle(nan, Number.NaN)
+    expect(book.total(DAY)).toBeCloseTo(1.16, 9)
   })
 
   test('a settle above the reservation is recorded in full and logged', () => {
