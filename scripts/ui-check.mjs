@@ -11,10 +11,11 @@
 // canary whose action is available. The pet group, on two pages per product, checks that
 // exactly one pet shows and stays through client navigation, that a click or Enter on it opens
 // holocron's chat drawer and a second one closes it, the lamp hero on /genie, the neutral pose
-// under reduced motion, and one <html> per document; it also makes the open-drawer canaries
-// available.
+// under reduced motion, that a question the site refuses (70 KB, which src/chat-guard.ts
+// answers 413) shows the guard's message in the drawer and plays the pet's failed pose, and
+// one <html> per document; it also makes the open-drawer canaries available.
 // Every page fails on a console error (but the upstream ones UPSTREAM_CONSOLE_ERRORS names), a
-// hydration warning or a same-origin HTTP error.
+// hydration warning or a same-origin HTTP error (but the 413 the failed-pose check provokes).
 // The meta group reads the raw HTML of one deep page per docs.json product: <html data-product>
 // names the product, the logo-link head script is there once, and exactly one og:image and one
 // twitter:image point at the product's logo on the site's own origin, which answers 200 with
@@ -56,6 +57,9 @@ const LANDINGS = ['/genie', '/omni', '/rlmx']
 const PET_PAGES = ['/genie', '/genie/quickstart', '/omni', '/omni/quickstart', '/rlmx', '/rlmx/quickstart']
 const PET_VISIBLE_MS = 8_000 // the hero hands the Genie over, or the pet shows after 6 s
 const DRAWER_MS = 5_000
+const FAILED_MS = 10_000 // the refused request, then the pet's one pass of its failed clip
+const CHAT_PATH = '/holocron-api/chat'
+const CHAT_TOO_LONG = 'Your question is too long. Please shorten it and ask again.' // src/chat-guard.ts
 const NOT_FOUND_PAGE = '/genie/no-such-page'
 
 // The products, read from docs.json the way src/server.tsx reads them: the first navigation
@@ -221,21 +225,35 @@ const UPSTREAM_CONSOLE_ERRORS = new Set([
   '<link rel=preload> must have a valid `as` value',
 ])
 
-async function openPage(browser, base, pathname, { waitUntil = 'networkidle', prepare, ...contextOptions } = {}) {
+// `allowHttp` lists the same-origin error answers a check provokes on purpose, as
+// { status, pathname }; each is excused both as a response and as the browser's console line
+// about it.
+async function openPage(browser, base, pathname, { waitUntil = 'networkidle', prepare, allowHttp = [], ...contextOptions } = {}) {
   const context = await browser.newContext({ viewport: VIEWPORT, ...contextOptions })
   await prepare?.(context)
   const page = await context.newPage()
   const errors = []
   const origin = new URL(base).origin
+  const provoked = (status, url) => {
+    try {
+      const { origin: from, pathname: at } = new URL(url)
+      return from === origin && allowHttp.some((allowed) => allowed.status === status && allowed.pathname === at)
+    } catch {
+      return false
+    }
+  }
   page.on('console', (message) => {
     const text = message.text()
     if (message.type() === 'error') {
+      const status = /^Failed to load resource: the server responded with a status of (\d+)/.exec(text)?.[1]
+      if (status && provoked(Number(status), message.location().url)) return
       if (!UPSTREAM_CONSOLE_ERRORS.has(text)) errors.push(text)
     } else if (/hydrat/i.test(text)) errors.push(`hydration ${message.type()}: ${text}`)
   })
   page.on('pageerror', (error) => errors.push(`uncaught ${error.message}`))
   page.on('response', (res) => {
-    if (res.status() >= 400 && new URL(res.url()).origin === origin) errors.push(`HTTP ${res.status()} for ${res.url()}`)
+    if (res.status() >= 400 && new URL(res.url()).origin === origin && !provoked(res.status(), res.url()))
+      errors.push(`HTTP ${res.status()} for ${res.url()}`)
   })
   // Playwright's networkidle never comes in Firefox on a page with a <video>: Firefox keeps the
   // media request open once it has buffered enough. So 'networkidle' here is load, then the same
@@ -431,12 +449,16 @@ async function checkPet(browser, base, engine) {
     await reduced.close()
   }
 
-  // The drawer, open beside the docked pet.
-  const drawer = await openPage(browser, base, '/genie/quickstart', { waitUntil: 'load' })
+  // The drawer, open beside the docked pet; then a question the site refuses.
+  const drawer = await openPage(browser, base, '/genie/quickstart', {
+    waitUntil: 'load',
+    allowHttp: [{ status: 413, pathname: CHAT_PATH }],
+  })
   try {
     await openDrawer(drawer.page)
     await drawer.page.waitForTimeout(1_500) // the pet docks beside the panel
     await drawer.page.screenshot({ path: path.join(SHOTS, `${engine}-pet-drawer.png`) })
+    await checkFailedPose(drawer.page, engine)
   } catch (error) {
     fail(`/genie/quickstart drawer: ${error.message.split('\n')[0]}`)
   } finally {
@@ -450,7 +472,42 @@ async function checkPet(browser, base, engine) {
   if (res.status !== 404 || notFoundHtml !== 1 || !body.includes('Page not found'))
     fail(`${NOT_FOUND_PAGE}: ${res.status} with ${notFoundHtml} <html> elements, expected 404 with holocron's not-found page`)
 
-  return `pet ${PET_PAGES.length} pages, reduced motion, 404 shell`
+  return `pet ${PET_PAGES.length} pages, reduced motion, failed pose, 404 shell`
+}
+
+// A 70 KB question: the site's chat guard answers 413 before holocron's proxy, holocron shows
+// the guard's message in the drawer and sets its errorMessage, and the pet, which reads that
+// field from holocron's chat store, plays its failed clip once. The clips the pet shows are
+// recorded from the moment of the question, so a pass between two polls is still seen.
+async function checkFailedPose(page, engine) {
+  await page.evaluate(() => {
+    const pet = document.querySelector('.genie-pet')
+    const clips = (window.__uiCheckClips = [])
+    new MutationObserver(() => {
+      if (clips.at(-1) !== pet.dataset.clip) clips.push(pet.dataset.clip)
+    }).observe(pet, { attributes: true, attributeFilter: ['data-clip'] })
+  })
+  const input = page.locator('.holocron-chat-drawer-panel textarea').first()
+  await input.fill('x'.repeat(70 * 1024))
+  const answered = page.waitForResponse(
+    (res) => res.request().method() === 'POST' && new URL(res.url()).pathname === CHAT_PATH,
+    { timeout: FAILED_MS },
+  )
+  await input.press('Enter')
+  const res = await answered
+  if (res.status() !== 413) return fail(`/genie/quickstart: a 70 KB question answered ${res.status()}, expected 413 from the chat guard`)
+  try {
+    await page.locator('.holocron-chat-drawer-panel').getByText(CHAT_TOO_LONG).waitFor({ timeout: DRAWER_MS })
+  } catch {
+    fail(`/genie/quickstart: the drawer does not show "${CHAT_TOO_LONG}" after the refused question`)
+  }
+  try {
+    await page.waitForFunction(() => window.__uiCheckClips.includes('failed'), null, { timeout: FAILED_MS })
+  } catch {
+    const clips = await page.evaluate(() => window.__uiCheckClips.join(' -> '))
+    return fail(`/genie/quickstart: after the refused question the pet showed ${clips || 'no clip change'}, expected failed`)
+  }
+  await page.screenshot({ path: path.join(SHOTS, `${engine}-pet-failed.png`) })
 }
 
 // components/product-brand.tsx mounts after load and polls up to 15 s for hydration.
