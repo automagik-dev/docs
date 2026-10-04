@@ -670,6 +670,57 @@ describe('gateway handler', () => {
     expect(results.reduce((sum, r) => sum + jsonBytes(r), 0)).toBeLessThanOrEqual(MAX_TOOL_BYTES + envelope)
   })
 
+  test('a tool-input error logs its name and status only, never the tool input the model wrote', async () => {
+    const marker = 'cat /docs/MODEL-WROTE-THIS-7f3a'
+    // `cmd` instead of `command`: the input fails the bash tool's schema, and the SDK's
+    // InvalidToolInputError message quotes the whole input.
+    const invalid = () =>
+      sse([
+        chunk({
+          delta: {
+            role: 'assistant',
+            tool_calls: [
+              { index: 0, id: 'call_0', type: 'function', function: { name: 'bash', arguments: JSON.stringify({ cmd: marker }) } },
+            ],
+          },
+          finish_reason: null,
+        }),
+        chunk({ delta: {}, finish_reason: 'tool_calls' }, USAGE),
+      ])
+    const h = harness({ replies: [invalid, () => textReply('Sorry.')] })
+    const chunks = await chunksOf(await h.app.handle(chatRequest(question())))
+    expect(chunks.filter((c) => c.type === 'tool-input-error')).toEqual([
+      expect.objectContaining({ errorText: 'The AI provider failed to return a response. Please try again.' }),
+    ])
+    await vi.waitFor(() => expect(h.settle).toHaveBeenCalledTimes(1))
+    const logs = h.lines.join('\n')
+    expect(logs).not.toContain('MODEL-WROTE-THIS')
+    expect(logs).not.toContain('Invalid input')
+    // The invalid call is reported twice: as a tool-input error, then as the tool's error
+    // output, whose error is the bare message string.
+    expect(h.lines.filter((l) => l.includes('provider error'))).toEqual([
+      expect.stringMatching(/\] provider error name=AI_InvalidToolInputError status=-$/),
+      expect.stringMatching(/\] provider error name=non-error status=-$/),
+    ])
+    // The first error names the turn.
+    expect(h.lines).toContainEqual(expect.stringMatching(/\] turn end .* error="AI_InvalidToolInputError"$/))
+  })
+
+  test('a turn error logs its name and status only, never text from the other side', async () => {
+    // The docs.zip fetch fails, and its error message carries the remote's status text.
+    const h = harness({ replies: [() => new Response('', { status: 503, statusText: 'REMOTE-TEXT-91c2' })] })
+    const chunks = await chunksOf(
+      await h.app.handle(chatRequest(question({ docsPages: undefined, docsZipUrl: `${SITE}/docs.zip` }))),
+    )
+    expect(chunks.filter((c) => c.type === 'notice')).toHaveLength(1)
+    await vi.waitFor(() => expect(h.settle).toHaveBeenCalledTimes(1))
+    expect(h.lines.join('\n')).not.toContain('REMOTE-TEXT')
+    expect(h.lines.filter((l) => l.includes('turn error'))).toEqual([
+      expect.stringMatching(/\] turn error name=Error status=-$/),
+    ])
+    expect(h.lines.filter((l) => l.includes('turn end'))).toEqual([expect.stringMatching(/ error="Error"$/)])
+  })
+
   test('a provider failure yields one error notice and is charged the bound of the step that failed', async () => {
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
     const h = harness({ replies: [() => new Response('{"error":{"message":"boom"}}', { status: 400 })] })
