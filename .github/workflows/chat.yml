@@ -1,0 +1,64 @@
+name: Chat gateway
+
+# The chat gateway Worker (automagik-docs-chat) under gateway/: its own package, lockfile and
+# deploy, so site content changes never touch it and gateway changes never redeploy the site.
+on:
+  pull_request:
+    paths: ['gateway/**', '.github/workflows/chat.yml']
+  push:
+    branches: [main]
+    paths: ['gateway/**', '.github/workflows/chat.yml']
+
+permissions:
+  contents: read
+
+# One run per ref. A newer PR run replaces an older one; deploys on main queue instead.
+concurrency:
+  group: chat-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+defaults:
+  run:
+    shell: bash
+    working-directory: gateway
+
+# `check` runs the PR code and holds no secret. `deploy` runs only the main commit that `check`
+# passed, and holds the token only on its wrangler step. The Worker is bundled from
+# node_modules, so the deploy installs the locked dependencies first. Secrets are never set
+# here: `wrangler deploy` keeps the Worker's existing ones, and the Custom Domain, attached once
+# with `--domain`, stays attached.
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: gateway/package-lock.json
+      - run: npm ci
+      - run: npm run check
+      - run: npx wrangler deploy --dry-run --outdir .wrangler/dry-run
+
+  deploy:
+    needs: check
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      # A push to main checks out that main commit.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+      - run: npm ci
+      - env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx --yes wrangler@4.147.0 deploy
+      - run: curl -fsS --retry 10 --retry-delay 6 --retry-all-errors -o /dev/null https://agent.docs.automagik.dev/health
