@@ -13,7 +13,7 @@
 
 ## Summary
 
-Moves docs.automagik.dev from Mintlify to holocron on Cloudflare Workers for all three products (Genie, Omni, mikro). This wish builds the whole site on holocron with strict validation, ships every page's images, videos and transcripts, and adds a GitHub Actions pipeline: a secret-free build on every PR, a preview per same-repo PR, and a deploy of docs `main` to the `automagik-docs` Worker. It is the first of five sibling wishes, split because the full migration is about 75 file changes and 3,930 authored insertions (lockfiles excluded), past the 25-file and 2,000-insertion band: `docs-holocron` (this one, 19 files, about 600 insertions), `docs-holocron-brand` (20, about 1,450), `docs-holocron-products` (7, about 500), `docs-holocron-chat` (15, about 1,000), `docs-holocron-cutover` (14, about 380).
+Moves docs.automagik.dev from Mintlify to holocron on Cloudflare Workers for all three products (Genie, Omni, mikro). This wish builds the whole site on holocron with strict validation, ships every page's images, videos and transcripts, and adds a GitHub Actions pipeline: a secret-free build on every PR, a preview per same-repo PR, and a deploy of docs `main` to the `automagik-docs` Worker. It is the first of five sibling wishes, split because the full migration is about 76 file changes and 3,935 authored insertions (lockfiles excluded), past the 25-file and 2,000-insertion band: `docs-holocron` (this one, 19 files, about 600 insertions), `docs-holocron-brand` (20, about 1,450), `docs-holocron-products` (7, about 500), `docs-holocron-chat` (15, about 1,000), `docs-holocron-cutover` (15, about 385).
 
 ## Scope
 
@@ -266,7 +266,7 @@ _What must be verified on dev after merge. The QA agent tests each criterion._
 | No workers.dev subdomain on the account (0 Workers today), so a non-interactive deploy fails | Medium | Group 2 reads it first; Felipe registers one if missing. |
 | `wrangler preview` (new in 4.135.0) or its `--json` output differs from the docs | Medium | Read `--help` at the pinned version and follow it; no fallback that would inherit Worker secrets. |
 | The deploy config the Cloudflare plugin writes moves, so the artifact misses it | Medium | Group 3 reads where 4.147.0 and plugin 1.62.5 write it during the first run and fixes the artifact paths; `npx wrangler deploy --dry-run` in Group 2 shows the same config. |
-| Old links to retired pages, `/x/index` forms or `/rlmx` break after cutover | Low | Owner decision B and D: a fresh start; the other products' docs are revamped later. |
+| Old links to retired pages or `/rlmx` break after cutover | Low | Owner decisions B and D: a fresh start; the other products' docs are revamped later. `/x/index` forms keep working through holocron's built-in 308 (decision 12). |
 | A new page references a static root outside the five copied ones | Medium | The verify script checks every referenced file on every page, so the build of that PR fails until the root is added. |
 | A holocron upgrade changes routing or redirects | Medium | Exact pins and lockfile; upgrades are separate PRs gated by the verify script. |
 | The dev server answers 500 on the first request after a restart | Low | Dev only; every validation uses `vite preview` or a deployed URL. |

@@ -227,7 +227,7 @@ _What must be verified on dev after merge. The QA agent tests each criterion._
 
 - [ ] Functional: on the workers.dev site, asking each suggestion (Genie, Omni, mikro) returns an answer that links a page of that product.
 - [ ] Integration: clicking the pet opens the drawer, and the pet shows waiting, running and review poses through one question.
-- [ ] Regression: the site's pages, redirects and UI checks still pass; PR previews still deploy (their chat shows an error by design).
+- [ ] Regression: the site's pages and UI checks still pass; PR previews still deploy (their chat shows an error by design).
 
 ---
 

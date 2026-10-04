@@ -46,7 +46,7 @@ Moves mikro's pages to `/mikro/...`, proves the holocron site end to end on its 
 | 7 | The verify script reads the gateway token from the environment only (bws, `DOCS_CHAT_GATEWAY_TOKEN`), never from a file or a command line. | No secret in git, logs or command lines. |
 | 8 | After the soak, `README.md`, `AGENTS.md` and `CONTRIBUTING.md` (Mintlify starter text today) describe the holocron workflow, `.mintignore` is deleted, and `docs.json` `$schema` points at holocron's schema. | Mintlify config with no reader is dead config. `_internal` stays private because holocron builds only navigation pages. |
 | 9 | The live Mintlify site still serves the pre-#89 pages because its deployment does not track docs `main`; the cutover fixes that, since the new site deploys on every push to `main`. | Owner context (genie-launch design Decision 10). The old pages are not redirected: owner decision B (2026-10-04) makes this a fresh start. |
-| 10 | The mikro move (owner decision D, 2026-10-04, no redirects) is its own group in this wish, ahead of verification. | It adds 6 page files to whichever wish carries it; `docs-holocron` would sit at the 25-file maximum with them. Here it lands right before the verification that proves it. Everything earlier reads paths from `docs.json`, so the product logos, landings and share images follow with no code change. |
+| 10 | The mikro move (owner decision D, 2026-10-04, no redirects) is its own group in this wish, ahead of verification. | It touches 6 pages, `docs.json` and the two check scripts that name `/rlmx`; `docs-holocron` would pass the 25-file band with them. Here it lands right before the verification that proves it. Everything earlier reads paths from `docs.json`, so the product logos, landings and share images follow with no code change. |
 | 11 | **Owner decisions at plan approval (Felipe, 2026-10-04, final; recorded through the question harness).** Hosting: Cloudflare Workers Paid ("Cloudflare Workers Paid (Recomendado)"); Vercel was considered and dropped because holocron has no Vercel target. A. Visitor IP: no per-IP rate limit for now, deferred by owner; trigger to revisit: abuse or the spend cap being hit. The gateway token gate, the hard daily spend cap with its reservation ledger, the input bounds (64 KB, no `system` role), `maxOutputTokens`, the step limit, `redirect: 'manual'` and the canonical-path guard stay. B. Retired-URL redirects: none ("não quero fazer redirect, consider this a fresh start; we will revamp the other product docs later"); only `/` goes to the Genie landing, as site navigation; retired pages answer 404. C. PR-preview chat: unchanged; previews carry no gateway token and their chat shows an error. D. mikro URLs: `rlmx/` moves to `mikro/` with no redirects; `/rlmx/*` answers 404. | Recorded as given; all five wishes are APPROVED on these terms. |
 
 ## Simplicity Case
@@ -78,7 +78,7 @@ Starts after `docs-holocron-chat` merges and its Group 3 smoke passes. Group 3 n
 
 | Group | Agent | Complexity | Model | Description |
 |-------|-------|------------|-------|-------------|
-| 1 | engineer | low: one folder rename and its links, no redirects | inherit | mikro URLs under `/mikro` |
+| 1 | engineer | low: one folder rename, its links and two scripts' page lists, no redirects | inherit | mikro URLs under `/mikro` |
 
 ### Wave 2 (sequential)
 
@@ -119,13 +119,14 @@ Starts after `docs-holocron-chat` merges and its Group 3 smoke passes. Group 3 n
 **Deliverables:**
 1. `git mv rlmx mikro` (6 pages: `index`, `quickstart`, `cli/reference`, `config`, `batch`, `cache`), and in those pages every link `/rlmx/...` becomes `/mikro/...`.
 2. `docs.json`: every `rlmx/...` page in navigation becomes `mikro/...`; `redirects` gain nothing.
+3. `scripts/verify-site.mjs` (from `docs-holocron` Group 2) and `scripts/ui-check.mjs` (from `docs-holocron-brand` Group 1): every hard-coded `/rlmx` path becomes `/mikro`, because with no redirect `/rlmx` answers 404 and both scripts would fail.
 
 **Interfaces:**
-- Consumes: `docs.json` navigation from `docs-holocron`; every later check reads paths from `docs.json`.
+- Consumes: `docs.json` navigation from `docs-holocron`; `scripts/verify-site.mjs` and `scripts/ui-check.mjs`, whose page lists name `/rlmx`.
 - Produces: mikro landing `mikro/index`, so `docs-holocron-products`' prefix becomes `/mikro` and its landing `/mikro/index`.
 
 **Acceptance Criteria:**
-- [ ] The strict build passes with the new paths; no public page links to `/rlmx`.
+- [ ] The strict build passes with the new paths; no public page and neither check script names `/rlmx`.
 - [ ] Against a local Worker, every mikro navigation page answers 200 at `/mikro/...`, and `/rlmx/config` answers 404.
 - [ ] `ui-check --all` passes (the mikro header logo and landing follow).
 
@@ -133,6 +134,7 @@ Starts after `docs-holocron-chat` merges and its Group 3 smoke passes. Group 3 n
 ```bash
 test -d mikro && test ! -e rlmx
 ! grep -rn '/rlmx' --include='*.mdx' genie omni mikro | grep -v '/_internal/'
+! grep -n '/rlmx' scripts/verify-site.mjs scripts/ui-check.mjs
 npm ci
 npm run build
 npm run verify
@@ -295,7 +297,8 @@ rlmx/config.mdx -> mikro/config.mdx                (rename, links)
 rlmx/batch.mdx -> mikro/batch.mdx                  (rename, links)
 rlmx/cache.mdx -> mikro/cache.mdx                  (rename, links)
 docs.json                                          (modify: mikro paths, $schema)
-scripts/verify-site.mjs                            (modify: --full)
+scripts/verify-site.mjs                            (modify: /mikro paths, --full)
+scripts/ui-check.mjs                               (modify: /mikro paths)
 scripts/shoot.mjs                                  (create)
 README.md                                          (modify)
 AGENTS.md                                          (modify)
