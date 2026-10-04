@@ -13,7 +13,6 @@ process.env.HOLOCRON_URL ??= GATEWAY_ORIGIN
 // Vite serves only public/, so the docs' own static folders are copied into the client
 // output after it is written. These are the roots the public pages reference.
 const STATIC_ROOTS = ['genie/images', 'genie/videos', 'captures/genie', 'logo', 'favicon.png']
-const INTERNAL = /(^|[\\/])_internal([\\/]|$)/
 
 function copyDocStatics(): Plugin {
   return {
@@ -26,7 +25,7 @@ function copyDocStatics(): Plugin {
       for (const entry of STATIC_ROOTS) {
         fs.cpSync(path.join(root, entry), path.join(outDir, entry), {
           recursive: true,
-          filter: (source) => !INTERNAL.test(path.relative(root, source)),
+          filter: (source) => !path.relative(root, source).includes('_internal'),
         })
       }
     },

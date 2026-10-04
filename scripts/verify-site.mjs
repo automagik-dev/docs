@@ -13,6 +13,7 @@
 
 import { execFileSync, spawn } from 'node:child_process'
 import fs from 'node:fs'
+import net from 'node:net'
 import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -204,6 +205,19 @@ async function checkZip(base, pages) {
   }
 }
 
+// True when anything accepts a TCP connection on the preview port, over IPv4 or IPv6.
+async function portTaken() {
+  const answers = (host) =>
+    new Promise((resolve) => {
+      const socket = net.connect({ host, port: PREVIEW_PORT })
+      socket.setTimeout(2_000)
+      socket.once('connect', () => (socket.destroy(), resolve(true)))
+      socket.once('timeout', () => (socket.destroy(), resolve(false)))
+      socket.once('error', () => resolve(false))
+    })
+  return (await Promise.all(['127.0.0.1', '::1'].map(answers))).some(Boolean)
+}
+
 function startPreview() {
   const child = spawn('npx', ['vite', 'preview', '--port', String(PREVIEW_PORT), '--strictPort'], {
     cwd: ROOT,
@@ -255,6 +269,10 @@ async function main() {
   let preview = null
   if (serve) {
     base = `http://localhost:${PREVIEW_PORT}`
+    if (await portTaken()) {
+      console.error(`verify-site: port ${PREVIEW_PORT} is already in use; stop that server or pass its URL instead of --serve`)
+      process.exit(2)
+    }
     preview = startPreview()
     const onSignal = () => preview.stop().then(() => process.exit(130))
     process.once('SIGINT', onSignal)
