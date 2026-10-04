@@ -6,6 +6,7 @@ import { Spiceflow } from 'spiceflow'
 import { GeniePet } from '../components/genie-pet.tsx'
 import { ProductBrand } from '../components/product-brand.tsx'
 import docs from '../docs.json'
+import { chatGuard } from './chat-guard.ts'
 // holocron imports a root style.css only from its own default entry, so a custom entry
 // imports it here, after holocron's styles.
 import '../style.css'
@@ -81,6 +82,6 @@ const siteLayout = new Spiceflow().layout('/*', ({ children }) => (
   </>
 ))
 
-export const app = new Spiceflow().use(productMarks).use(holocronApp).use(siteLayout)
+export const app = new Spiceflow().use(productMarks).use(chatGuard).use(holocronApp).use(siteLayout)
 
 export default { fetch: (request: Request) => app.handle(request) }
