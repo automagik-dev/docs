@@ -1,0 +1,21 @@
+{
+  "name": "automagik-docs",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "verify": "node scripts/verify-site.mjs --serve"
+  },
+  "dependencies": {
+    "@holocron.so/vite": "0.36.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  },
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "1.62.5",
+    "vite": "8.3.2",
+    "wrangler": "4.147.0"
+  }
+}

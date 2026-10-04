@@ -1,0 +1,8 @@
+{
+  "name": "automagik-docs",
+  "main": "spiceflow/cloudflare-entrypoint",
+  "compatibility_date": "2026-04-14",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "workers_dev": true,
+  "observability": { "enabled": true }
+}
