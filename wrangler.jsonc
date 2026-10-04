@@ -4,7 +4,5 @@
   "compatibility_date": "2026-04-14",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
   "workers_dev": true,
-  "observability": { "enabled": true },
-  // `wrangler preview` refuses to run without a previews block; empty means no bindings.
-  "previews": {}
+  "observability": { "enabled": true }
 }
