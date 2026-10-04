@@ -8,12 +8,15 @@
 //     browser `system` message would reach the model as an instruction. The gateway checks
 //     the same thing on its side.
 //   - a body whose currentSlug is not a page path (a `/`, then at most 199 letters, digits,
-//     `/`, `_`, `.` or `-`), or that carries a non-empty toolSchemas or context, with 400.
-//     holocron writes all three into its system prompt unescaped: currentSlug as the current
-//     page's path (and on to the gateway as pageSlug, which allows 200 characters), each tool's
-//     name and description as a client tool, context as user context. holocron's own client
-//     sends the page's href as currentSlug and neither of the other two on a normal turn; this
-//     site registers no client tools and no context.
+//     `/`, `_`, `.` or `-`), with 400. holocron writes currentSlug into its system prompt
+//     unescaped, as the current page's path, and sends it on to the gateway as pageSlug, which
+//     allows 200 characters. holocron's own client sends the page's href from docs.json, or
+//     `/` from a 404 whatever its path, so a real page always passes; text taken from a
+//     crafted URL never does, encoded or decoded.
+//     toolSchemas and context pass: holocron writes them into the prompt too, but they come
+//     only from the visitor's own browser (tools it exposes through document.modelContext,
+//     say), so they reach only that visitor's conversation, and refusing them would break the
+//     chat for every visitor whose browser exposes tools.
 // The path is compared in canonical form, so `/holocron-api/chat/` or `//holocron-api/chat`
 // cannot step around the guard. Every other request passes through untouched. There is no
 // per-visitor limit (owner decision A, docs-holocron-chat); the gateway's token, daily spend
@@ -25,9 +28,6 @@ export const MAX_CHAT_BODY_BYTES = 65_536
 const TOO_LONG = 'Your question is too long. Please shorten it and ask again.'
 const UNANSWERABLE = 'This request cannot be answered.'
 const PAGE_SLUG = /^\/[A-Za-z0-9/_.-]{0,199}$/
-
-/** Absent, null, an empty array or an empty object. */
-const isEmpty = (value: unknown) => value == null || (typeof value === 'object' && Object.keys(value).length === 0)
 
 /** Decodes each segment, collapses repeated slashes and strips trailing slashes. */
 export function canonicalPath(pathname: string): string {
@@ -80,12 +80,10 @@ export const chatGuard = async (
   } catch {
     return jsonError(400, UNANSWERABLE)
   }
-  const fields = (body ?? {}) as { modelMessages?: unknown; currentSlug?: unknown; toolSchemas?: unknown; context?: unknown }
-  const { modelMessages, currentSlug } = fields
+  const { modelMessages, currentSlug } = (body ?? {}) as { modelMessages?: unknown; currentSlug?: unknown }
   if (Array.isArray(modelMessages) && modelMessages.some((m) => (m as { role?: unknown } | null)?.role === 'system'))
     return jsonError(400, UNANSWERABLE)
   if (currentSlug !== undefined && !(typeof currentSlug === 'string' && PAGE_SLUG.test(currentSlug)))
     return jsonError(400, UNANSWERABLE)
-  if (!isEmpty(fields.toolSchemas) || !isEmpty(fields.context)) return jsonError(400, UNANSWERABLE)
   return next()
 }
