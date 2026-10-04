@@ -231,6 +231,20 @@ _The read-only reviewer returns evidence; the invoking orchestrator appends a ti
 5. LOW: `svg.innerHTML` holds a constant chevron (`components/product-brand.tsx:42`). Use `createElementNS`.
 6. INFO: limit the console allowlist to `engine === 'webkit'`. On the 404 the switcher is not mounted.
 
+### Polish follow-up — 2026-10-04 (engineer, `feat/docs-holocron-polish`)
+
+Closes the six findings above, plus item 7 from the docs-holocron-chat Group 2 review (SHIP with one LOW). Each new check failed on the old code first: on 84c4e61 for items 1 to 3 and 7, and on mutants for items 4 and 6.
+
+1. **Charset.** `src/server.tsx` puts the head script right after `<meta charset>`, still ahead of every stylesheet. On `/genie`, `/omni/quickstart` and `/rlmx` (and the other three product pages) the charset now ends at byte 521 or 522; it ended at 1227 or 1228 before. `ui-check --meta` reads each landing and deep page and fails past byte 1024.
+2. **Share images.** `components/product-brand.tsx`: React adopts a server `<meta>` only when its content is unchanged, so it renders its own pair. Once that pair is in `<head>`, the server's copies are removed and React's pair points at the current product's logo; an observer on `<head>` repeats this after each client navigation. The raw HTML is unchanged, with one of each. `--products` checks the live document after hydration and after each switch.
+3. **Logo href.** `src/server.tsx` sets the header `a.slot-logo` href to the product's folder URL (`/genie`, `/omni`, `/rlmx`); after client navigation the client sets the same form. It used `/omni/index` before, so the href no longer keeps Plan Deviation 2's `docs.json` form. The footer AUTOMAGIK link still goes to `/genie`. The hydration-warning check passes in the three engines: React's production build does not compare attributes. `vite dev` logs one "attributes didn't match" error on Omni and mikro pages, naming only this href, and React keeps the server's value. No mismatch-free way exists without changing holocron, whose logo link is the site-wide `logo.href`.
+4. **Test.** `checkLogoLink` reads the href before and after hydration. It passes a click only once the landing's `<h1>`, read from the landing's raw HTML, shows, and takes the screenshot after that. On a mutant whose logo click only pushes the URL, the old check found nothing wrong with the landing; the new one fails all three products.
+5. **Chevron.** Built with `createElementNS` and `setAttribute`. The markup and pixels are identical before and after, closed and open, on desktop and mobile, in Chromium and Firefox.
+6. **Allowlist.** `UPSTREAM_CONSOLE_ERRORS` applies in WebKit only. On a mutant that logs one allowlisted text, the old ui-check passed in Chromium and the new one fails.
+7. **Chat prompt injection (from docs-holocron-chat).** `src/chat-guard.ts` answers 400 to a `currentSlug` that is not a page path, and to a non-empty `toolSchemas` or `context`. holocron's client sends `{currentSlug, message, modelMessages}` on a normal turn, from the drawer and from the sidebar box, in Chromium and Firefox. `gateway/src/index.ts` caps `pageSlug` at 200 characters and logs it with `JSON.stringify`, and a gateway test covers both. `verify-site --chat-guard` adds the injection probe on every path spelling, the long, non-string, tool and context refusals, and a normal slug that passes. The site's bound is 200 characters in all (`^/[A-Za-z0-9/_.-]{0,199}$`) to match the gateway's `max(200)`; the brief's `{0,200}` admits a 201-character slug that the gateway would refuse.
+
+Validation, all exit 0: `npm ci`, the strict build, `npm run verify`, `check-deploy-config` (deploy config unchanged), `ui-check --serve --all` in Chromium (31 canaries), `--products` in Firefox and in WebKit (`mcr.microsoft.com/playwright:v1.63.0-noble`), `verify-site --serve --chat-guard` (20 requests), and `cd gateway && npm run check` (51 tests).
+
 ---
 
 ## Files to Create/Modify
