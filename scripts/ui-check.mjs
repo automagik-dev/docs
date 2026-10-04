@@ -4,15 +4,20 @@
 //   node scripts/ui-check.mjs <base-url> [flags]   check a running site (local or deployed)
 //   node scripts/ui-check.mjs --serve [flags]      start `vite preview` on port 4174, check it, stop it
 //
-// Flags: --engine chromium|firefox|webkit (default chromium); --pet adds the pet group; --all
-// runs every check group this script knows. The brand group always runs: on /genie, /omni and
-// /rlmx at 1440x900 it checks the body surface, text color and font, the code font, --primary,
+// Flags: --engine chromium|firefox|webkit (default chromium); --pet and --meta add those
+// groups; --all runs every check group this script knows. The brand group always runs: on
+// /genie, /omni and /rlmx at 1440x900 it checks the body surface, text color and font, the code font, --primary,
 // and that the header and footer logos carry no filter; it then runs every CSS canary whose
 // action is available. The pet group, on two pages per product, checks that exactly one pet
 // shows and stays through client navigation, that a click or Enter on it opens holocron's chat
 // drawer and a second one closes it, the lamp hero on /genie, the neutral pose under reduced
 // motion, and one <html> per document; it also makes the open-drawer canaries available.
 // Every page fails on a console error, a hydration warning or a same-origin HTTP error.
+// The meta group reads the raw HTML of one deep page per docs.json product: <html data-product>
+// names the product, the logo-link head script is there once, and exactly one og:image and one
+// twitter:image point at the product's logo on the site's own origin, which answers 200 with
+// the PNG in public/brand/; no meta tag points at the chat gateway, and the page's RSC payload
+// carries none of the HTML rewrites.
 //
 // Canaries: each rule in style.css that reaches into holocron's markup carries a
 // `/* holocron-internal: <id> */` tag, and CANARIES holds one entry per tag. A canary's
@@ -42,6 +47,19 @@ const PET_PAGES = ['/genie', '/genie/quickstart', '/omni', '/omni/quickstart', '
 const PET_VISIBLE_MS = 8_000 // the hero hands the Genie over, or the pet shows after 6 s
 const DRAWER_MS = 5_000
 const NOT_FOUND_PAGE = '/genie/no-such-page'
+
+// The products, read from docs.json the way src/server.tsx reads them: the first navigation
+// page is the landing (holocron 308s `<folder>/index` to the folder URL) and the lowercased
+// name is the slug. The deep page is the product's quickstart, or the page after its landing.
+const DOCS = JSON.parse(fs.readFileSync(path.join(ROOT, 'docs.json'), 'utf8'))
+const PRODUCTS = DOCS.navigation.products.map(({ product, groups }) => {
+  const pages = groups.flatMap((group) => group.pages ?? []).filter((page) => typeof page === 'string')
+  const landing = `/${pages[0]}`
+  const folder = landing.split('/')[1]
+  const deep = pages.includes(`${folder}/quickstart`) ? `/${folder}/quickstart` : `/${pages[1]}`
+  return { name: product, slug: product.toLowerCase(), landing, folderUrl: landing.replace(/\/index$/, ''), deep }
+})
+const GATEWAY_ORIGIN = fs.readFileSync(path.join(ROOT, 'vite.config.ts'), 'utf8').match(/GATEWAY_ORIGIN = '([^']+)'/)?.[1]
 
 const BRAND = {
   background: 'rgb(11, 11, 18)', // #0B0B12
@@ -131,7 +149,7 @@ const CANARIES = [
 ]
 
 // Optional check groups, each also run by --all. Later wishes add theirs here.
-const GROUPS = { pet: { run: checkPet } }
+const GROUPS = { pet: { run: checkPet }, meta: { run: checkMeta } }
 
 const failures = []
 const fail = (line) => failures.push(line)
@@ -388,6 +406,62 @@ async function checkPet(browser, base, engine) {
     fail(`${NOT_FOUND_PAGE}: ${res.status} with ${notFoundHtml} <html> elements, expected 404 with holocron's not-found page`)
 
   return `pet ${PET_PAGES.length} pages, reduced motion, 404 shell`
+}
+
+const attribute = (tag, name) =>
+  tag.match(new RegExp(`\\s${name}="([^"]*)"`))?.[1]?.replaceAll('&amp;', '&').replaceAll('&quot;', '"')
+
+async function checkMeta(_browser, base) {
+  if (!GATEWAY_ORIGIN) fail("vite.config.ts: no GATEWAY_ORIGIN = '<url>' to check the meta tags against")
+  for (const product of PRODUCTS) {
+    const where = product.deep
+    const res = await fetch(new URL(where, base), { headers: { accept: 'text/html' }, redirect: 'manual' })
+    const html = await res.text()
+    if (res.status !== 200) {
+      fail(`${where}: answered ${res.status}, expected 200`)
+      continue
+    }
+    const marked = attribute(html.match(/<html\b[^>]*>/i)?.[0] ?? '', 'data-product')
+    if (marked !== product.slug) fail(`${where}: <html data-product="${marked}">, expected ${product.slug}`)
+    const scripts = html.match(/window\.__genieProductLandings=/g)?.length ?? 0
+    if (scripts !== 1) fail(`${where}: ${scripts} __genieProductLandings head scripts, expected 1`)
+
+    const metas = html.match(/<meta\b[^>]*>/gi) ?? []
+    const expected = new URL(`/brand/${product.slug}-logo.png`, base).href
+    for (const [key, value] of [['property', 'og:image'], ['name', 'twitter:image']]) {
+      const tags = metas.filter((tag) => attribute(tag, key) === value)
+      if (tags.length !== 1) {
+        fail(`${where}: ${tags.length} ${value} tags, expected 1`)
+        continue
+      }
+      const url = attribute(tags[0], 'content')
+      if (url !== expected) fail(`${where}: ${value} ${url}, expected ${expected}`)
+      if (!url) continue
+      let image, bytes
+      try {
+        image = await fetch(url, { redirect: 'manual', signal: AbortSignal.timeout(30_000) })
+        bytes = Buffer.from(await image.arrayBuffer())
+      } catch (error) {
+        fail(`${where}: ${value} ${url} could not be fetched (${error.cause?.code ?? error.message})`)
+        continue
+      }
+      const type = image.headers.get('content-type') ?? ''
+      if (image.status !== 200 || !type.startsWith('image/png')) fail(`${where}: ${value} ${url} answered ${image.status} ${type}, expected 200 image/png`)
+      else if (url === expected && !bytes.equals(fs.readFileSync(path.join(ROOT, 'public/brand', `${product.slug}-logo.png`))))
+        fail(`${where}: ${value} ${url} is not public/brand/${product.slug}-logo.png`)
+    }
+    if (GATEWAY_ORIGIN)
+      for (const tag of metas)
+        if (attribute(tag, 'content')?.includes(GATEWAY_ORIGIN)) fail(`${where}: meta on the gateway origin: ${tag.slice(0, 200)}`)
+
+    // RSC payloads are not HTML: the middleware hands them back as they came.
+    const rsc = await fetch(new URL(`${where}.rsc`, base), { redirect: 'manual' })
+    const payload = await rsc.text()
+    const rscType = rsc.headers.get('content-type') ?? ''
+    if (rsc.status !== 200 || !rscType.startsWith('text/x-component')) fail(`${where}.rsc: answered ${rsc.status} ${rscType}, expected 200 text/x-component`)
+    else if (payload.includes('__genieProductLandings') || payload.includes('data-product')) fail(`${where}.rsc: carries an HTML rewrite`)
+  }
+  return `meta ${PRODUCTS.map((product) => product.deep).join(', ')}`
 }
 
 // True when anything accepts a TCP connection on the preview port, over IPv4 or IPv6.
