@@ -2,7 +2,7 @@
 
 | Field | Value |
 |-------|-------|
-| **Status** | DRAFT |
+| **Status** | APPROVED |
 | **Slug** | `docs-holocron-brand` |
 | **Date** | 2026-10-04 |
 | **Author** | Felipe Rosa (plan drafted by Claude) |
@@ -50,7 +50,7 @@ Applies the launch-video design system to the holocron site: neon design B token
 | 10 | The pet sets its spritesheet (1.8 MB) as a background only after the window `load` event. | It never competes with first paint; the browser caches it across pages. |
 | 11 | PR CI runs the UI check in Chromium only. | Firefox and WebKit run in `docs-holocron-products`' own validation, where engine differences (`content: url()` on images) matter; keeping CI on one engine keeps PR runs short. |
 | 12 | The frozen, read-only snapshot `/home/genie/.genie/state-backups/holo-spike-2026-10-04-frozen/` is the only source. Every file this wish ports or copies is checked by sha256 prefix, both in the snapshot and in the repository, in the group's validation. | The live spike and the mutable archive kept changing during planning; a frozen source makes the ports reviewable. |
-| 13 | **Needs Felipe's approval at plan approval (one pass for all five wishes).** A. Visitor IP (`docs-holocron-chat` decision 5): rate-limited in the site Worker per IPv4 address or IPv6 /64, never forwarded; the gateway accepts only the site's token. B. Retired-URL redirect targets (`docs-holocron` decision 12), all permanent: `/genie/architecture/:page`, `/genie/concepts/:page`, `/genie/observability/:page`, `/genie/contributing`, `/genie/features`, `/genie/onboarding` to `/genie`; `/genie/cli/:page` to `/genie/cli-reference`; `/genie/config/:page` to `/genie/installation`; `/genie/security/distribution-sovereignty` and `/genie/security/verifying-installs` to `/genie/security`; 12 retired skill pages (`brain`, `docs`, `dream`, `genie`, `genie-hacks`, `learn`, `loop-overview`, `pm`, `refine`, `report`, `trace`, `wizard`) to `/genie/skills`. C. PR-preview chat (`docs-holocron` decision 17): previews carry no gateway token, so their chat shows an error. D. mikro URLs (`docs-holocron-cutover` Group 1): move `rlmx/` to `mikro/` so mikro's pages live at `/mikro/...`, with permanent redirects from `/rlmx` and every `/rlmx/*` URL; if declined, that group is dropped and the URLs stay `/rlmx/...`. | Each changes user-visible behavior or the brief, so Felipe decides it at approval; until then they are proposals. None changes this wish's files. |
+| 13 | **Owner decisions at plan approval (Felipe, 2026-10-04, final; recorded through the question harness).** Hosting: Cloudflare Workers Paid ("Cloudflare Workers Paid (Recomendado)"); Vercel was considered and dropped because holocron has no Vercel target. A. Visitor IP: no per-IP rate limit for now, deferred by owner; trigger to revisit: abuse or the spend cap being hit. The gateway token gate, the hard daily spend cap with its reservation ledger, the input bounds (64 KB, no `system` role), `maxOutputTokens`, the step limit, `redirect: 'manual'` and the canonical-path guard stay. B. Retired-URL redirects: none ("não quero fazer redirect, consider this a fresh start; we will revamp the other product docs later"); only `/` goes to the Genie landing, as site navigation; retired pages answer 404. C. PR-preview chat: unchanged; previews carry no gateway token and their chat shows an error. D. mikro URLs: `rlmx/` moves to `mikro/` with no redirects; `/rlmx/*` answers 404. | Recorded as given; all five wishes are APPROVED on these terms. None changes this wish's files. |
 
 ## Simplicity Case
 

@@ -2,7 +2,7 @@
 
 | Field | Value |
 |-------|-------|
-| **Status** | DRAFT |
+| **Status** | APPROVED |
 | **Slug** | `docs-holocron-chat` |
 | **Date** | 2026-10-04 |
 | **Author** | Felipe Rosa (plan drafted by Claude) |
@@ -13,14 +13,14 @@
 
 ## Summary
 
-Gives the holocron site its AI chat through a small Worker, `automagik-docs-chat`, that speaks holocron's gateway protocol and calls DeepSeek directly (`deepseek-flash`, thinking off). It ports the spike's Bun gateway to Workers, keeps the DeepSeek key in that Worker alone, limits each visitor and each request at the site edge, enforces a hard daily spend cap by reserving each turn's worst case before calling DeepSeek, and allows no outbound host but DeepSeek and the site's own `docs.zip`. Fourth of five sibling wishes (`docs-holocron`, `docs-holocron-brand`, `docs-holocron-products`, this one, `docs-holocron-cutover`).
+Gives the holocron site its AI chat through a small Worker, `automagik-docs-chat`, that speaks holocron's gateway protocol and calls DeepSeek directly (`deepseek-flash`, thinking off). It ports the spike's Bun gateway to Workers, keeps the DeepSeek key in that Worker alone, bounds each request at the site edge, enforces a hard daily spend cap by reserving each turn's worst case before calling DeepSeek, and allows no outbound host but DeepSeek and the site's own `docs.zip`. Fourth of five sibling wishes (`docs-holocron`, `docs-holocron-brand`, `docs-holocron-products`, this one, `docs-holocron-cutover`).
 
 ## Scope
 
 ### IN
 
 - `gateway/`: a Worker package porting the frozen snapshot's `gateway/server.ts` and `gateway/chat-bash-tool.ts` (upstream `remorses/holocron` `website/src/gateway.ts` at `a71162e`, minus billing, D1, Durable Object sessions and Vercel): `GET /health`, `POST /api/chat`, `GET` and `DELETE /api/chat/session`; bearer authentication; an outbound allowlist with no redirect following; bounded turns; a `SpendLedger` Durable Object that reserves and settles; one usage log line per turn.
-- Site wiring: `src/chat-guard.ts` on the canonical `POST /holocron-api/chat` path (per-visitor rate limit keyed on IPv4 or IPv6 /64, a 64 KB body cap, no `system` role from the browser), registered in `src/server.tsx`; the `ratelimits` binding in `wrangler.jsonc`.
+- Site wiring: `src/chat-guard.ts` on the canonical `POST /holocron-api/chat` path (a 64 KB body cap, no `system` role from the browser), registered in `src/server.tsx`.
 - `.github/workflows/chat.yml`: checks on PRs that touch `gateway/**`, deploy on `main` behind the `production` environment.
 - `scripts/verify-site.mjs` flags `--chat-guard` and `--gateway-smoke`.
 - Provisioning with Felipe: the gateway token, Worker secrets, the first gateway deploy, a smoke test.
@@ -29,7 +29,8 @@ Gives the holocron site its AI chat through a small Worker, `automagik-docs-chat
 
 - Conversation restore after a page reload (upstream's `ChatSessionDO`).
 - holocron.so keys, billing, credits, D1, juice, Vercel AI Gateway, any provider but DeepSeek.
-- Chat on PR previews (they carry no token; approval item C).
+- Chat on PR previews (they carry no token; owner decision C, 2026-10-04).
+- A per-visitor rate limit at the site edge (owner decision A, 2026-10-04: deferred; trigger to revisit: abuse or the spend cap being hit).
 - Alerting channels beyond Workers Logs.
 - Fetching `skillUrls`.
 
@@ -41,7 +42,7 @@ Gives the holocron site its AI chat through a small Worker, `automagik-docs-chat
 | 2 | The gateway is its own Worker, hosted on Cloudflare Workers like the site. | Owner decision on hosting. A separate Worker keeps the DeepSeek key away from the site Worker, which runs holocron's whole dependency tree, and keeps content deploys from touching the gateway. |
 | 3 | The site reaches the gateway over HTTPS at `HOLOCRON_URL` (baked by `docs-holocron`), with `global_fetch_strictly_public` on both Workers. | holocron's proxy calls `${HOLOCRON_URL}/api/chat` with the global `fetch` (`app-factory.tsx:1853-1879`). With the flag, a fetch to another Worker in the same zone goes through Cloudflare's front door like an Internet request, and after cutover the site sits on a Custom Domain, which other Workers may fetch without a binding (Cloudflare docs). A service binding would need a patched global fetch in the site. |
 | 4 | Authentication: the site Worker holds secret `HOLOCRON_KEY`, the gateway holds secret `GATEWAY_TOKEN` with the same value, compared in constant time; any `/api/chat*` request without it gets 401. The value lives in bws as `DOCS_CHAT_GATEWAY_TOKEN`. | holocron sends `authorization: Bearer ${HOLOCRON_KEY}` whenever that variable is set (`app-factory.tsx:1856-1860`, `lib/holocron-url.ts:51-64`), and with `nodejs_compat` on a compatibility date after 2025-04-01 Worker secrets populate `process.env`. The gateway stays closed to direct callers. |
-| 5 | **Needs Felipe's acceptance at plan approval (approval item A).** `src/chat-guard.ts` runs in the site Worker on the canonical path: it decodes each segment, collapses repeated slashes and strips trailing slashes before matching `POST /holocron-api/chat`, so `/holocron-api/chat/` or `//holocron-api/chat` cannot bypass it. It keys a `ratelimits` binding (10 requests per 60 s) on `CF-Connecting-IP`, using the whole address for IPv4 and the first four hextets (the /64) for IPv6, and answers 429 with `{"error": "You asked a lot of questions in a minute. Please wait a moment and ask again."}`. The visitor IP is not forwarded to the gateway. | holocron's chat client shows the `error` field of a non-OK JSON response as is (`chat/chat-submit.ts:455-461`). One IPv6 visitor usually holds a whole /64, so a per-address key would not limit anyone. holocron's proxy builds the gateway request itself and sends only `authorization` and `x-holocron-site`, so forwarding the IP would need a patched global fetch inside a streamed generator, where request context is not dependable. This departs from the brief's "visitor IP forwarded by the site", so it stands only once Felipe accepts it (decision 13). |
+| 5 | `src/chat-guard.ts` runs in the site Worker on the canonical path: it decodes each segment, collapses repeated slashes and strips trailing slashes before matching `POST /holocron-api/chat`, so `/holocron-api/chat/` or `//holocron-api/chat` cannot bypass it. It bounds the request (decision 6) and applies no per-visitor rate limit. The visitor IP is neither limited nor forwarded to the gateway; the gateway accepts only the site's token (decision 4). | Owner decision A (Felipe, 2026-10-04): no per-IP rate limit for now, deferred by owner; trigger to revisit: abuse or the spend cap being hit. The cost and safety bounds stay: the token gate, the hard daily cap with its reservation ledger, the 64 KB body cap, no `system` role, `maxOutputTokens`, the step limit, `redirect: 'manual'` and this canonical-path guard. holocron's chat client shows the `error` field of a non-OK JSON response as is (`chat/chat-submit.ts:455-461`). |
 | 6 | The daily cap is hard. Every input is bounded: the site guard rejects request bodies over 64 KB (413) and any `system` role inside `modelMessages` (400); the gateway rejects bodies over 256 KB, sets `maxOutputTokens` 1024 per step, stops at 6 steps, and truncates each bash tool result to 16 KB. Before calling DeepSeek, the gateway asks `SpendLedger` to reserve the turn's worst case, computed by `worstCaseUsd` from the actual request size, those bounds, peak rates, every input token a cache miss, one token per 2 bytes, and the title call; the reservation is refused once today's spend plus open reservations would pass `DAILY_USD_CAP` (default `"2.00"`), and the turn is answered with a notice and no DeepSeek call. After the turn the reservation settles to the measured cost; reservations left open by a crashed isolate expire after 10 minutes. A `spend-alert` log line marks the first crossing of 50% and 100% of the cap each day. A global `ratelimits` binding (120 per 60 s, key `all`) bounds bursts. | The plan review showed a soft cap: concurrent turns could each pass a check and overspend together. Reserving the bound before the call makes the cap hold under concurrency, because the Durable Object runs one request at a time and checks and records a reservation in one step. A typical request (about 15 KB) reserves about $0.06 against a measured $0.0003 to $0.001, so $2 a day still admits about 30 turns in flight. The spike's answers used one tool call, so 6 steps is ample. Cloudflare counts rate limits per location, so the ledger is the real cap. Felipe may change the amount. |
 | 7 | `allowSystemInMessages` stays off. The gateway takes `messages[0]` as the system prompt only when it is the single `system` message and comes first (holocron's proxy puts its prompt there), passes it as `system`, and answers 400 if any other message has role `system`. | Closes the prompt-injection path the plan review found: a browser could append a `system` message to `modelMessages`, which holocron forwards. The site guard and the gateway check it independently. |
 | 8 | One allowlisted `fetch` is passed to `createDeepSeek` and used by the docs loader. It allows `https://api.deepseek.com` and the exact origins in `ALLOWED_DOCS_ORIGINS` (`https://docs.automagik.dev`, `https://automagik-docs.<workers-subdomain>.workers.dev`), always sends `redirect: 'manual'`, and treats any 3xx as an error; anything else throws. just-bash runs with no network option, so `curl` does not exist in the tool. `skillUrls` are ignored. | The owner requires that the gateway talk only to `api.deepseek.com` and the site's own `docs.zip`. Following a redirect would let an allowed origin send the gateway anywhere. The log line per outbound host lets the cutover wish prove it from `wrangler tail`. |
@@ -49,12 +50,12 @@ Gives the holocron site its AI chat through a small Worker, `automagik-docs-chat
 | 10 | The gateway uses the same `spiceflow` version as holocron 0.36.0 (`1.26.0-rsc.18`) and the snapshot's request schema and chunk types. | holocron's proxy decodes the gateway's stream with `createSpiceflowFetch`; one version on both sides keeps the wire format identical. |
 | 11 | Secrets reach `npx wrangler secret put` on stdin from bws (the DeepSeek key through `~/.mikro/gate-env.sh` in a subshell), with shell tracing off. CI never sets secrets; `wrangler deploy` keeps existing ones. The gateway deploy job runs only on pushes to `main` (reviewed code), in the `production` environment. | No secret in git, logs or command lines. |
 | 12 | DeepSeek model and cap are plain `vars` in `gateway/wrangler.jsonc`: `DEEPSEEK_MODEL` `deepseek-flash`, `DAILY_USD_CAP` `2.00`, `ALLOWED_DOCS_ORIGINS`. The bounds in decision 6 are constants in `src/ledger.ts`, used by both the gateway and `worstCaseUsd`. | Values Felipe may tune without code changes; none is secret. One source for the bounds keeps the reservation and the enforcement equal. |
-| 13 | **Needs Felipe's approval at plan approval (one pass for all five wishes).** A. Visitor IP (`docs-holocron-chat` decision 5): rate-limited in the site Worker per IPv4 address or IPv6 /64, never forwarded; the gateway accepts only the site's token. B. Retired-URL redirect targets (`docs-holocron` decision 12), all permanent: `/genie/architecture/:page`, `/genie/concepts/:page`, `/genie/observability/:page`, `/genie/contributing`, `/genie/features`, `/genie/onboarding` to `/genie`; `/genie/cli/:page` to `/genie/cli-reference`; `/genie/config/:page` to `/genie/installation`; `/genie/security/distribution-sovereignty` and `/genie/security/verifying-installs` to `/genie/security`; 12 retired skill pages (`brain`, `docs`, `dream`, `genie`, `genie-hacks`, `learn`, `loop-overview`, `pm`, `refine`, `report`, `trace`, `wizard`) to `/genie/skills`. C. PR-preview chat (`docs-holocron` decision 17): previews carry no gateway token, so their chat shows an error. D. mikro URLs (`docs-holocron-cutover` Group 1): move `rlmx/` to `mikro/` so mikro's pages live at `/mikro/...`, with permanent redirects from `/rlmx` and every `/rlmx/*` URL; if declined, that group is dropped and the URLs stay `/rlmx/...`. | Each changes user-visible behavior or the brief, so Felipe decides it at approval; until then they are proposals. |
+| 13 | **Owner decisions at plan approval (Felipe, 2026-10-04, final; recorded through the question harness).** Hosting: Cloudflare Workers Paid ("Cloudflare Workers Paid (Recomendado)"); Vercel was considered and dropped because holocron has no Vercel target. A. Visitor IP: no per-IP rate limit for now, deferred by owner; trigger to revisit: abuse or the spend cap being hit. The gateway token gate, the hard daily spend cap with its reservation ledger, the input bounds (64 KB, no `system` role), `maxOutputTokens`, the step limit, `redirect: 'manual'` and the canonical-path guard stay. B. Retired-URL redirects: none ("não quero fazer redirect, consider this a fresh start; we will revamp the other product docs later"); only `/` goes to the Genie landing, as site navigation; retired pages answer 404. C. PR-preview chat: unchanged; previews carry no gateway token and their chat shows an error. D. mikro URLs: `rlmx/` moves to `mikro/` with no redirects; `/rlmx/*` answers 404. | Recorded as given; all five wishes are APPROVED on these terms. |
 
 ## Simplicity Case
 
 - **Simplest complete design:** the spike's gateway, already reduced to one provider with no billing, moved from `Bun.serve` to a Worker `fetch` handler; one guard at the site edge; one tiny Durable Object that reserves and settles a daily budget.
-- **Added machinery:** the `SpendLedger` Durable Object with reservations (only a single-writer counter that reserves before the call can make a daily cap hold under concurrency); input bounds on both sides (they make the worst case finite); the site-side guard (the visitor IP is known only there); a separate workflow for the gateway (different package, deploys only when `gateway/**` changes).
+- **Added machinery:** the `SpendLedger` Durable Object with reservations (only a single-writer counter that reserves before the call can make a daily cap hold under concurrency); input bounds on both sides (they make the worst case finite); the site-side guard (the browser's body reaches holocron's proxy only through it); a separate workflow for the gateway (different package, deploys only when `gateway/**` changes).
 - **Deferred until measured:** session persistence, an alert channel such as email or Slack, per-question cost dashboards, prompt caching tweaks.
 - **Complexity removed:** holocron.so keys and the hosted gateway, the in-memory session map and in-memory limiter (both unreliable across isolates), the global `fetch` patch, `process.exit`, the spike's fixed host and port, `allowSystemInMessages`.
 
@@ -70,7 +71,7 @@ Starts after `docs-holocron-products` merges, because Group 2 edits the `src/ser
 - [ ] `cd gateway && npm ci && npm run check && npx wrangler deploy --dry-run --outdir .wrangler/dry-run` passes, including the concurrency test that holds the cap.
 - [ ] The deployed gateway answers `GET /health` with 200, and `POST /api/chat` without the token with 401.
 - [ ] With the token, the gateway answers a docs question from the site's `docs.zip`, and the only outbound hosts in its logs are `api.deepseek.com` and the site origin.
-- [ ] On the site, the 11th chat request from one address or one IPv6 /64 within a minute gets 429, a body over 64 KB gets 413, a `system` message from the browser gets 400, and a trailing slash on the path changes none of that.
+- [ ] On the site, a chat body over 64 KB gets 413 and a `system` message from the browser gets 400, and a trailing or doubled slash on the path changes neither.
 - [ ] At or near the daily cap, a turn whose worst case does not fit returns the budget notice without calling DeepSeek (unit tests, serial and concurrent).
 - [ ] No secret value in git, CI logs or any `wrangler.jsonc`.
 
@@ -81,7 +82,7 @@ Starts after `docs-holocron-products` merges, because Group 2 edits the `src/ser
 | Group | Agent | Complexity | Model | Description |
 |-------|-------|------------|-------|-------------|
 | 1 | engineer | high: Workers port of a streaming AI gateway, reserve-and-settle Durable Object, security policy | inherit | Gateway Worker under `gateway/` |
-| 2 | engineer | medium: canonical path matching, body limits, IPv6 keying, one workflow, verify flags | inherit | Site-side chat guard and gateway workflow |
+| 2 | engineer | low: canonical path matching, body limits, one workflow, verify flags | inherit | Site-side chat guard and gateway workflow |
 
 ### Wave 2 (sequential)
 
@@ -151,18 +152,17 @@ npx wrangler deploy --dry-run --outdir .wrangler/dry-run
 
 ### Group 2: Site-side chat guard and gateway workflow
 
-**Goal:** The site stops oversized, injected or too frequent chat requests before any reaches the gateway, whatever the path's spelling, and gateway changes deploy from `main` on their own.
+**Goal:** The site stops oversized or injected chat requests before any reaches the gateway, whatever the path's spelling, and gateway changes deploy from `main` on their own.
 
 **Deliverables:**
-1. `src/chat-guard.ts`: `canonicalPath(pathname)` (decode each segment, collapse repeated slashes, strip trailing slashes); `rateKey(ip)` (IPv4 as is; IPv6 expanded, first four hextets plus `::/64`; literal `unknown` when absent); `export const chatGuard`, a Spiceflow middleware that, for `POST` when `canonicalPath` equals `/holocron-api/chat`: calls `env.CHAT_IP_LIMITER.limit({ key: rateKey(CF-Connecting-IP) })` and answers 429 per decision 5; reads at most 65,536 bytes of a clone of the body and answers 413 `{"error": "Your question is too long. Please shorten it and ask again."}` beyond that; answers 400 `{"error": "This request cannot be answered."}` when the JSON is invalid or any `modelMessages` entry has role `system`. Every other request passes through untouched.
+1. `src/chat-guard.ts`: `canonicalPath(pathname)` (decode each segment, collapse repeated slashes, strip trailing slashes); `export const chatGuard`, a Spiceflow middleware that, for `POST` when `canonicalPath` equals `/holocron-api/chat`: reads at most 65,536 bytes of a clone of the body and answers 413 `{"error": "Your question is too long. Please shorten it and ask again."}` beyond that; answers 400 `{"error": "This request cannot be answered."}` when the JSON is invalid or any `modelMessages` entry has role `system`. Every other request passes through untouched.
 2. `src/server.tsx`: `.use(chatGuard)` before `.use(holocronApp)`; nothing else changes.
-3. `wrangler.jsonc`: `ratelimits` `[{ "name": "CHAT_IP_LIMITER", "namespace_id": "1001", "simple": { "limit": 10, "period": 60 } }]`.
-4. `.github/workflows/chat.yml`: on `pull_request` and `push` to `main`, both with `paths: ['gateway/**', '.github/workflows/chat.yml']`; job `check` (no secrets) runs `npm ci`, `npm run check` and the dry run in `gateway/`; job `deploy` (push to `main` only, needs `check`, `environment: production`) checks out `main`, runs `npm ci` and then `npx wrangler deploy` in `gateway/`, then `curl -fsS` on `/health`; it runs only reviewed code, and the Worker cannot be bundled without `node_modules`. Secrets referenced: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` only; actions pinned by commit SHA.
-5. `scripts/verify-site.mjs`: `--chat-guard` against a local Worker sends, with a client-set `CF-Connecting-IP` (honored only locally): 11 minimal requests from one IPv4 address (the 11th is 429); 6 from `2001:db8:1:2::a` and 5 from `2001:db8:1:2::b` (the 11th is 429, same /64); a request from a different /64 (not 429); a 70 KB body (413); a body whose `modelMessages` holds a `system` message (400); each of these also on `/holocron-api/chat/` and `//holocron-api/chat` with the same outcome. `--gateway-smoke` posts one question straight to `GATEWAY_ORIGIN/api/chat` with `GATEWAY_TOKEN` read from the environment (never printed), `docsZipUrl` of the target site and `messages` of one user turn, and expects a `text-delta` chunk.
+3. `.github/workflows/chat.yml`: on `pull_request` and `push` to `main`, both with `paths: ['gateway/**', '.github/workflows/chat.yml']`; job `check` (no secrets) runs `npm ci`, `npm run check` and the dry run in `gateway/`; job `deploy` (push to `main` only, needs `check`, `environment: production`) checks out `main`, runs `npm ci` and then `npx wrangler deploy` in `gateway/`, then `curl -fsS` on `/health`; it runs only reviewed code, and the Worker cannot be bundled without `node_modules`. Secrets referenced: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` only; actions pinned by commit SHA.
+4. `scripts/verify-site.mjs`: `--chat-guard` against a local Worker sends a 70 KB body (413) and a body whose `modelMessages` holds a `system` message (400), each also on `/holocron-api/chat/` and `//holocron-api/chat` with the same outcome. `--gateway-smoke` posts one question straight to `GATEWAY_ORIGIN/api/chat` with `GATEWAY_TOKEN` read from the environment (never printed), `docsZipUrl` of the target site and `messages` of one user turn, and expects a `text-delta` chunk.
 
 **Interfaces:**
 - Consumes: `export const app` in `src/server.tsx` (shaped by `docs-holocron-brand` and `docs-holocron-products`); `scripts/verify-site.mjs` (from `docs-holocron`); the gateway HTTP contract from Group 1.
-- Produces: `canonicalPath(pathname: string): string`; `rateKey(ip: string | null): string`; `chatGuard: (ctx: { request: Request }, next: () => Promise<Response | void>) => Promise<Response | void>`; binding `CHAT_IP_LIMITER`; workflow `.github/workflows/chat.yml` with jobs `check` and `deploy`; verify flags `--chat-guard` and `--gateway-smoke`.
+- Produces: `canonicalPath(pathname: string): string`; `chatGuard: (ctx: { request: Request }, next: () => Promise<Response | void>) => Promise<Response | void>`; workflow `.github/workflows/chat.yml` with jobs `check` and `deploy`; verify flags `--chat-guard` and `--gateway-smoke`.
 
 **Acceptance Criteria:**
 - [ ] `node scripts/verify-site.mjs --serve --chat-guard` passes against the local Worker.
@@ -175,7 +175,7 @@ npm ci
 npm run build
 npm run verify
 node scripts/verify-site.mjs --serve --chat-guard
-grep -q '"CHAT_IP_LIMITER"' wrangler.jsonc
+! grep -q 'CHAT_IP_LIMITER' wrangler.jsonc
 f=.github/workflows/chat.yml
 test "$(grep -oE 'secrets\.[A-Z_]+' "$f" | sort -u | tr '\n' ' ')" = "secrets.CLOUDFLARE_ACCOUNT_ID secrets.CLOUDFLARE_API_TOKEN "
 grep -q 'environment: production' "$f"
@@ -192,7 +192,7 @@ grep -q 'npx wrangler deploy' "$f"
 **Goal:** The gateway runs on workers.dev with its secrets, the site holds the matching token, and one real question is answered end to end.
 
 **Deliverables:**
-1. Felipe, through the question harness: create bws secret `DOCS_CHAT_GATEWAY_TOKEN` (48 random bytes, base64); confirm the daily cap (`2.00` USD by default) and the per-visitor limit (10 per minute); accept or reject approval item A.
+1. Felipe, through the question harness: create bws secret `DOCS_CHAT_GATEWAY_TOKEN` (48 random bytes, base64); confirm the daily cap (`2.00` USD by default).
 2. With Felipe's approval, from a subshell with tracing off: `GATEWAY_TOKEN` and `DEEPSEEK_API_KEY` on `automagik-docs-chat`, and `HOLOCRON_KEY` on `automagik-docs`, each through `npx wrangler secret put <NAME> --name <worker>` reading stdin, and the first gateway deploy (`npx wrangler deploy` in `gateway/`). Later deploys run from `chat.yml`.
 3. Smoke: `/health`; a 401 without the token; `verify-site --gateway-smoke` against the workers.dev site; one question through the site chat on the workers.dev URL; `npx wrangler tail automagik-docs-chat --format json` during the smoke shows outbound lines only for `api.deepseek.com` and the site origin, and one log line with reserved and measured cost. Evidence goes to Review Results.
 
@@ -238,6 +238,7 @@ _What must be verified on dev after merge. The QA agent tests each criterion._
 | Same-account workers.dev fetches between the two Workers are refused | Medium | `global_fetch_strictly_public` on both; Group 3's smoke proves it before cutover; fallback is a service binding plus a narrow fetch wrapper in the site, as a separate change. |
 | `process.env.HOLOCRON_KEY` is not populated from the secret on Workers | Medium | Compatibility date 2026-04-14 with `nodejs_compat` populates it; Group 3's smoke fails with 401 if not; the fallback sets `process.env.HOLOCRON_KEY` once in `src/server.tsx` from `env` of `cloudflare:workers`. |
 | The worst-case estimate undercounts a turn | Medium | One token per 2 bytes and all-miss peak pricing overestimate; `ledger.test.ts` checks it against the spike's logged turns; a settle above the reservation is logged so the bound can be raised. |
+| Without a per-visitor limit, one abuser can use up the day's budget and stop the chat for everyone until the next UTC day | Medium | Owner decision A accepts it; the hard cap bounds the spend; the `spend-alert` log line is the trigger to revisit. |
 | Reservations throttle legitimate traffic at peaks | Low | About 30 typical turns fit in flight at $2; Felipe can raise the cap. |
 | The `ratelimits` binding is not available on the account's plan | Medium | Workers Paid is required by `docs-holocron`; Group 3's deploy fails visibly otherwise. |
 | Cost estimate drifts from DeepSeek's real bill | Low | The cap is conservative; Felipe compares the ledger with the DeepSeek dashboard after the first week. |
@@ -267,7 +268,6 @@ gateway/src/policy.test.ts        (create)
 gateway/src/ledger.test.ts        (create)
 src/chat-guard.ts                 (create)
 src/server.tsx                    (modify: .use(chatGuard))
-wrangler.jsonc                    (modify: CHAT_IP_LIMITER)
 .github/workflows/chat.yml        (create)
 scripts/verify-site.mjs           (modify: --chat-guard, --gateway-smoke)
 ```

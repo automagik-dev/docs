@@ -2,7 +2,7 @@
 
 | Field | Value |
 |-------|-------|
-| **Status** | DRAFT |
+| **Status** | APPROVED |
 | **Slug** | `docs-holocron-cutover` |
 | **Date** | 2026-10-04 |
 | **Author** | Felipe Rosa (plan drafted by Claude) |
@@ -13,13 +13,13 @@
 
 ## Summary
 
-Moves mikro's pages to `/mikro/...` if Felipe approves it, proves the holocron site end to end on its workers.dev URL, switches docs.automagik.dev from Mintlify to the `automagik-docs` Worker in one approved call that replaces the Mintlify CNAME, and retires Mintlify after a seven-day soak. Last of five sibling wishes (`docs-holocron`, `docs-holocron-brand`, `docs-holocron-products`, `docs-holocron-chat`, this one). Every DNS and Mintlify action is Felipe's or approved by him, with exact instructions and a rollback.
+Moves mikro's pages to `/mikro/...`, proves the holocron site end to end on its workers.dev URL, switches docs.automagik.dev from Mintlify to the `automagik-docs` Worker in one approved call that replaces the Mintlify CNAME, and retires Mintlify after a seven-day soak. Last of five sibling wishes (`docs-holocron`, `docs-holocron-brand`, `docs-holocron-products`, `docs-holocron-chat`, this one). Every DNS and Mintlify action is Felipe's or approved by him, with exact instructions and a rollback.
 
 ## Scope
 
 ### IN
 
-- Approval item D: `rlmx/` moves to `mikro/` with permanent redirects from every `/rlmx` URL (Group 1, dropped if Felipe declines).
+- Owner decision D (2026-10-04): `rlmx/` moves to `mikro/` with no redirects; `/rlmx` URLs answer 404 (Group 1).
 - `scripts/verify-site.mjs --full`: every earlier check plus chat through the real UI for each product, a browser host audit, a gateway outbound audit from `wrangler tail`, and Lighthouse thresholds through `npx --yes lighthouse@13.5.0`.
 - `scripts/shoot.mjs`: screenshots for Felipe's visual sign-off.
 - The cutover runbook (Group 3): record, attach with DNS override in one call, check, roll back.
@@ -45,13 +45,13 @@ Moves mikro's pages to `/mikro/...` if Felipe approves it, proves the holocron s
 | 6 | Lighthouse runs as `npx --yes lighthouse@13.5.0` with Playwright's Chromium as `CHROME_PATH`, mobile, on `/genie`, `/omni` and the mikro landing: accessibility 90, best practices 90, performance 50, SEO 90. A miss is reported to Felipe, who decides. | Load sanity with numbers on record, and no Lighthouse dependency in the repository. |
 | 7 | The verify script reads the gateway token from the environment only (bws, `DOCS_CHAT_GATEWAY_TOKEN`), never from a file or a command line. | No secret in git, logs or command lines. |
 | 8 | After the soak, `README.md`, `AGENTS.md` and `CONTRIBUTING.md` (Mintlify starter text today) describe the holocron workflow, `.mintignore` is deleted, and `docs.json` `$schema` points at holocron's schema. | Mintlify config with no reader is dead config. `_internal` stays private because holocron builds only navigation pages. |
-| 9 | The live Mintlify site still serves the pre-#89 pages because its deployment does not track docs `main`; the cutover fixes that, since the new site deploys on every push to `main`. | Owner context (genie-launch design Decision 10). The captured sitemap of the old pages is why `docs-holocron` adds retired-URL redirects. |
-| 10 | The mikro move (approval item D) is its own group in this wish, ahead of verification. | It adds 6 page files to whichever wish carries it, which would take `docs-holocron` to 26, past the 25-file band. Here it lands right before the URL-parity checks that prove it. Everything earlier reads paths from `docs.json`, so the product logos, landings and share images follow with no code change. |
-| 11 | **Needs Felipe's approval at plan approval (one pass for all five wishes).** A. Visitor IP (`docs-holocron-chat` decision 5): rate-limited in the site Worker per IPv4 address or IPv6 /64, never forwarded; the gateway accepts only the site's token. B. Retired-URL redirect targets (`docs-holocron` decision 12), all permanent: `/genie/architecture/:page`, `/genie/concepts/:page`, `/genie/observability/:page`, `/genie/contributing`, `/genie/features`, `/genie/onboarding` to `/genie`; `/genie/cli/:page` to `/genie/cli-reference`; `/genie/config/:page` to `/genie/installation`; `/genie/security/distribution-sovereignty` and `/genie/security/verifying-installs` to `/genie/security`; 12 retired skill pages (`brain`, `docs`, `dream`, `genie`, `genie-hacks`, `learn`, `loop-overview`, `pm`, `refine`, `report`, `trace`, `wizard`) to `/genie/skills`. C. PR-preview chat (`docs-holocron` decision 17): previews carry no gateway token, so their chat shows an error. D. mikro URLs (`docs-holocron-cutover` Group 1): move `rlmx/` to `mikro/` so mikro's pages live at `/mikro/...`, with permanent redirects from `/rlmx` and every `/rlmx/*` URL; if declined, that group is dropped and the URLs stay `/rlmx/...`. | Each changes user-visible behavior or the brief, so Felipe decides it at approval; until then they are proposals. |
+| 9 | The live Mintlify site still serves the pre-#89 pages because its deployment does not track docs `main`; the cutover fixes that, since the new site deploys on every push to `main`. | Owner context (genie-launch design Decision 10). The old pages are not redirected: owner decision B (2026-10-04) makes this a fresh start. |
+| 10 | The mikro move (owner decision D, 2026-10-04, no redirects) is its own group in this wish, ahead of verification. | It adds 6 page files to whichever wish carries it; `docs-holocron` would sit at the 25-file maximum with them. Here it lands right before the verification that proves it. Everything earlier reads paths from `docs.json`, so the product logos, landings and share images follow with no code change. |
+| 11 | **Owner decisions at plan approval (Felipe, 2026-10-04, final; recorded through the question harness).** Hosting: Cloudflare Workers Paid ("Cloudflare Workers Paid (Recomendado)"); Vercel was considered and dropped because holocron has no Vercel target. A. Visitor IP: no per-IP rate limit for now, deferred by owner; trigger to revisit: abuse or the spend cap being hit. The gateway token gate, the hard daily spend cap with its reservation ledger, the input bounds (64 KB, no `system` role), `maxOutputTokens`, the step limit, `redirect: 'manual'` and the canonical-path guard stay. B. Retired-URL redirects: none ("não quero fazer redirect, consider this a fresh start; we will revamp the other product docs later"); only `/` goes to the Genie landing, as site navigation; retired pages answer 404. C. PR-preview chat: unchanged; previews carry no gateway token and their chat shows an error. D. mikro URLs: `rlmx/` moves to `mikro/` with no redirects; `/rlmx/*` answers 404. | Recorded as given; all five wishes are APPROVED on these terms. |
 
 ## Simplicity Case
 
-- **Simplest complete design:** a folder rename with two redirect rules, one verify script grown flag by flag across the five wishes, one screenshot script, one approved wrangler call for the switch, and a prepared two-call rollback.
+- **Simplest complete design:** a folder rename with no redirects, one verify script grown flag by flag across the five wishes, one screenshot script, one approved wrangler call for the switch, and a prepared two-call rollback.
 - **Added machinery:** `scripts/shoot.mjs` (Felipe's visual sign-off needs images, and eyes-closed art cannot be asserted by a script); a short-lived zone-scoped token for the cutover window only.
 - **Deferred until measured:** synthetic uptime monitoring, CSP headers, search console resubmission.
 - **Complexity removed:** a staging subdomain, a delete-then-add switch on the main path, a permanent DNS token, a Lighthouse dependency, keeping Mintlify and holocron both live.
@@ -65,7 +65,7 @@ Starts after `docs-holocron-chat` merges and its Group 3 smoke passes. Group 3 n
 
 ## Success Criteria
 
-- [ ] If approval item D is accepted, mikro's pages answer at `/mikro/...` and every `/rlmx` URL answers 308 or 301 to its `/mikro` page in one hop.
+- [ ] mikro's pages answer 200 at `/mikro/...`, and `/rlmx` URLs answer 404 (owner decision D).
 - [ ] Before cutover, `node scripts/verify-site.mjs https://automagik-docs.<workers-subdomain>.workers.dev --full` passes and Felipe signs off the screenshots.
 - [ ] The recorded `docs` CNAME values and the prepared rollback script are in Review Results before the switch.
 - [ ] The switch is one approved call; afterwards docs.automagik.dev answers from the Worker (`server: cloudflare`, no `x-mintlify-client-version`, no `x-vercel-id`), TLS is valid, and `verify-site --full` passes against it.
@@ -78,7 +78,7 @@ Starts after `docs-holocron-chat` merges and its Group 3 smoke passes. Group 3 n
 
 | Group | Agent | Complexity | Model | Description |
 |-------|-------|------------|-------|-------------|
-| 1 | engineer | low: one folder rename, its links, two redirects; conditional on approval D | inherit | mikro URLs under `/mikro` |
+| 1 | engineer | low: one folder rename and its links, no redirects | inherit | mikro URLs under `/mikro` |
 
 ### Wave 2 (sequential)
 
@@ -114,19 +114,19 @@ Starts after `docs-holocron-chat` merges and its Group 3 smoke passes. Group 3 n
 
 ### Group 1: mikro URLs under `/mikro`
 
-**Goal:** mikro's pages live at `/mikro/...`, and every old `/rlmx` URL reaches its new page in one permanent redirect. Runs only if Felipe accepted approval item D; otherwise record "D declined" in Review Results and skip to Group 2.
+**Goal:** mikro's pages live at `/mikro/...`; old `/rlmx` URLs are not redirected and answer 404 (owner decision D, 2026-10-04).
 
 **Deliverables:**
 1. `git mv rlmx mikro` (6 pages: `index`, `quickstart`, `cli/reference`, `config`, `batch`, `cache`), and in those pages every link `/rlmx/...` becomes `/mikro/...`.
-2. `docs.json`: every `rlmx/...` page in navigation becomes `mikro/...`; `redirects` gain `{ "source": "/rlmx", "destination": "/mikro", "permanent": true }` and `{ "source": "/rlmx/*", "destination": "/mikro/:splat", "permanent": true }`.
+2. `docs.json`: every `rlmx/...` page in navigation becomes `mikro/...`; `redirects` gain nothing.
 
 **Interfaces:**
-- Consumes: `docs.json` navigation and redirects from `docs-holocron`; every later check reads paths from `docs.json`.
+- Consumes: `docs.json` navigation from `docs-holocron`; every later check reads paths from `docs.json`.
 - Produces: mikro landing `mikro/index`, so `docs-holocron-products`' prefix becomes `/mikro` and its landing `/mikro/index`.
 
 **Acceptance Criteria:**
 - [ ] The strict build passes with the new paths; no public page links to `/rlmx`.
-- [ ] Against a local Worker, `/rlmx`, `/rlmx/config` and `/rlmx/cli/reference` answer 301 or 308 to their `/mikro` pages, which answer 200; the captured Mintlify sitemap still passes within one redirect.
+- [ ] Against a local Worker, every mikro navigation page answers 200 at `/mikro/...`, and `/rlmx/config` answers 404.
 - [ ] `ui-check --all` passes (the mikro header logo and landing follow).
 
 **Validation:**
@@ -136,6 +136,11 @@ test -d mikro && test ! -e rlmx
 npm ci
 npm run build
 npm run verify
+mkdir -p .wrangler && (npx vite preview --port 4174 --strictPort >/dev/null 2>&1 & echo $! > .wrangler/preview.pid)
+for i in $(seq 60); do curl -fs -o /dev/null http://localhost:4174/mikro && break; sleep 1; done
+test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:4174/mikro/config)" = 200
+test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:4174/rlmx/config)" = 404
+kill "$(cat .wrangler/preview.pid)"
 npx playwright install chromium
 node scripts/ui-check.mjs --serve --all
 ```
@@ -149,7 +154,7 @@ node scripts/ui-check.mjs --serve --all
 **Goal:** One command proves the workers.dev site is ready to take the domain, and Felipe has screenshots to sign off.
 
 **Deliverables:**
-1. `scripts/verify-site.mjs --full`: runs every earlier check (pages, referenced files, redirects, the 90 captured Mintlify URLs, `_internal`, holocron.so only in the powered-by link, `--chat-guard` excluded because it trips the live limiter), then:
+1. `scripts/verify-site.mjs --full`: runs every earlier check (navigation pages, referenced files, `_internal`, holocron.so only in the powered-by link, `--chat-guard`), then:
    - chat through the real UI with Playwright on the Genie, Omni and mikro landings: type the product's suggestion into the sidebar chat, wait up to 20 s, and require answer text containing a link to a page of that product;
    - browser host audit during those turns: every request goes to the site origin;
    - gateway outbound audit: run `npx --yes wrangler@4.147.0 tail automagik-docs-chat --format json` during the turns and require outbound log lines for `api.deepseek.com` and the site origin only;
@@ -191,7 +196,7 @@ node scripts/shoot.mjs "$SITE" .ui-check/precutover
 4. The switch, one call, approved by Felipe through the question harness (Felipe may run it himself in a terminal and answer the DNS-conflict prompt): at the commit deployed from `main`, `npm ci && npm run build`, then `npx --yes wrangler@4.147.0 deploy --domain docs.automagik.dev` with the short-lived token, which attaches the Custom Domain and replaces the CNAME in one request.
 5. Fallback, only if step 4 fails without attaching the domain: Felipe deletes the `docs` CNAME in the dashboard and immediately adds the Custom Domain on `automagik-docs` (Workers & Pages, Settings, Domains & Routes); the negative-cache risk of decision 3 applies.
 6. Agent post-checks, polling up to 15 minutes: `curl -sI https://docs.automagik.dev/genie` returns 200 with `server: cloudflare` and without `x-mintlify-client-version` or `x-vercel-id`; the certificate validates; `/` redirects to `/genie`; then `verify-site --full` against `https://docs.automagik.dev`.
-7. Rollback, when a post-check still fails 30 minutes after the switch, or whenever Felipe calls it: Felipe runs the prepared script (or approves the agent running it); the agent confirms `x-mintlify-client-version` is back on `https://docs.automagik.dev/genie` and a captured old URL such as `/genie/cli/agents` answers 200, and records the outcome.
+7. Rollback, when a post-check still fails 30 minutes after the switch, or whenever Felipe calls it: Felipe runs the prepared script (or approves the agent running it); the agent confirms `x-mintlify-client-version` is back on `https://docs.automagik.dev/genie` and an old Mintlify URL such as `/genie/cli/agents` answers 200, and records the outcome.
 8. Once the post-checks pass, Felipe merges this wish's PR and revokes the short-lived token; the next `site.yml` deploy must leave the Custom Domain attached (step 6's header test after that deploy).
 
 **Interfaces:**
@@ -256,7 +261,7 @@ _What must be verified on dev after merge. The QA agent tests each criterion._
 
 - [ ] Functional: on docs.automagik.dev, every product's pages open, the hero, pet and product logos work, and the chat answers.
 - [ ] Integration: a docs PR gets a preview, and merging it updates docs.automagik.dev within one workflow run.
-- [ ] Regression: every URL in the captured Mintlify sitemap still reaches a 200 page on docs.automagik.dev, `/rlmx` URLs included.
+- [ ] Regression: every navigation page answers 200 on docs.automagik.dev; retired pages and `/rlmx` URLs answer 404 by owner decision.
 
 ---
 
@@ -268,7 +273,7 @@ _What must be verified on dev after merge. The QA agent tests each criterion._
 | The single call fails halfway, attaching nothing or leaving the CNAME | Medium | Step 1's baseline and step 6's header checks show which state the domain is in; the fallback or the rollback script covers both. |
 | A CI deploy after cutover detaches the Custom Domain | Low | wrangler 4.147.0 publishes custom domains only when the deploy names some; step 8 checks after the next deploy. |
 | Cached Mintlify responses or HSTS confuse the post-checks | Low | Checks use `curl` without a cache and test Mintlify headers explicitly. |
-| Search engines index old URLs | Low | The retired-URL and `/rlmx` redirects are permanent. |
+| Old URLs 404 after cutover, including `/rlmx` and the retired pages | Low | Owner decisions B and D (2026-10-04): a fresh start; the other products' docs are revamped later. |
 | Mintlify loses the domain configuration before the soak ends | Medium | Nothing on Mintlify changes until Group 4; Felipe removes the domain only after seven clean days. |
 | The genie repository still describes Mintlify | Low | Follow-up list handed to Felipe in Group 4; changed in a genie PR. |
 
@@ -289,7 +294,7 @@ rlmx/cli/reference.mdx -> mikro/cli/reference.mdx  (rename, links)
 rlmx/config.mdx -> mikro/config.mdx                (rename, links)
 rlmx/batch.mdx -> mikro/batch.mdx                  (rename, links)
 rlmx/cache.mdx -> mikro/cache.mdx                  (rename, links)
-docs.json                                          (modify: mikro paths, /rlmx redirects, $schema)
+docs.json                                          (modify: mikro paths, $schema)
 scripts/verify-site.mjs                            (modify: --full)
 scripts/shoot.mjs                                  (create)
 README.md                                          (modify)
