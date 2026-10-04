@@ -66,6 +66,14 @@
               "genie/security/index",
               "genie/incident-response/canisterworm"
             ]
+          },
+          {
+            "group": "Unlisted",
+            "hidden": true,
+            "pages": [
+              "genie/hacks",
+              "genie/security/key-rotation"
+            ]
           }
         ]
       },
@@ -116,7 +124,7 @@
       },
       {
         "product": "mikro",
-        "icon": "brain-circuit",
+        "icon": "brain",
         "description": "RLM algorithm CLI for coding agents",
         "groups": [
           {
@@ -167,5 +175,25 @@
       "github": "https://github.com/automagik-dev",
       "discord": "https://discord.gg/automagik"
     }
-  }
+  },
+  "assistant": {
+    "enabled": true,
+    "display": "sidebar",
+    "suggestions": [
+      "How do I install Genie?",
+      "How do I send a message with Omni?",
+      "What does mikro do?"
+    ]
+  },
+  "poweredBy": {
+    "name": "Holocron",
+    "url": "https://holocron.so"
+  },
+  "redirects": [
+    {
+      "source": "/",
+      "destination": "/genie",
+      "permanent": false
+    }
+  ]
 }
