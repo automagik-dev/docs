@@ -7,6 +7,13 @@
 //     holocron puts its own system prompt first and appends modelMessages as sent, so a
 //     browser `system` message would reach the model as an instruction. The gateway checks
 //     the same thing on its side.
+//   - a body whose currentSlug is not a page path (a `/`, then at most 199 letters, digits,
+//     `/`, `_`, `.` or `-`), or that carries a non-empty toolSchemas or context, with 400.
+//     holocron writes all three into its system prompt unescaped: currentSlug as the current
+//     page's path (and on to the gateway as pageSlug, which allows 200 characters), each tool's
+//     name and description as a client tool, context as user context. holocron's own client
+//     sends the page's href as currentSlug and neither of the other two on a normal turn; this
+//     site registers no client tools and no context.
 // The path is compared in canonical form, so `/holocron-api/chat/` or `//holocron-api/chat`
 // cannot step around the guard. Every other request passes through untouched. There is no
 // per-visitor limit (owner decision A, docs-holocron-chat); the gateway's token, daily spend
@@ -17,6 +24,10 @@ export const MAX_CHAT_BODY_BYTES = 65_536
 
 const TOO_LONG = 'Your question is too long. Please shorten it and ask again.'
 const UNANSWERABLE = 'This request cannot be answered.'
+const PAGE_SLUG = /^\/[A-Za-z0-9/_.-]{0,199}$/
+
+/** Absent, null, an empty array or an empty object. */
+const isEmpty = (value: unknown) => value == null || (typeof value === 'object' && Object.keys(value).length === 0)
 
 /** Decodes each segment, collapses repeated slashes and strips trailing slashes. */
 export function canonicalPath(pathname: string): string {
@@ -69,8 +80,12 @@ export const chatGuard = async (
   } catch {
     return jsonError(400, UNANSWERABLE)
   }
-  const modelMessages = (body as { modelMessages?: unknown } | null)?.modelMessages
+  const fields = (body ?? {}) as { modelMessages?: unknown; currentSlug?: unknown; toolSchemas?: unknown; context?: unknown }
+  const { modelMessages, currentSlug } = fields
   if (Array.isArray(modelMessages) && modelMessages.some((m) => (m as { role?: unknown } | null)?.role === 'system'))
     return jsonError(400, UNANSWERABLE)
+  if (currentSlug !== undefined && !(typeof currentSlug === 'string' && PAGE_SLUG.test(currentSlug)))
+    return jsonError(400, UNANSWERABLE)
+  if (!isEmpty(fields.toolSchemas) || !isEmpty(fields.context)) return jsonError(400, UNANSWERABLE)
   return next()
 }
