@@ -2,7 +2,7 @@
 
 | Field | Value |
 |-------|-------|
-| **Status** | APPROVED |
+| **Status** | IN_PROGRESS |
 | **Slug** | `docs-holocron-brand` |
 | **Date** | 2026-10-04 |
 | **Author** | Felipe Rosa (plan drafted by Claude) |
@@ -229,6 +229,43 @@ _What must be verified on dev after merge. The QA agent tests each criterion._
 ## Review Results
 
 _The read-only reviewer returns evidence; the invoking orchestrator appends a timestamped block here after plan, execution, and PR reviews._
+
+### Execution review — 2026-10-04 (independent reviewer, read-only)
+
+**Group 1 (558ac47): SHIP. Group 2 (dadd46e): SHIP.** 0 blocking findings.
+
+- Validation, run in fresh worktrees after `npm ci`:
+  - hash scripts exit 0;
+  - 28 brand tags;
+  - build, `npm run verify` and the deploy-config guard pass;
+  - `ui-check` at Group 1: 25 matched and 3 deferred; `--pet` is refused with a usage error;
+  - `ui-check --all` at Group 2: 28 canaries plus pet, reduced motion and the 404 shell.
+  - `--all` also passes against `wrangler dev` (workerd).
+- Sweep of all 41 navigation pages in workerd: each answers 200 with one `<html>`, one visible pet and no console or hydration error.
+  - One pre-existing holocron warning: `<link rel=preload>` with `as="stylesheet"`.
+- Visuals:
+  - eyes are closed arcs everywhere;
+  - the header and footer logos have no filter (sampled pixels show no inversion).
+- Security:
+  - the entry adds a layout and no routes;
+  - `_internal`, `/src`, `/components`, `/style.css`, `/docs.json`, `/package.json`, `/.git/config`, `/.dev.vars`, `/@fs`, `/@id`, `/node_modules` and traversal all answer 404;
+  - no `innerHTML` anywhere.
+- Mutation checks: six mutations of the brand guard, each named with the right cause.
+
+**Deviations from the plan, accepted by the reviewer:**
+1. 28 brand tags, against the 24 the plan required.
+2. `src/server.tsx` imports `style.css`. With `entry` set, `spiceflowPlugin({entry})` bypasses `virtual:holocron-app`, which is where holocron imports the CSS.
+3. The layout is mounted on a child app (`src/server.tsx:16-23`). As the plan wrote it, the 404 rendered without an `<html>` shell, and `ui-check --pet` catches that regression.
+4. The code-font check covers only `/genie` and `/omni`. `/rlmx` has no code block.
+5. `--pet` is a Group 2 check. Group 1 builds its usage line from `GROUPS`.
+
+**Non-blocking findings:**
+- LOW: `components/genie-pet.tsx:380-387` reads `failed` from message notices only. A transport error sets `errorMessage` without a notice, so the pet plays `review` instead of `failed`.
+  - Fix: subscribe to `errorMessage` from `src/chat/chat-store.ts`.
+  - Owner: docs-holocron-chat.
+- Note for docs-holocron-products: `<ProductBrand />` goes into `siteLayout`, not `app`.
+
+Open: Group 1's "CI passes on the PR" criterion, pending the PR.
 
 ---
 

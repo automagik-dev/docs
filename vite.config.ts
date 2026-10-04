@@ -34,7 +34,7 @@ function copyDocStatics(): Plugin {
 
 export default defineConfig({
   plugins: [
-    holocron(),
+    holocron({ entry: './src/server.tsx' }),
     cloudflare({ viteEnvironment: { name: 'rsc', childEnvironments: ['ssr'] } }),
     copyDocStatics(),
   ],

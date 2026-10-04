@@ -3,28 +3,26 @@
   "theme": "mint",
   "name": "Automagik",
   "colors": {
-    "primary": "#D49355",
-    "light": "#C4956A",
-    "dark": "#B07A3B"
+    "primary": "#FF3FF5",
+    "light": "#FF3FF5",
+    "dark": "#FF3FF5"
   },
   "appearance": {
-    "default": "dark"
+    "default": "dark",
+    "strict": true
   },
   "background": {
     "decoration": "gradient"
   },
   "fonts": {
-    "heading": {
-      "family": "Geist"
-    },
-    "body": {
-      "family": "Geist"
-    }
+    "family": "Geist",
+    "source": "/fonts/geist-latin.woff2",
+    "format": "woff2"
   },
   "styling": {
     "codeblocks": "dark"
   },
-  "favicon": "/favicon.png",
+  "favicon": "/brand/genie-favicon.png",
   "navigation": {
     "products": [
       {
@@ -153,9 +151,9 @@
     ]
   },
   "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg",
-    "height": 38
+    "light": "/brand/genie-logo.png",
+    "dark": "/brand/genie-logo.png",
+    "href": "/genie"
   },
   "navbar": {
     "links": [
