@@ -191,6 +191,19 @@ _What must be verified on dev after merge. The QA agent tests each criterion._
 
 ---
 
+## Plan Deviations
+
+_Recorded by the engineer on 2026-10-04; the coordinator ruled on item 3._
+
+1. **Logo files moved into Group 1.** Group 1's validation runs `ui-check --meta`, which fetches `/brand/omni-logo.png` and `/brand/mikro-logo.png`, but Deliverable 1 of Group 2 copies them. Both files (hash-checked against the snapshot) land in Group 1's commit; `automagik-logo.png` stays in Group 2.
+2. **The logo link routes to the folder URL after hydration (Decision 3).** `router.push('/omni/index')` goes through holocron's 308 as a client navigation and leaves `/omni?__rsc=` in the address bar. `window.__genieNavigate` strips a trailing `/index` before `router.push`; the landings, the head script and the link's `href` keep the `docs.json` form, and a full load still follows the 308. `--products` asserts a clean folder URL before and after hydration.
+3. **WebKit console errors from upstream holocron.** `ui-check --products --engine webkit` failed on console errors that holocron 0.36.0's own markup raises in WebKit only, on every page and already in a brand-only run: `<svg width/height="var(--sidebar-icon-size)">` from the side nav, and `<link rel="preload" as="stylesheet">`. Every products assertion passed. **Ruling (coordinator, 2026-10-04):** a narrow allowlist. `UPSTREAM_CONSOLE_ERRORS` in `scripts/ui-check.mjs` names the three exact message texts and skips only those when console errors are counted; every other console error still fails, and every brand, canary, pet and products assertion runs in WebKit unchanged. On a copy with one unrelated `console.error` injected, the WebKit run still failed with 17 failures, every one of them that error.
+4. **Cross-engine runs needed a container and two harness fixes.** `npx playwright install chromium firefox webkit` fails host validation on the Ubuntu 26.04 build host (WebKit's system libraries are missing), so Group 2's block runs verbatim in `mcr.microsoft.com/playwright:v1.63.0-noble`, with the host's `unzip` mounted for `npm run verify`. The brand group's checks also needed two fixes outside Chromium: `networkidle` never arrives in Firefox on a page with a `<video>` (Firefox holds the media request open), so `openPage` waits for load and then a 500 ms quiet window over every request except media; and WebKit serializes `font-family` names without quotes, so the code-font check accepts both forms, as the body-font check already did.
+
+Also noted: Decision 5 expected 27 canaries in total; the brand branch shipped 28 tags, so the total is 31 and the `-ge 27` gate passes.
+
+---
+
 ## Review Results
 
 _The read-only reviewer returns evidence; the invoking orchestrator appends a timestamped block here after plan, execution, and PR reviews._
