@@ -2,7 +2,7 @@
 
 | Field | Value |
 |-------|-------|
-| **Status** | APPROVED |
+| **Status** | IN_PROGRESS |
 | **Slug** | `docs-holocron-brand` |
 | **Date** | 2026-10-04 |
 | **Author** | Felipe Rosa (plan drafted by Claude) |
