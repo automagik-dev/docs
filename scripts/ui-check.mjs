@@ -13,7 +13,8 @@
 // holocron's chat drawer and a second one closes it, the lamp hero on /genie, the neutral pose
 // under reduced motion, and one <html> per document; it also makes the open-drawer canaries
 // available.
-// Every page fails on a console error, a hydration warning or a same-origin HTTP error.
+// Every page fails on a console error (but the upstream ones UPSTREAM_CONSOLE_ERRORS names), a
+// hydration warning or a same-origin HTTP error.
 // The meta group reads the raw HTML of one deep page per docs.json product: <html data-product>
 // names the product, the logo-link head script is there once, and exactly one og:image and one
 // twitter:image point at the product's logo on the site's own origin, which answers 200 with
@@ -210,6 +211,16 @@ function checkTags() {
 
 const slug = (pathname) => pathname.replace(/^\//, '').replaceAll('/', '-') || 'root'
 
+// Console errors that WebKit alone reports, from upstream holocron 0.36.0 markup, present before
+// docs-holocron-products: its side nav passes size='var(--sidebar-icon-size)' to an <svg> as
+// width and height attributes, and its document head carries <link rel="preload" as="stylesheet">.
+// Each is matched on its exact text; every other console error still fails the page.
+const UPSTREAM_CONSOLE_ERRORS = new Set([
+  'Error: Invalid value for <svg> attribute width="var(--sidebar-icon-size)"',
+  'Error: Invalid value for <svg> attribute height="var(--sidebar-icon-size)"',
+  '<link rel=preload> must have a valid `as` value',
+])
+
 async function openPage(browser, base, pathname, { waitUntil = 'networkidle', prepare, ...contextOptions } = {}) {
   const context = await browser.newContext({ viewport: VIEWPORT, ...contextOptions })
   await prepare?.(context)
@@ -218,8 +229,9 @@ async function openPage(browser, base, pathname, { waitUntil = 'networkidle', pr
   const origin = new URL(base).origin
   page.on('console', (message) => {
     const text = message.text()
-    if (message.type() === 'error') errors.push(text)
-    else if (/hydrat/i.test(text)) errors.push(`hydration ${message.type()}: ${text}`)
+    if (message.type() === 'error') {
+      if (!UPSTREAM_CONSOLE_ERRORS.has(text)) errors.push(text)
+    } else if (/hydrat/i.test(text)) errors.push(`hydration ${message.type()}: ${text}`)
   })
   page.on('pageerror', (error) => errors.push(`uncaught ${error.message}`))
   page.on('response', (res) => {
