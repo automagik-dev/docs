@@ -10,10 +10,12 @@
 //   - animation.json: authoritative frame order and durationMs per clip;
 //   - look cells: 16 directions, 22.5 deg steps, 0 deg = up, clockwise;
 //     neutral = row 0 col 6 (also used for the pointer dead zone and reduced motion).
-import { useEffect } from 'react'
+import { useEffect, useSyncExternalStore } from 'react'
 // holocron's documented chat hook, from its source: the app is built from src/, so only this
 // path shares the app's chat store (the ./chat export resolves to dist/, a second store).
 import { useChatWidget } from '@holocron.so/vite/src/chat/use-chat-widget.ts'
+// The same store, read directly for the one field the hook does not expose: errorMessage.
+import { chatStore } from '@holocron.so/vite/src/chat/chat-store.ts'
 import anim from './pet/animation.json'
 
 export type ChatSnapshot = { open: boolean; generating: boolean; failed: boolean }
@@ -170,7 +172,7 @@ export function mountPet(chat: ChatPort): () => void {
   const waiters: Array<() => void> = []
 
   // Chat phases from holocron's store: open -> waiting, streaming -> running, the answer
-  // lands -> review once (failed once on an error notice), then back to idle.
+  // lands -> review once (failed once on an error notice or a failed request), then back to idle.
   let chatPhase: 'closed' | 'waiting' | 'running' | 'answered' = chat.isOpen() ? 'waiting' : 'closed'
   onChatChange = (s, prev) => {
     if (s.generating && !prev.generating) chatPhase = 'running'
@@ -376,15 +378,19 @@ function startPet() {
   disposePet = mountPet(port)
 }
 
-// An answer failed when the last assistant message carries an error notice.
+// An answer failed when the last assistant message carries an error notice, or when the
+// request itself failed: holocron then sets errorMessage (an HTTP error such as the site's
+// 413 or 400, a network error, an empty answer) and clears it on the next question.
 function lastAnswerFailed(messages: ChatMessages): boolean {
   const lastAssistant = [...messages].reverse().find((m) => m.role === 'assistant')
   return !!lastAssistant?.parts.some((p) => p.type === 'notice' && p.severity === 'error')
 }
+const requestFailed = () => !!chatStore.getState().errorMessage
 
 export function GeniePet(): null {
   const { isOpen, isGenerating, messages, toggle } = useChatWidget()
-  const failed = lastAnswerFailed(messages)
+  const transportFailed = useSyncExternalStore(chatStore.subscribe, requestFailed, () => false)
+  const failed = transportFailed || lastAnswerFailed(messages)
 
   useEffect(() => {
     toggleChat = toggle

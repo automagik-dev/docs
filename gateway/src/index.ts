@@ -172,6 +172,17 @@ type ChatChunk =
   | { type: 'title'; title: string }
   | { type: 'model-messages'; messages: ModelMessage[] }
 
+// An error as the logs may show it: its name and HTTP status only. The message can quote a
+// model-written tool input, the provider's text or a remote's status line.
+function errorName(error: unknown): string {
+  const name = (error as { name?: unknown } | null | undefined)?.name
+  return typeof name === 'string' ? name.slice(0, 60) : 'non-error'
+}
+function errorFields(error: unknown): string {
+  const statusCode = (error as { statusCode?: unknown } | null | undefined)?.statusCode
+  return `name=${errorName(error)} status=${typeof statusCode === 'number' ? statusCode : '-'}`
+}
+
 function jsonError(status: number, error: string): Response {
   return new Response(JSON.stringify({ error }), { status, headers: { 'content-type': 'application/json' } })
 }
@@ -399,12 +410,7 @@ export function createGateway(deps: GatewayDeps) {
             },
             // Replaces the SDK's default console.error of the whole error, which carries
             // the request body, headers and URLs.
-            onError: ({ error }) => {
-              const { name, statusCode } = (error ?? {}) as { name?: unknown; statusCode?: unknown }
-              tlog(
-                `stream error name=${typeof name === 'string' ? name.slice(0, 60) : 'unknown'} status=${typeof statusCode === 'number' ? statusCode : '-'}`,
-              )
-            },
+            onError: ({ error }) => tlog(`stream error ${errorFields(error)}`),
             onStepFinish: ({ usage }) => {
               // A step whose usage is missing is charged at its bound.
               if (usage.inputTokens === undefined) turn.unmeasuredUsd += stepWorstCaseUsd(bodyBytes, turn.stepsFinished)
@@ -414,12 +420,13 @@ export function createGateway(deps: GatewayDeps) {
           })
 
           for await (const chunk of result.toUIMessageStream({
+            // Tool-input and tool errors land here too, and their messages quote the
+            // model's input: the logs keep the name, the client gets a curated notice.
             onError: (error) => {
-              const err = error instanceof Error ? error : new Error(String(error))
-              turn.errorText = err.message
+              turn.errorText ||= errorName(error)
               turn.sawErrorChunk = true
-              tlog(`provider error: ${err.message.slice(0, 300)}`)
-              return safeProviderMessage(err.message)
+              tlog(`provider error ${errorFields(error)}`)
+              return safeProviderMessage(error instanceof Error ? error.message : String(error))
             },
           })) {
             if (chunk.type === 'text-delta') {
@@ -436,15 +443,15 @@ export function createGateway(deps: GatewayDeps) {
           const titled = titlePromise ? await titlePromise : null
           if (titled?.title) yield { type: 'title', title: titled.title }
         } catch (error) {
-          const err = error instanceof Error ? error : new Error(String(error))
-          turn.errorText ||= err.message
-          tlog(`turn error: ${err.message.slice(0, 300)}`)
-          if (turn.textChars === 0 && !turn.sawErrorChunk) yield streamErrorNotice(err.message)
+          turn.errorText ||= errorName(error)
+          tlog(`turn error ${errorFields(error)}`)
+          if (turn.textChars === 0 && !turn.sawErrorChunk)
+            yield streamErrorNotice(error instanceof Error ? error.message : String(error))
         } finally {
           request.signal?.removeEventListener('abort', onClientAbort)
           abort.abort()
           tlog(
-            `turn end ms=${Date.now() - startedAt.getTime()} ttft=${turn.ttftMs} textChars=${turn.textChars} toolCalls=${turn.toolCalls} steps=${turn.stepsFinished}${turn.errorText ? ` error=${JSON.stringify(turn.errorText.slice(0, 160))}` : ''}`,
+            `turn end ms=${Date.now() - startedAt.getTime()} ttft=${turn.ttftMs} textChars=${turn.textChars} toolCalls=${turn.toolCalls} steps=${turn.stepsFinished}${turn.errorText ? ` error=${JSON.stringify(turn.errorText)}` : ''}`,
           )
           // Settles on every path, after the response if need be. A turn that stopped
           // before its last step finished is charged that step's bound, and a title call

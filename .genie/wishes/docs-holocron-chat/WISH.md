@@ -52,6 +52,7 @@ Gives the holocron site its AI chat through a small Worker, `automagik-docs-chat
 | 13 | **Owner decisions at plan approval (Felipe, 2026-10-04, final; recorded through the question harness).** Hosting: Cloudflare Workers Paid ("Cloudflare Workers Paid (Recomendado)"); Vercel was considered and dropped because holocron has no Vercel target. A. Visitor IP: no per-IP rate limit for now, deferred by owner; trigger to revisit: abuse or the spend cap being hit. The gateway token gate, the hard daily spend cap with its reservation ledger, the input bounds (64 KB, no `system` role), `maxOutputTokens`, the step limit, `redirect: 'manual'` and the canonical-path guard stay. B. Retired-URL redirects: none ("não quero fazer redirect, consider this a fresh start; we will revamp the other product docs later"); only `/` goes to the Genie landing, as site navigation; retired pages answer 404. C. PR previews: none ("Sem previews", 2026-10-04); PRs run only `build` and `verify` with no secrets, so the preview-chat question is moot. D. mikro URLs: `rlmx/` moves to `mikro/` with no redirects; `/rlmx/*` answers 404. | Recorded as given; all five wishes are APPROVED on these terms. |
 | 14 | The gateway is served at the Custom Domain `https://agent.docs.automagik.dev` (`workers_dev: false`). The domain is attached once, by the orchestrator, with `npx wrangler deploy --domain agent.docs.automagik.dev`, and never declared in `gateway/wrangler.jsonc`, so `chat.yml` deploys need no zone scope. | Owner decision (Felipe, 2026-10-04). Certificate: Cloudflare's Custom Domains page (developers.cloudflare.com/workers/configuration/routing/custom-domains/): "Creating a Custom Domain will also generate an Advanced Certificate on your target zone for your target hostname", "no separate Advanced Certificate Manager subscription is required", multi-level subdomains included, while "Universal SSL does not cover a hostname at the second level or deeper"; so this two-level host needs no Advanced Certificate Manager purchase and no rename. wrangler 4.147.0 publishes custom domains only when a deploy names some, so later deploys leave it attached. |
 | 15 | Cloudflare access: deploys, Worker secrets and the Custom Domain are handled by the orchestrator with the orchestrator's Cloudflare OAuth token (wrangler's public client, PKCE; account `c8bd8f96…`; stored 0600 at `~/.genie/secrets/cf-oauth.json`; used as `CLOUDFLARE_API_TOKEN` taken from the orchestrator's OAuth helper on the orchestrating host) (`account:read`, `user:read`, `workers:write`, `workers_scripts:write`, `workers_routes:write`, `workers_kv:write`, `workers_tail:read`, `zone:read`, `ssl_certs:write`, `secrets_store:write`, `d1`, `pages`, `queues`, `ai`, `offline_access`; no DNS:Edit), each production-impacting step approved by Felipe through the question harness. | Owner decision (Felipe, 2026-10-04: "you do it, I'll give you any access"). |
+| 16 | The daily cap is `DAILY_USD_CAP` `"10.00"`; `gateway/wrangler.jsonc` carries it, so `chat.yml` redeploys keep it. | Owner decision (Felipe, 2026-10-04, through the question harness: "$10/dia", asked with $2 recommended). It overrides the `2.00` default named in decisions 6 and 12. |
 
 ## Simplicity Case
 
@@ -283,6 +284,56 @@ _The read-only reviewer returns evidence; the invoking orchestrator appends a ti
 - Evidence: the orchestrator's scratchpad, `review-chat-g1/`, `repair-chat-g1/probe/` and `rereview-chat-g1/`.
 
 **Routed here from the docs-holocron-brand review (LOW):** `components/genie-pet.tsx:380-387` reads `failed` from message notices only. Subscribe to `errorMessage` from `src/chat/chat-store.ts` too, so a transport error plays `failed`. This is carried into Group 2.
+
+---
+
+### Group 2 execution review — 2026-10-04 (independent reviewer, read-only, 92bd81f..886e093)
+
+**SHIP.** All deliverables and acceptance criteria pass, and the Validation block passes line by line. Routed items A (logs carry name and status only) and B (the pet plays `failed` on a transport error) are closed. Each has a mutant that fails on the pre-fix code.
+
+- **Guard bypass: none found.** 192 raw requests went to a probe build whose holocron points at a recorder.
+  - Every path spelling that reaches the chat handler gets 413 or 400 from the guard: `.rsc`, `?__rsc`, `/./`, `/x/../`, `%2e`, absolute form, a foreign Host, chunked bodies.
+  - The other spellings answer 404 before the handler: case, `;params`, `%2F`, `%00`, a trailing dot.
+  - 65,536 bytes pass and 65,537 get 413, multibyte bodies included.
+  - Compressed bodies get 400. Content-Length mismatches are refused.
+- **Workflows.**
+  - `chat.yml` has `contents: read`, `persist-credentials: false` and no `pull_request_target`. Its secrets sit only in the deploy step.
+  - The deploy runs only on a push to main, in `production`; that environment allows only main, and the secrets are scoped to it.
+  - The actions are pinned by SHA, and actionlint reports 0 errors.
+  - The `site.yml` `paths-ignore` changes no trust property.
+- **Rulings agreed:** the default checkout of the pushed SHA, and `npx --yes wrangler@4.147.0` in the deploy step.
+- **Local risk:** after a site build, `../.wrangler/deploy/config.json` breaks a `wrangler deploy` run inside `gateway/`. CI is unaffected (fresh checkout, no site build); `--config wrangler.jsonc` avoids it locally.
+- **Regression:** strict build, verify, `--chat-guard`, `check-deploy-config`, `ui-check --all`, gateway 50/50 and the dry run all pass. The merge with main is clean.
+- **LOW, routed to the polish follow-up:** browser text can still reach the system prompt through `currentSlug` (and `toolSchemas[].name`/`.description`), which holocron puts into its prompt unescaped. `pageSlug` is unbounded and logged verbatim.
+  - Impact is limited to the visitor's own conversation: the cap, bounds and allowlist hold.
+  - Fix:
+    - the guard refuses a `currentSlug` outside `^/[A-Za-z0-9/_.-]{0,200}$`;
+    - the gateway uses `pageSlug` `max(200)` and logs it as JSON;
+    - ruling: refuse a non-empty `toolSchemas` or `context`, since the site registers neither.
+- `84c4e61` (cap 10.00 + Group 3 record) landed after this review; it is an owner-decided config value plus WISH text.
+
+---
+
+### Group 3 provisioning — 2026-10-04 (orchestrator; owner approval "Pode subir" and cap "$10/dia" through the question harness)
+
+**Secrets and deploy**
+- **Gateway token.** bws secret `DOCS_CHAT_GATEWAY_TOKEN` (id `2bc8c6ac-…`, project KHAL LABS) was created with the Bitwarden Python SDK. The token is 48 random bytes in base64 (64 characters). The value was held only in process memory: never on argv, stdout or disk. `bws secret create` takes the value on argv, and `/proc` on this host has no `hidepid`.
+- **First deploy.** Run from a clean `git archive` of main `ab1045d`: `wrangler@4.147.0 deploy --domain agent.docs.automagik.dev --var DAILY_USD_CAP:10.00 --secrets-file <(printf …)`. wrangler refuses `secret put` on a Worker that does not exist yet when `secrets.required` is declared, so `GATEWAY_TOKEN` and `DEEPSEEK_API_KEY` went in with the first deploy, through a process-substitution pipe (no file on disk). The values came from bws and `gate-env.sh` in a subshell with tracing off.
+  - The Worker `automagik-docs-chat` deployed as version `10565acb`, with the custom domain attached.
+  - The settings API shows both values as `secret_text`, and `DAILY_USD_CAP` as `10.00`.
+- **Site token.** `HOLOCRON_KEY` was set on `automagik-docs` with `wrangler secret put`, reading stdin. `secret list` shows it as `secret_text`.
+
+**Smoke**
+- The certificate is valid without `-k` (Google Trust Services WE1, CN `automagik.dev`). `/health` was up after about 90 s and answers `{"ok":true,"model":"deepseek-flash","provider":"api.deepseek.com"}`.
+- `POST /api/chat` without the token answers 401, and `/api/og` answers 404.
+- `verify-site --gateway-smoke`, run from this branch with the token from bws in the environment, reported 779 `text-delta` chunks and 2994 characters, with the docs loaded from the workers.dev `docs.zip`.
+- One question through the site chat on workers.dev, driven by Playwright: the pet opened the drawer. "How do I install Genie?" got `POST /holocron-api/chat 200` and an answer linking `/genie/installation` (Installation).
+- `wrangler tail automagik-docs-chat` during the smoke:
+  - outbound only to `GET https://automagik-docs.felipehowit.workers.dev/docs.zip` and `POST https://api.deepseek.com/chat/completions`;
+  - turn 1: reserved $0.058595, measured $0.001145 (3 tool calls);
+  - turn 2: reserved $0.067499, measured $0.000588.
+
+**Group 3 Acceptance Criteria:** all met. The orchestrator ran the Validation block's checks one by one.
 
 ---
 

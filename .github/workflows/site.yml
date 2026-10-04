@@ -1,9 +1,12 @@
 name: Site
 
+# A push to main that changes only the chat gateway deploys from chat.yml and leaves the site
+# alone. Pull requests are not filtered, so the site's checks report on every PR.
 on:
   pull_request:
   push:
     branches: [main]
+    paths-ignore: ['gateway/**', '.github/workflows/chat.yml']
 
 permissions:
   contents: read
