@@ -208,6 +208,29 @@ Also noted: Decision 5 expected 27 canaries in total; the brand branch shipped 2
 
 _The read-only reviewer returns evidence; the invoking orchestrator appends a timestamped block here after plan, execution, and PR reviews._
 
+### Execution review — 2026-10-04 (independent reviewer, read-only, at c7ab617)
+
+**Group 1: SHIP. Group 2: SHIP.** Every acceptance criterion holds in Chromium, Firefox and WebKit.
+
+- **Validation.** Both blocks ran as written: Group 1 on the host; Group 2 in `mcr.microsoft.com/playwright:v1.63.0-noble` with the host's `unzip`, plus a hosts file mapping `localhost` to `127.0.0.1` so `vite preview` answers `--serve`. Results: 31 canaries; `--all` in Chromium; `--products` in Firefox and in WebKit; `check-deploy-config` unchanged.
+- **Owner asks:**
+  - The header follows the product from first paint, pixel-identical before and after hydration in the three engines.
+  - The switcher shows the three logos and works by keyboard.
+  - The logo click lands on the active product's landing (checked by its heading) from deep pages and from landings, before and after hydration and after client navigation, with an empty query.
+  - The logos are pixel-identical to `.orca/drops/`, with `filter: none` and only white, cyan and magenta pixels.
+  - The pet's eyes are closed in all 12 frames.
+  - `<ProductBrand />` sits in `siteLayout`, and the 404 keeps it.
+- **WebKit allowlist.** Exact-match on 3 texts, with page errors unfiltered. Its upstream origin is confirmed: brand-only dd202fe gives the identical WebKit error set, from `@holocron.so/vite` 0.36.0 `side-nav.js:228`.
+- **Security.** No new routes and no secrets. `dist/client` only gains three brand PNGs. The share images are built from the request origin (no workers.dev in the diff), and all answer 200.
+
+**Findings (non-blocking, routed to the follow-up `docs-holocron-products` polish):**
+1. LOW: the head script's `head.prepend` pushes `<meta charset>` past byte 1024 (`src/server.tsx:64`). Use `head.append` or insert after the meta.
+2. LOW: after hydration React re-adds `og:image` and `twitter:image` pointing at the gateway's `/api/og`, which answers 404, so the page carries two of each. After client navigation the rewritten tag goes stale. The raw HTML that crawlers read is correct.
+3. LOW (owner-relevant): before hydration the logo `href` is still `/genie` on Omni and mikro pages, so middle-click, new tab and copy-link land on Genie. The footer AUTOMAGIK logo also links to `/genie` everywhere.
+4. LOW (test): `checkLogoLink` passes on the URL change and does not wait for the landing's `<h1>`.
+5. LOW: `svg.innerHTML` holds a constant chevron (`components/product-brand.tsx:42`). Use `createElementNS`.
+6. INFO: limit the console allowlist to `engine === 'webkit'`. On the 404 the switcher is not mounted.
+
 ---
 
 ## Files to Create/Modify
