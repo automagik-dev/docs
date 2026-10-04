@@ -49,7 +49,7 @@ const INTERNAL_PATHS = [
   '/genie/_internal/observability/detectors.mdx',
   '/genie/images/_internal/',
 ]
-const LANDINGS = ['/genie', '/omni', '/rlmx']
+const LANDINGS = ['/genie', '/omni', '/mikro']
 const CHAT_BODY_LIMIT = 65_536 // src/chat-guard.ts
 const CHAT_TOO_LONG = 'Your question is too long. Please shorten it and ask again.'
 const CHAT_UNANSWERABLE = 'This request cannot be answered.'

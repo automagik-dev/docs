@@ -204,7 +204,7 @@ rlmx: cache warmup complete
   estimated cost:   $0.0033
 ```
 
-If the context exceeds the provider's token limit, the command exits with a non-zero status and an error message. See [Cache Mode](/rlmx/cache) for the full caching workflow.
+If the context exceeds the provider's token limit, the command exits with a non-zero status and an error message. See [Cache Mode](/mikro/cache) for the full caching workflow.
 
 ---
 
@@ -260,7 +260,7 @@ rlmx batch questions.txt --context ./docs/ --batch-api
 {"type":"aggregate","total_questions":2,"completed":2,"total_cost":0.0051,"cache_savings":0.004}
 ```
 
-Budget trips, cache fallbacks, and verbose progress are logged to stderr so the stdout stream stays valid JSONL for downstream pipelines. See [Batch Mode](/rlmx/batch) for full details.
+Budget trips, cache fallbacks, and verbose progress are logged to stderr so the stdout stream stays valid JSONL for downstream pipelines. See [Batch Mode](/mikro/batch) for full details.
 
 ---
 
@@ -283,7 +283,7 @@ rlmx stats [options]
 Without any flags, `rlmx stats` prints the 20 most recent sessions as a terminal table (id, query, model, iterations, cost, status, duration).
 
 <Note>
-  Stats require pgserve storage. If `~/.rlmx/data` does not exist, the command prints `"No stats yet. Run a query first."` and exits cleanly. See [Configuration](/rlmx/config) for storage setup.
+  Stats require pgserve storage. If `~/.rlmx/data` does not exist, the command prints `"No stats yet. Run a query first."` and exits cleanly. See [Configuration](/mikro/config) for storage setup.
 </Note>
 
 ### Examples

@@ -19,7 +19,7 @@ Cache-Augmented Generation (CAG) embeds your **full context directly in the syst
 | **Default RLM** | Context loaded into a Python REPL `context` variable; LLM writes code to navigate it programmatically | Very large codebases, exploratory analysis, unknown questions |
 | **Cache (CAG)** | Full context embedded in the system prompt and cached at the provider | Repeated questions on the same docs, study sessions, batch Q&A |
 
-Switch into cache mode with the `--cache` flag on any query, or set `cache.enabled: true` in `.rlmx/rlmx.yaml`.
+Switch into cache mode with the `--cache` flag on any query, or set `cache.enabled: true` in `rlmx.yaml` inside `.rlmx/`.
 
 ## End-to-end example
 
@@ -109,7 +109,7 @@ If the context exceeds the provider limit, RLMX logs a warning, **disables cache
 
 ## Configuration
 
-Cache behavior lives under `cache:` in `.rlmx/rlmx.yaml`:
+Cache behavior lives under `cache:` in `rlmx.yaml` inside `.rlmx/`:
 
 ```yaml
 cache:
@@ -128,7 +128,7 @@ cache:
 | `expire-time` | ISO 8601 timestamp for Google explicit caching. Mutually exclusive with `ttl`. |
 | `session-prefix` | Namespace for the cache session ID — useful when multiple projects share a provider account. |
 
-See the full table in [Configuration → cache](/rlmx/config#cache).
+See the full table in [Configuration → cache](/mikro/config#cache).
 
 ## The `rlmx cache` command
 
@@ -139,7 +139,7 @@ See the full table in [Configuration → cache](/rlmx/config#cache).
 | `rlmx cache --context <path> --estimate` | Prints token count, provider limit, utilization %, and projected first-query cost. **No LLM calls.** |
 | `rlmx cache --context <path>` | Issues a one-iteration warmup query to prime the provider cache. |
 
-Full flag reference: [CLI → `rlmx cache`](/rlmx/cli/reference#rlmx-cache).
+Full flag reference: [CLI → `rlmx cache`](/mikro/cli/reference#rlmx-cache).
 
 ## Practical patterns
 
@@ -156,7 +156,7 @@ rlmx "List the database migrations" --context ./src/ --cache --ext .ts,.js
 
 ### Cached batch interrogation
 
-Batch mode always enables caching — it's effectively `rlmx cache` plus a question loop. See [Batch Mode](/rlmx/batch) for the questions-file format and cost math.
+Batch mode always enables caching — it's effectively `rlmx cache` plus a question loop. See [Batch Mode](/mikro/batch) for the questions-file format and cost math.
 
 ```bash
 rlmx cache --context ./docs/
@@ -195,16 +195,16 @@ No action needed — the query still runs, just without caching.
 ## See also
 
 <CardGroup cols={2}>
-  <Card title="Batch Mode" icon="layer-group" href="/rlmx/batch">
+  <Card title="Batch Mode" icon="layer-group" href="/mikro/batch">
     Bulk interrogation that stacks caching with the Gemini Batch API for up to 95% savings.
   </Card>
-  <Card title="CLI Reference" icon="terminal" href="/rlmx/cli/reference#rlmx-cache">
+  <Card title="CLI Reference" icon="terminal" href="/mikro/cli/reference#rlmx-cache">
     Every flag on `rlmx cache` and `--cache` documented.
   </Card>
-  <Card title="Configuration" icon="gear" href="/rlmx/config#cache">
+  <Card title="Configuration" icon="gear" href="/mikro/config#cache">
     `cache:` section of `rlmx.yaml` in full.
   </Card>
-  <Card title="Provider limits" icon="ruler" href="/rlmx/batch#provider-context-limits">
+  <Card title="Provider limits" icon="ruler" href="/mikro/batch#provider-context-limits">
     Max cacheable context size by provider.
   </Card>
 </CardGroup>
