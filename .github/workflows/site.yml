@@ -35,6 +35,9 @@ jobs:
       # Fails a PR whose build config drifts from scripts/expected-wrangler.json, before main.
       - run: node scripts/check-deploy-config.mjs .
       - run: npm run verify
+      # Brand styles and the CSS canaries on holocron's markup, in a real browser.
+      - run: npx playwright install --with-deps chromium
+      - run: node scripts/ui-check.mjs --serve --all
       # dist/client/.assetsignore is hidden, and wrangler cannot publish without it.
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:

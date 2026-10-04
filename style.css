@@ -1,0 +1,368 @@
+/* Automagik "neon design B" for the docs on holocron.
+   Tokens: the genie repository's .genie/brainstorms/genie-launch/GENIE-DESIGN-TOKENS.md
+   (approved 2026-09-29) and the launch/SOP renderers (render-src/film.html, sop-render/sop/sop.html).
+   Fonts: the exact woff2 files the video renderer loads (Geist + JetBrains Mono), Latin subset.
+   Every rule that reaches into holocron's markup carries a holocron-internal tag, and
+   scripts/ui-check.mjs holds one canary per tag, so a holocron upgrade that renames a hook
+   fails CI instead of silently unstyling the site. */
+@reference "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ---------- fonts (the Latin files and ranges of sop-render/fonts/fonts.css) ---------- */
+@font-face { font-family: 'Geist'; font-style: normal; font-weight: 100 900; font-display: swap;
+  src: url(/fonts/geist-latin.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: 'JetBrains Mono'; font-style: normal; font-weight: 100 800; font-display: swap;
+  src: url(/fonts/jetbrains-mono-latin.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+
+/* ---------- brand tokens ---------- */
+:root {
+  --gx-void: #000000;
+  --gx-cosmos: #030208;
+  --gx-surface: #0B0B12;
+  --gx-raised: #15121E;
+  --gx-panel: #09090F;          /* terminal panel fill in film.html */
+  --gx-border: #2A2438;
+  --gx-magenta: #FF3FF5;
+  --gx-magenta-soft: #F8B8F8;
+  --gx-magenta-dim: #7A1F80;
+  --gx-cyan: #5EF2FF;
+  --gx-cyan-dim: #1F7F7F;
+  --gx-amber: #F5A623;
+  --gx-error: #FF4D6D;
+  --gx-text: #E8E6F0;
+  --gx-head: #F4F2FF;
+  --gx-dim: #9A94AE;
+  --gx-muted: #625C74;
+  --gx-glow-mag: 0 0 18px rgba(255, 63, 245, .45);
+  --gx-glow-cyan: 0 0 14px rgba(94, 242, 255, .45);
+
+  --font-sans: 'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-code: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --font-diagram: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+}
+
+/* Dark is the only designed mode (appearance.strict hides the toggle). */
+:root, :root.dark {
+  --radius: 0.75rem;
+
+  --background: var(--gx-surface);
+  --foreground: var(--gx-text);
+  --card: var(--gx-surface);
+  --card-foreground: var(--gx-text);
+  --popover: var(--gx-raised);
+  --popover-foreground: var(--gx-text);
+  --primary: var(--gx-magenta);
+  --primary-foreground: var(--gx-surface);
+  --secondary: var(--gx-raised);
+  --secondary-foreground: var(--gx-text);
+  --muted: var(--gx-raised);
+  --muted-foreground: var(--gx-dim);
+  --accent: rgba(255, 63, 245, .08);
+  --accent-foreground: var(--gx-head);
+  --destructive: var(--gx-error);
+  --border: var(--gx-border);
+  --input: var(--gx-border);
+  --ring: var(--gx-magenta);
+
+  --sidebar: var(--gx-surface);
+  --sidebar-foreground: var(--gx-dim);
+  --sidebar-primary: var(--gx-magenta);
+  --sidebar-primary-foreground: var(--gx-surface);
+  --sidebar-accent: var(--gx-raised);
+  --sidebar-accent-foreground: var(--gx-head);
+  --sidebar-border: var(--gx-border);
+  --sidebar-ring: var(--gx-magenta);
+  --sidebar-hover-background: rgba(255, 63, 245, .07);
+  --sidebar-active-background: rgba(255, 63, 245, .10);
+
+  --text-tertiary: var(--gx-muted);
+  --border-subtle: var(--gx-border);
+  --divider: rgba(42, 36, 56, .7);
+
+  /* semantic: note/info = cyan, tip/check = magenta, warning = lamp amber, danger = error */
+  --blue: var(--gx-cyan);
+  --green: var(--gx-magenta);
+  --yellow: var(--gx-amber);
+  --orange: var(--gx-amber);
+  --red: var(--gx-error);
+  --purple: var(--gx-magenta);
+  --pink: var(--gx-magenta-soft);
+
+  --prose-text: color-mix(in oklch, var(--gx-text) 88%, var(--gx-surface));
+
+  /* type: Geist 400/600/800 like the video captions and titles */
+  --type-body-size: 15px;
+  --type-heading-1-size: 40px;
+  --type-heading-2-size: 24px;
+  --type-heading-3-size: 18px;
+  --weight-prose: 420;
+  --weight-heading: 600;          /* also drives inline link weight; h1-h3 set their own below */
+  --lh-prose: 1.65;
+
+  /* code = the terminal window from the videos */
+  --code-block-background: var(--gx-panel);
+  --code-block-border: 1px solid var(--gx-border);
+  --code-block-shadow: 0 0 0 1px rgba(94, 242, 255, .04), 0 18px 60px rgba(0, 0, 0, .55);
+  --code-block-radius: 12px;
+  --code-block-padding-x: 16px;
+  --code-block-padding-y: 14px;
+
+  --blockquote-border-width: 4px;
+  --blockquote-border-color: var(--gx-magenta);
+
+  --card-padding: 18px;
+  --card-border: 1px solid var(--gx-border);
+  --card-shadow: none;
+
+  --table-radius: 12px;
+  --search-input-radius: 999px;
+  --logo-height: 30px;
+}
+
+html, body { background: var(--gx-surface); }
+
+/* Cosmos behind everything: the two drifting nebulas of the launch film, kept faint. */
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background:
+    radial-gradient(900px 600px at 12% -8%, rgba(255, 79, 240, .10), transparent 70%),
+    radial-gradient(800px 700px at 105% 95%, rgba(94, 242, 255, .06), transparent 70%),
+    radial-gradient(700px 500px at 55% 120%, rgba(122, 31, 128, .10), transparent 70%);
+}
+
+::selection { background: rgba(255, 63, 245, .35); color: var(--gx-head); }
+
+/* ---------- headings: Geist heavy, tight tracking, headline white ---------- */
+h1, h2, h3, h4 { color: var(--gx-head); letter-spacing: -0.02em; }
+h1 { letter-spacing: -0.035em; font-weight: 900; }
+h2 { font-weight: 800; }
+h3 { font-weight: 700; letter-spacing: -0.01em; }
+
+/* ---------- links: headline white with a magenta underline; glow only on hover ---------- */
+/* holocron's <A> sets color/weight inline, hence !important. */
+/* holocron-internal: link */
+.slot-main a[style*="var(--primary)"] {
+  color: var(--gx-head) !important;
+  text-decoration: underline !important;
+  text-decoration-color: rgba(255, 63, 245, .55) !important;
+  text-decoration-thickness: 1.5px !important;
+  text-underline-offset: 3px;
+  transition: color .15s, text-shadow .15s;
+}
+/* holocron-internal: link-hover */
+.slot-main a[style*="var(--primary)"]:hover {
+  color: var(--gx-magenta) !important;
+  text-shadow: var(--gx-glow-mag);
+}
+
+/* ---------- inline code: JetBrains Mono in cyan, as in the SOP captions ---------- */
+/* holocron-internal: inline-code */
+.slot-main code:not(pre code) {
+  color: var(--gx-cyan);
+  background: rgba(94, 242, 255, .07);
+  border-radius: 5px;
+  padding: .1em .35em;
+}
+/* holocron-internal: heading-code */
+.slot-main h1 code:not(pre code), .slot-main h2 code:not(pre code) { background: none; padding: 0; }
+
+/* ---------- code blocks: the terminal window of the videos (three dots, border, panel) ---------- */
+/* holocron-internal: code-frame */
+figure[class~="group/code"] { overflow: hidden; }
+/* holocron-internal: code-frame-bar */
+figure[class~="group/code"]::before {
+  content: '';
+  display: block;
+  height: 30px;
+  margin: calc(-1 * var(--code-block-padding-y)) calc(-1 * var(--code-block-padding-x)) 12px;
+  border-bottom: 1px solid var(--gx-border);
+  background:
+    radial-gradient(circle at 18px 15px, var(--gx-border) 5px, transparent 5.5px),
+    radial-gradient(circle at 36px 15px, var(--gx-border) 5px, transparent 5.5px),
+    radial-gradient(circle at 54px 15px, var(--gx-border) 5px, transparent 5.5px),
+    var(--gx-surface);
+}
+/* holocron-internal: code-text */
+figure[class~="group/code"] code { color: var(--gx-text); }
+
+/* syntax: the film palette (cyan = commands, magenta = keywords and flags, lamp amber = literals) */
+/* holocron-internal: token-cyan */
+figure[class~="group/code"] .token.function, figure[class~="group/code"] .token.class-name,
+figure[class~="group/code"] .token.method, figure[class~="group/code"] .token.builtin { color: var(--gx-cyan); }
+/* holocron-internal: token-magenta */
+figure[class~="group/code"] .token.keyword, figure[class~="group/code"] .token.parameter,
+figure[class~="group/code"] .token.operator, figure[class~="group/code"] .token.important,
+figure[class~="group/code"] .token.property, figure[class~="group/code"] .token.tag { color: var(--gx-magenta); }
+/* holocron-internal: token-amber */
+figure[class~="group/code"] .token.string, figure[class~="group/code"] .token.url,
+figure[class~="group/code"] .token.attr-value, figure[class~="group/code"] .token.number,
+figure[class~="group/code"] .token.boolean, figure[class~="group/code"] .token.constant { color: var(--gx-amber); }
+/* holocron-internal: token-dim */
+figure[class~="group/code"] .token.comment, figure[class~="group/code"] .token.prolog,
+figure[class~="group/code"] .token.punctuation { color: var(--gx-dim); }
+
+/* ---------- steps: numbered pills like the SOP badge ---------- */
+/* holocron-internal: steps-badge */
+li[class*="counter-increment"] div[class*="size-7"][class*="rounded-full"] {
+  background: rgba(255, 63, 245, .07);
+  border: 1.5px solid var(--gx-magenta);
+  box-shadow: 0 0 14px rgba(255, 63, 245, .25), inset 0 0 8px rgba(255, 63, 245, .08);
+  color: var(--gx-magenta);
+  font-family: var(--font-code);
+  font-weight: 700;
+}
+
+/* ---------- callouts: the SOP caption (surface, border, 4px colored left rule) ---------- */
+/* holocron-internal: callout */
+.slot-main div[style*="color-mix(in srgb, var(--background) 9"] {
+  background: var(--gx-surface) !important;
+  border: 1px solid var(--gx-border);
+  border-left: 4px solid currentColor;
+  border-radius: 10px;
+  box-shadow: 0 0 0 1px rgba(255, 63, 245, .04), 0 12px 40px rgba(0, 0, 0, .45);
+}
+/* holocron-internal: callout-body */
+.slot-main div[style*="color-mix(in srgb, var(--background) 9"] > :not(:first-child) { color: var(--gx-text); }
+
+/* ---------- video frames: raised panel with the card shadow from sop.html ---------- */
+/* holocron-internal: frame */
+[data-name="frame"] {
+  background: var(--gx-surface) !important;
+  border: 1px solid var(--gx-border);
+  border-radius: 14px;
+  box-shadow: 0 0 0 1px rgba(94, 242, 255, .05), 0 24px 80px rgba(0, 0, 0, .65);
+}
+/* holocron-internal: frame-caption */
+[data-name="frame"] [data-component-part="frame-description"] { color: var(--gx-dim); }
+
+/* ---------- cards: border glows magenta on hover, like the active panels in the film ---------- */
+/* holocron-internal: card-hover */
+[class~="group/card"]:has(a):hover {
+  --card-border: 1px solid rgba(255, 63, 245, .7);
+  --card-shadow: 0 0 18px rgba(255, 63, 245, .22), inset 0 0 10px rgba(255, 63, 245, .06);
+}
+
+/* ---------- tables: mono, letter-spaced labels in the header (film.html MONO + DIM) ---------- */
+/* holocron-internal: table-head */
+.slot-main thead [data-slot="table-cell"] {
+  font-family: var(--font-code);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--gx-dim);
+}
+/* holocron-internal: table-row */
+.slot-main [data-slot="table-row"] { border-color: var(--gx-border); }
+
+/* ---------- sidebar ---------- */
+/* FRAGILE: group labels are inline-styled divs in holocron's nav tree. */
+/* holocron-internal: sidebar-group-label */
+.slot-sidebar-nav div[style*="text-transform:uppercase"],
+.slot-sidebar-nav div[style*="text-transform: uppercase"] {
+  font-family: var(--font-code) !important;
+  font-weight: 500 !important;
+  letter-spacing: .14em !important;
+  color: var(--gx-dim) !important;
+}
+/* holocron-internal: sidebar-current */
+.slot-sidebar-nav a[aria-current="page"] { text-shadow: 0 0 14px rgba(255, 63, 245, .45); }
+
+/* ---------- header: GitHub button as the glowing pill badge from the SOP videos ---------- */
+/* holocron-internal: navbar-primary */
+.slot-navbar-primary {
+  border-radius: 999px !important;
+  border: 1.5px solid var(--gx-magenta) !important;
+  background: rgba(255, 63, 245, .07);
+  color: var(--gx-text) !important;
+  box-shadow: 0 0 18px rgba(255, 63, 245, .28), inset 0 0 10px rgba(255, 63, 245, .10);
+}
+
+/* ---------- skill pages: the title gets the magenta slash of the SOP videos ("/wish") ---------- */
+/* holocron-internal: skill-slash */
+.slot-page:has(.slot-sidebar-nav a[aria-current="page"][href^="/genie/skills/"]) h1.editorial-h1 > span:first-child::before {
+  content: '/';
+  color: var(--gx-magenta);
+  text-shadow: var(--gx-glow-mag);
+  margin-right: .02em;
+}
+
+/* ---------- logo: the official lockup (triskele + GENIE, chromatic split), never restyled ---------- */
+/* genie-logo.png is cropped to its alpha bbox (the same 842x244 crop film.html draws).
+   With light === dark, holocron's <Logo> takes its single-image branch, which adds Tailwind's
+   `dark:invert` (cyan -> red, magenta -> green, white -> black). The lockup is made for dark
+   backgrounds, so cancel every filter, blend and fade on it, in the header and the footer. */
+/* holocron-internal: logo */
+.slot-logo img,
+img[src$="/brand/genie-logo.png"] {
+  filter: none !important;
+  mix-blend-mode: normal !important;
+  opacity: 1 !important;
+}
+
+/* ---------- Introduction hero: scene 3 of the launch film (components/lamp-hero.tsx) ---------- */
+.genie-hero {
+  display: block; width: 100%; height: 400px; padding: 0; margin: 0;
+  border: 1px solid var(--gx-border); border-radius: 16px; overflow: hidden;
+  background: var(--gx-cosmos); cursor: pointer;
+  box-shadow: 0 0 0 1px rgba(94, 242, 255, .05), 0 24px 80px rgba(0, 0, 0, .65);
+}
+.genie-hero:focus-visible { outline: 2px solid var(--gx-magenta); outline-offset: 3px; }
+.genie-hero__canvas { display: block; width: 100%; height: 100%; }
+@media (max-width: 560px) { .genie-hero { height: 320px; } }
+
+/* ---------- the pet (components/genie-pet.ts): whole 192x208 cells, anchored center/bottom ---------- */
+.genie-pet {
+  position: fixed; right: 18px; bottom: 14px; z-index: 40;
+  width: 96px; height: 104px;
+  cursor: pointer; opacity: 0; pointer-events: none;
+  transition: opacity .3s, right .45s cubic-bezier(.3, .7, .2, 1);
+  transform-origin: 50% 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+.genie-pet.is-visible { opacity: 1; pointer-events: auto; }
+/* the pet is the "Ask Genie" button: a visible focus ring for keyboards */
+.genie-pet:focus-visible { outline: 2px solid var(--gx-magenta); outline-offset: 4px; border-radius: 14px; box-shadow: 0 0 18px rgba(255, 63, 245, .35); }
+@media (prefers-reduced-motion: reduce) { .genie-pet { transition: none; } }
+.genie-pet__sprite {
+  width: 100%; height: 100%; background-repeat: no-repeat;
+  filter: drop-shadow(0 0 6px rgba(255, 63, 245, .35));
+}
+/* Narrow screens have a 20px text margin, so a corner pet would sit on the text: dock it in
+   the empty right end of the logo row, which holocron keeps sticky (z-index 100, opaque). */
+@media (max-width: 640px) {
+  .genie-pet { top: 6px; right: 14px; bottom: auto; width: 48px; height: 52px; z-index: 101; }
+}
+@media print { .genie-pet { display: none; } }
+
+/* ---------- AI chat (holocron's in-page drawer, sidebar mode: page CSS reaches it) ---------- */
+/* holocron-internal: chat-drawer-panel */
+.holocron-chat-drawer-panel {
+  border: 1px solid var(--gx-border) !important;
+  box-shadow: 0 0 0 1px rgba(255, 63, 245, .06), 0 24px 80px rgba(0, 0, 0, .65) !important;
+}
+/* holocron-internal: chat-inline-code */
+.holocron-chat-drawer-messages code:not(pre code),
+.slot-aside code:not(pre code) {
+  color: var(--gx-cyan);
+  background: rgba(94, 242, 255, .07);
+  border: 0;
+  border-radius: 5px;
+  padding: .08em .35em;
+}
+/* answer links: same treatment as the page (headline white, magenta underline, glow on hover) */
+/* holocron-internal: chat-link */
+.holocron-chat-drawer-messages a[href] {
+  color: var(--gx-head) !important;
+  font-weight: 600 !important;
+  text-decoration: underline !important;
+  text-decoration-color: rgba(255, 63, 245, .55) !important;
+  text-decoration-thickness: 1.5px !important;
+  text-underline-offset: 3px;
+}
+/* holocron-internal: chat-link-hover */
+.holocron-chat-drawer-messages a[href]:hover { color: var(--gx-magenta) !important; text-shadow: var(--gx-glow-mag); }
+
