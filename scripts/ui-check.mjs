@@ -4,10 +4,15 @@
 //   node scripts/ui-check.mjs <base-url> [flags]   check a running site (local or deployed)
 //   node scripts/ui-check.mjs --serve [flags]      start `vite preview` on port 4174, check it, stop it
 //
-// Flags: --engine chromium|firefox|webkit (default chromium); --all runs every check group
-// this script knows. The brand group always runs: on /genie, /omni and /rlmx at 1440x900 it
-// checks the body surface, text color and font, the code font, --primary, and that the header
-// and footer logos carry no filter; it then runs every CSS canary whose action is available.
+// Flags: --engine chromium|firefox|webkit (default chromium); --pet adds the pet group; --all
+// runs every check group this script knows. The brand group always runs: on /genie, /omni and
+// /rlmx at 1440x900 it checks the body surface, text color and font, the code font, --primary,
+// and that the header and footer logos carry no filter; it then runs every CSS canary whose
+// action is available. The pet group, on two pages per product, checks that exactly one pet
+// shows and stays through client navigation, that a click or Enter on it opens holocron's chat
+// drawer and a second one closes it, the lamp hero on /genie, the neutral pose under reduced
+// motion, and one <html> per document; it also makes the open-drawer canaries available.
+// Every page fails on a console error, a hydration warning or a same-origin HTTP error.
 //
 // Canaries: each rule in style.css that reaches into holocron's markup carries a
 // `/* holocron-internal: <id> */` tag, and CANARIES holds one entry per tag. A canary's
@@ -33,6 +38,10 @@ const VIEWPORT = { width: 1440, height: 900 }
 const NAV_TIMEOUT_MS = 60_000
 const ENGINES = { chromium, firefox, webkit }
 const LANDINGS = ['/genie', '/omni', '/rlmx']
+const PET_PAGES = ['/genie', '/genie/quickstart', '/omni', '/omni/quickstart', '/rlmx', '/rlmx/quickstart']
+const PET_VISIBLE_MS = 8_000 // the hero hands the Genie over, or the pet shows after 6 s
+const DRAWER_MS = 5_000
+const NOT_FOUND_PAGE = '/genie/no-such-page'
 
 const BRAND = {
   background: 'rgb(11, 11, 18)', // #0B0B12
@@ -122,7 +131,7 @@ const CANARIES = [
 ]
 
 // Optional check groups, each also run by --all. Later wishes add theirs here.
-const GROUPS = {}
+const GROUPS = { pet: { run: checkPet } }
 
 const failures = []
 const fail = (line) => failures.push(line)
@@ -170,17 +179,21 @@ function checkTags() {
 
 const slug = (pathname) => pathname.replace(/^\//, '').replaceAll('/', '-') || 'root'
 
-async function openPage(browser, base, pathname, contextOptions = {}) {
+async function openPage(browser, base, pathname, { waitUntil = 'networkidle', ...contextOptions } = {}) {
   const context = await browser.newContext({ viewport: VIEWPORT, ...contextOptions })
   const page = await context.newPage()
   const errors = []
+  const origin = new URL(base).origin
   page.on('console', (message) => {
     const text = message.text()
     if (message.type() === 'error') errors.push(text)
     else if (/hydrat/i.test(text)) errors.push(`hydration ${message.type()}: ${text}`)
   })
   page.on('pageerror', (error) => errors.push(`uncaught ${error.message}`))
-  const res = await page.goto(new URL(pathname, base).href, { waitUntil: 'networkidle', timeout: NAV_TIMEOUT_MS })
+  page.on('response', (res) => {
+    if (res.status() >= 400 && new URL(res.url()).origin === origin) errors.push(`HTTP ${res.status()} for ${res.url()}`)
+  })
+  const res = await page.goto(new URL(pathname, base).href, { waitUntil, timeout: NAV_TIMEOUT_MS })
   if (res?.status() !== 200) fail(`${pathname}: answered ${res?.status()}, expected 200`)
   await page.evaluate(() => document.fonts.ready)
   const close = async () => {
@@ -232,7 +245,15 @@ async function checkLanding(browser, base, engine, pathname, codeFonts) {
 // Canary actions; a canary whose action is not available is reported as deferred, never passed.
 const ACTIONS = {
   none: { available: () => true, run: async () => {} },
-  'open-drawer': { available: () => false, deferredTo: '--pet' },
+  'open-drawer': { available: (groups) => groups.has('pet'), run: openDrawer, deferredTo: '--pet' },
+}
+
+// Click the pet and wait for holocron's chat drawer, the same click a visitor makes.
+async function openDrawer(page) {
+  const pet = page.locator('.genie-pet.is-visible')
+  await pet.waitFor({ timeout: PET_VISIBLE_MS })
+  await pet.click()
+  await page.locator('.holocron-chat-drawer-panel').waitFor({ timeout: DRAWER_MS })
 }
 
 async function checkCanaries(browser, base, groups) {
@@ -272,6 +293,101 @@ async function checkCanaries(browser, base, groups) {
     }
   }
   return { matched: runnable.length, deferred }
+}
+
+// One pass of activate (click or Enter) must open the drawer and a second one close it.
+async function checkToggle(page, pathname, how, activate) {
+  const pet = page.locator('.genie-pet')
+  const panel = page.locator('.holocron-chat-drawer-panel')
+  for (const [expanded, state] of [['true', 'visible'], ['false', 'detached']]) {
+    await activate(pet)
+    try {
+      await panel.waitFor({ state, timeout: DRAWER_MS })
+    } catch {
+      return fail(`${pathname}: ${how} did not ${expanded === 'true' ? 'open' : 'close'} the chat drawer`)
+    }
+    const aria = await pet.getAttribute('aria-expanded')
+    if (aria !== expanded) return fail(`${pathname}: after ${how} aria-expanded is ${aria}, expected ${expanded}`)
+  }
+}
+
+async function checkPetPage(browser, base, engine, pathname) {
+  const { page, html, close } = await openPage(browser, base, pathname, { waitUntil: 'load' })
+  try {
+    const htmlTags = html.match(/<html[\s>]/gi)?.length ?? 0
+    if (htmlTags !== 1) fail(`${pathname}: ${htmlTags} <html> elements in the document, expected 1`)
+    if (pathname === '/genie' && (await page.locator('[data-genie-hero]').count()) !== 1) fail('/genie: no lamp hero ([data-genie-hero])')
+    try {
+      await page.locator('.genie-pet.is-visible').waitFor({ timeout: PET_VISIBLE_MS })
+    } catch {
+      return fail(`${pathname}: no visible pet within ${PET_VISIBLE_MS / 1000}s`)
+    }
+    const pets = await page.locator('.genie-pet').count()
+    if (pets !== 1) fail(`${pathname}: ${pets} pets, expected 1`)
+    await page.screenshot({ path: path.join(SHOTS, `${engine}-pet-${slug(pathname)}.png`) })
+
+    await checkToggle(page, pathname, 'a click', (pet) => pet.click())
+    await checkToggle(page, pathname, 'Enter', async (pet) => {
+      await pet.focus()
+      await page.keyboard.press('Enter')
+    })
+
+    // Client navigation through the sidebar keeps the one pet and its link to the chat.
+    await page.evaluate(() => {
+      window.__uiCheckSameDocument = true
+    })
+    const link = page.locator('.slot-sidebar-nav a[href^="/"]:not([aria-current="page"]):not([href*="#"])').first()
+    const href = await link.getAttribute('href')
+    await link.click()
+    await page.waitForURL((url) => url.pathname === href, { timeout: NAV_TIMEOUT_MS })
+    await page.waitForTimeout(1_000)
+    if (!(await page.evaluate(() => window.__uiCheckSameDocument))) fail(`${pathname}: the sidebar link to ${href} reloaded the page`)
+    const after = await page.locator('.genie-pet').count()
+    const visible = await page.locator('.genie-pet.is-visible').count()
+    if (after !== 1 || visible !== 1) fail(`${pathname}: after navigating to ${href}, ${after} pets and ${visible} visible, expected 1 and 1`)
+    else await checkToggle(page, `${pathname} -> ${href}`, 'a click', (pet) => pet.click())
+  } catch (error) {
+    fail(`${pathname}: pet ${error.message.split('\n')[0]}`)
+  } finally {
+    await close()
+  }
+}
+
+async function checkPet(browser, base, engine) {
+  for (const pathname of PET_PAGES) await checkPetPage(browser, base, engine, pathname)
+
+  // Reduced motion: the hero shows its settled frame and the pet its neutral pose at once.
+  const reduced = await openPage(browser, base, '/genie', { waitUntil: 'load', reducedMotion: 'reduce' })
+  try {
+    await reduced.page.locator('.genie-pet.is-visible').waitFor({ timeout: PET_VISIBLE_MS })
+    const clip = await reduced.page.locator('.genie-pet').getAttribute('data-clip')
+    if (clip !== 'neutral') fail(`/genie with reduced motion: pet data-clip ${clip}, expected neutral`)
+  } catch (error) {
+    fail(`/genie with reduced motion: ${error.message.split('\n')[0]}`)
+  } finally {
+    await reduced.close()
+  }
+
+  // The drawer, open beside the docked pet.
+  const drawer = await openPage(browser, base, '/genie/quickstart', { waitUntil: 'load' })
+  try {
+    await openDrawer(drawer.page)
+    await drawer.page.waitForTimeout(1_500) // the pet docks beside the panel
+    await drawer.page.screenshot({ path: path.join(SHOTS, `${engine}-pet-drawer.png`) })
+  } catch (error) {
+    fail(`/genie/quickstart drawer: ${error.message.split('\n')[0]}`)
+  } finally {
+    await drawer.close()
+  }
+
+  // A route with no page still gets holocron's not-found document, and only one <html>.
+  const res = await fetch(new URL(NOT_FOUND_PAGE, base), { headers: { accept: 'text/html' }, redirect: 'manual' })
+  const body = await res.text()
+  const notFoundHtml = body.match(/<html[\s>]/gi)?.length ?? 0
+  if (res.status !== 404 || notFoundHtml !== 1 || !body.includes('Page not found'))
+    fail(`${NOT_FOUND_PAGE}: ${res.status} with ${notFoundHtml} <html> elements, expected 404 with holocron's not-found page`)
+
+  return `pet ${PET_PAGES.length} pages, reduced motion, 404 shell`
 }
 
 // True when anything accepts a TCP connection on the preview port, over IPv4 or IPv6.
