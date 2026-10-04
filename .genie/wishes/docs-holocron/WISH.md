@@ -54,7 +54,7 @@ Moves docs.automagik.dev from Mintlify to holocron on Cloudflare Workers for all
 | 12 | The only redirect is `/` to `/genie` (`"permanent": false`), as site navigation. There are no retired-URL redirects: the 49 pages PR #89 moved to `_internal` and any other old URL answer 404, and nothing is tested beyond navigation pages answering 200. holocron itself still answers `<page>/index` with a 308 to `<page>` (`app-factory.tsx:2154-2171`); that is built in, not configured here, and not checked. | Owner decision B (Felipe, 2026-10-04): "não quero fazer redirect, consider this a fresh start; we will revamp the other product docs later". The `/` rule is navigation, so it stays temporary in case a site landing page replaces it. |
 | 13 | `_internal` stays private by construction and is proven by the verify script. | holocron renders, zips (`/docs.zip`) and lists (`/llms.txt`) only navigation pages; the Worker serves only `dist/client`; the static-folder copy (decision 20) skips any `_internal` path. The spike's `docs.zip` held 41 files and none under `_internal`. |
 | 14 | `HOLOCRON_SKIP_BUILD_ERRORS` is never set anywhere. | The production build fails on MDX errors, broken links, invalid redirect destinations, broken assets and unresolved icons (`vite-plugin.ts:575-608`); that strict mode is the link check. It does not prove a referenced file is served, which is why decision 20 and the verify script exist. |
-| 15 | Mintlify's deployment does not track docs `main`, so merging this wish changes nothing on docs.automagik.dev until the cutover wish. This migration fixes that gap: from now on every push to `main` deploys. Before the first merge Felipe confirms that Mintlify still does not deploy from `main`. | Owner context (genie-launch design Decision 10; `genie` `.genie/wishes/genie-launch/WISH.md` OUT). It explains why the live site still serves the pre-#89 pages on 2026-10-04 (`/genie/workflows` 404, `/genie/cli/agents` 200) although #89 merged on 2026-10-03. |
+| 15 | Mintlify's deployment does not track docs `main`, so merging this wish changes nothing on docs.automagik.dev until the cutover wish. This migration fixes that gap: from now on every push to `main` deploys. No confirmation step is needed before the first merge. | Owner context (genie-launch design Decision 10; `genie` `.genie/wishes/genie-launch/WISH.md` OUT): Mintlify does not track docs `main`, and this migration is a fresh start (owner decision B, 2026-10-04). It explains why the live site still serves the pre-#89 pages on 2026-10-04 (`/genie/workflows` 404, `/genie/cli/agents` 200) although #89 merged on 2026-10-03. |
 | 16 | The CI token holds Account: Workers Scripts: Edit only, with no zone scope. Felipe creates it and stores it in bws as `CLOUDFLARE_DOCS_CI_TOKEN`; the orchestrator sets it, with `CLOUDFLARE_ACCOUNT_ID`, as secrets of Environment `production` only (deployment branch policy `main`, no reviewers). There are no repository secrets. | Plan review HIGH finding, fixed in `798983d`: repository secrets are readable by the workflow of any same-repo PR, which can edit `site.yml`, so the preview jobs' token was exposed to PR code. Custom domains are attached by the orchestrator with its OAuth token (decision 23), never by CI, so CI needs no DNS or route permission. |
 | 17 | No PR previews. PRs run only `build` and `verify`, with no secrets. `deploy` runs on pushes to `main` in Environment `production`: it downloads the `site-dist` artifact, which holds only `dist/`, runs `node scripts/check-deploy-config.mjs` on it, which refuses any drift of `dist/rsc/wrangler.json` from `scripts/expected-wrangler.json` and writes the deploy-config pointer itself, and then runs `npx --yes wrangler@4.147.0 deploy --name automagik-docs`. | Owner decision (Felipe, 2026-10-04: "Sem previews"). Plan review HIGH finding, fixed in `798983d`: wrangler follows the pointer in `.wrangler/deploy/config.json` and runs any `build.command` the config names with the deploy token in its environment, so an artifact built from PR code could run code with the token; the artifact no longer carries the pointer, the guard pins the config, and `--name` pins the Worker. The `versions upload --preview-alias` fallback is gone with the previews. |
 | 18 | holocron's footer attribution stays, set through `poweredBy` to `{ "name": "Holocron", "url": "https://holocron.so" }`. | holocron is MIT and asks to keep the link. Without `poweredBy` the default link is built from `holocronUrl()` and would point at the gateway (`footer.tsx:251-253`). A link is not a service in the chat path. |
@@ -265,9 +265,9 @@ _What must be verified on dev after merge. The QA agent tests each criterion._
 
 | Risk | Severity | Mitigation |
 |------|----------|------------|
-| Mintlify starts deploying `main` with holocron files before cutover | Low | Its deployment does not track `main` (decision 15); Felipe confirms before the first merge; Group 3 checks Mintlify headers after the merge. |
+| Mintlify starts deploying `main` with holocron files before cutover | Low | Its deployment does not track `main` (decision 15; genie-launch design Decision 10), so no confirmation is needed; Group 3 checks Mintlify headers after the merge. |
 | The generated deploy config drifts after a dependency or config change | Medium | The `build` job runs the drift check on every PR; the change regenerates `scripts/expected-wrangler.json` with `--write` in the same PR (global constraint). |
-| Any merge into `main` deploys with no reviewer | Medium | Owner decision 24; merges go through PRs that pass `build` and `verify`; a bad deploy is undone by reverting and merging. |
+| Any merge into `main` deploys with no reviewer | Medium | Owner decision 24; merges go through PRs that pass `build` and `verify`; a bad deploy is undone by reverting and merging. Accepted risk: with 0 approvals, anyone with push access (15 accounts) can merge their own PR and run the deploy with the account-wide token, which can also redeploy the chat gateway; Felipe accepted this to avoid bureaucracy (2026-10-04). |
 | Old links to retired pages or `/rlmx` break after cutover | Low | Owner decisions B and D: a fresh start; the other products' docs are revamped later. `/x/index` forms keep working through holocron's built-in 308 (decision 12). |
 | A new page references a static root outside the five copied ones | Medium | The verify script checks every referenced file on every page, so the build of that PR fails until the root is added. |
 | A holocron upgrade changes routing or redirects | Medium | Exact pins and lockfile; upgrades are separate PRs gated by the verify script. |
@@ -278,6 +278,33 @@ _What must be verified on dev after merge. The QA agent tests each criterion._
 ## Review Results
 
 _The read-only reviewer returns evidence; the invoking orchestrator appends a timestamped block here after plan, execution, and PR reviews._
+
+### 2026-10-04: plan reviews
+
+- Round 1: all five wishes FIX-FIRST (assets 404, Workers Paid, preview token, soft spend cap, IPv6, CNAME gap).
+- Round 2: three wishes FIX-FIRST (artifact hidden files, gateway deploy, canary order).
+- Round 3: SHIP on all five.
+- After the owner simplifications (no redirects, no per-IP limit), cutover was FIX-FIRST on `/rlmx` in the scripts, then SHIP.
+
+### 2026-10-04: Group 1 (`b2aa785`), SHIP
+
+- 11 files, one token each, all names free FA6; the strict build passes.
+
+### 2026-10-04: Group 2 (`2cd4b0e`, `ad7e021`), FIX-FIRST then SHIP
+
+- Finding: plan drift on the gateway origin, fixed in `95af708`. Two LOW findings also fixed: the `_internal` copy filter and the busy-port refusal.
+- Validation: 8 of 8 lines pass; 41 pages answer 200, 59 referenced files answer 200, the 4 `_internal` paths answer 404.
+- Mutation checks: 11 mutated copies all fail `verify-site` for the right reason.
+- Dry run: 182 assets, about 1.2 MB gzipped.
+- Plan fixes: `ef5f859` (the grep excludes `.genie/`) and `38bfb57` (no session paths in the plan).
+
+### 2026-10-04: Group 3 (`099212b`, `798983d`), FIX-FIRST then SHIP
+
+- `099212b`, FIX-FIRST, two HIGH findings: wrangler ran a `build.command` from the artifact's config with the deploy token (proved with a PoC); the repository secret was exposed to the 15 accounts with push access.
+- Owner decision: no previews.
+- `798983d`: deploy guard (`check-deploy-config.mjs` plus `expected-wrangler.json`, `--name automagik-docs`, artifact holds `dist/` only); preview jobs removed. `b0a0c8f` updated the plan.
+- Re-review, SHIP: poisoned-artifact variants (`build` nested or reordered, whitespace, escapes, BOM, symlinks, `__proto__`, duplicate keys) are refused before wrangler runs, and a clean artifact passes; all 15 local validation lines and actionlint plus shellcheck pass; live settings: Environment `production` is `main`-only with no secrets yet, no repository or organization secrets, minimal `main` protection.
+- Deferred: Workers Paid, the production secrets, the first deploy.
 
 ---
 
