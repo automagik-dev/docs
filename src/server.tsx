@@ -4,6 +4,7 @@
 import { app as holocronApp } from '@holocron.so/vite/app'
 import { Spiceflow } from 'spiceflow'
 import { GeniePet } from '../components/genie-pet.tsx'
+import { ProductBrand } from '../components/product-brand.tsx'
 import docs from '../docs.json'
 // holocron imports a root style.css only from its own default entry, so a custom entry
 // imports it here, after holocron's styles.
@@ -70,11 +71,13 @@ async function productMarks({ request }: { request: Request }, next: () => Promi
 // one. On a 404 every layout gets null children and only the outermost renders, which would
 // replace holocron's not-found page with an empty document. Mounted after holocron, this
 // layout is the innermost one: it wraps each page inside holocron's shell and stays out of
-// the 404 root. GeniePet renders nothing and mounts the pet on document.body.
+// the 404 root. GeniePet and ProductBrand render nothing: one mounts the pet on document.body,
+// the other the product logo menu.
 const siteLayout = new Spiceflow().layout('/*', ({ children }) => (
   <>
     {children}
     <GeniePet />
+    <ProductBrand />
   </>
 ))
 

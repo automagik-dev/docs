@@ -4,20 +4,28 @@
 //   node scripts/ui-check.mjs <base-url> [flags]   check a running site (local or deployed)
 //   node scripts/ui-check.mjs --serve [flags]      start `vite preview` on port 4174, check it, stop it
 //
-// Flags: --engine chromium|firefox|webkit (default chromium); --pet and --meta add those
-// groups; --all runs every check group this script knows. The brand group always runs: on
-// /genie, /omni and /rlmx at 1440x900 it checks the body surface, text color and font, the code font, --primary,
-// and that the header and footer logos carry no filter; it then runs every CSS canary whose
-// action is available. The pet group, on two pages per product, checks that exactly one pet
-// shows and stays through client navigation, that a click or Enter on it opens holocron's chat
-// drawer and a second one closes it, the lamp hero on /genie, the neutral pose under reduced
-// motion, and one <html> per document; it also makes the open-drawer canaries available.
+// Flags: --engine chromium|firefox|webkit (default chromium); --pet, --meta and --products add
+// those groups; --all runs every check group this script knows. The brand group always runs: on
+// /genie, /omni and /rlmx at 1440x900 it checks the body surface, text color and font, the code
+// font, --primary, and that the header and footer logos carry no filter; it then runs every CSS
+// canary whose action is available. The pet group, on two pages per product, checks that
+// exactly one pet shows and stays through client navigation, that a click or Enter on it opens
+// holocron's chat drawer and a second one closes it, the lamp hero on /genie, the neutral pose
+// under reduced motion, and one <html> per document; it also makes the open-drawer canaries
+// available.
 // Every page fails on a console error, a hydration warning or a same-origin HTTP error.
 // The meta group reads the raw HTML of one deep page per docs.json product: <html data-product>
 // names the product, the logo-link head script is there once, and exactly one og:image and one
 // twitter:image point at the product's logo on the site's own origin, which answers 200 with
 // the PNG in public/brand/; no meta tag points at the chat gateway, and the page's RSC payload
-// carries none of the HTML rewrites.
+// carries none of the HTML rewrites. The products group, on the same deep pages: the header
+// logos differ pairwise and the footer's (AUTOMAGIK) differs from Genie's, no header, footer or
+// switcher logo carries a filter, the native "Select section" pill is hidden and one logo menu
+// shows instead, listing every product by its logo with the current one selected; Omni chosen
+// by mouse and then mikro by keyboard navigate without a reload and swap data-product and the
+// header logo; and on each product's deep page a click on the header logo lands on that
+// product's folder URL, once before hydration (every built script answered as an empty module)
+// and once after it.
 //
 // Canaries: each rule in style.css that reaches into holocron's markup carries a
 // `/* holocron-internal: <id> */` tag, and CANARIES holds one entry per tag. A canary's
@@ -41,6 +49,7 @@ const SHOTS = path.join(ROOT, '.ui-check')
 const PREVIEW_PORT = 4174
 const VIEWPORT = { width: 1440, height: 900 }
 const NAV_TIMEOUT_MS = 60_000
+const QUIET_MS = 500 // Playwright's networkidle window
 const ENGINES = { chromium, firefox, webkit }
 const LANDINGS = ['/genie', '/omni', '/rlmx']
 const PET_PAGES = ['/genie', '/genie/quickstart', '/omni', '/omni/quickstart', '/rlmx', '/rlmx/quickstart']
@@ -59,6 +68,7 @@ const PRODUCTS = DOCS.navigation.products.map(({ product, groups }) => {
   const deep = pages.includes(`${folder}/quickstart`) ? `/${folder}/quickstart` : `/${pages[1]}`
   return { name: product, slug: product.toLowerCase(), landing, folderUrl: landing.replace(/\/index$/, ''), deep }
 })
+const productPage = (slug) => PRODUCTS.find((product) => product.slug === slug)?.folderUrl ?? `/no-product-${slug}`
 const GATEWAY_ORIGIN = fs.readFileSync(path.join(ROOT, 'vite.config.ts'), 'utf8').match(/GATEWAY_ORIGIN = '([^']+)'/)?.[1]
 
 const BRAND = {
@@ -142,6 +152,9 @@ const CANARIES = [
     action: 'none',
   },
   { id: 'logo', selector: '.slot-logo img', page: '/genie', action: 'none' },
+  { id: 'logo-omni', selector: 'html[data-product="omni"] .slot-logo img', page: productPage('omni'), action: 'none' },
+  { id: 'logo-mikro', selector: 'html[data-product="mikro"] .slot-logo img', page: productPage('mikro'), action: 'none' },
+  { id: 'switcher-pill', selector: 'div:has(> select[data-genie-logos])', page: productPage('genie'), action: 'switcher' },
   { id: 'chat-drawer-panel', selector: '.holocron-chat-drawer-panel', page: '/genie', action: 'open-drawer' },
   { id: 'chat-inline-code', selector: '.slot-aside', page: '/genie', action: 'none' },
   { id: 'chat-link', selector: '.holocron-chat-drawer-messages', page: '/genie', action: 'open-drawer' },
@@ -149,7 +162,7 @@ const CANARIES = [
 ]
 
 // Optional check groups, each also run by --all. Later wishes add theirs here.
-const GROUPS = { pet: { run: checkPet }, meta: { run: checkMeta } }
+const GROUPS = { pet: { run: checkPet }, meta: { run: checkMeta }, products: { run: checkProducts } }
 
 const failures = []
 const fail = (line) => failures.push(line)
@@ -197,8 +210,9 @@ function checkTags() {
 
 const slug = (pathname) => pathname.replace(/^\//, '').replaceAll('/', '-') || 'root'
 
-async function openPage(browser, base, pathname, { waitUntil = 'networkidle', ...contextOptions } = {}) {
+async function openPage(browser, base, pathname, { waitUntil = 'networkidle', prepare, ...contextOptions } = {}) {
   const context = await browser.newContext({ viewport: VIEWPORT, ...contextOptions })
+  await prepare?.(context)
   const page = await context.newPage()
   const errors = []
   const origin = new URL(base).origin
@@ -211,7 +225,24 @@ async function openPage(browser, base, pathname, { waitUntil = 'networkidle', ..
   page.on('response', (res) => {
     if (res.status() >= 400 && new URL(res.url()).origin === origin) errors.push(`HTTP ${res.status()} for ${res.url()}`)
   })
-  const res = await page.goto(new URL(pathname, base).href, { waitUntil, timeout: NAV_TIMEOUT_MS })
+  // Playwright's networkidle never comes in Firefox on a page with a <video>: Firefox keeps the
+  // media request open once it has buffered enough. So 'networkidle' here is load, then the same
+  // quiet window over every request but media, in every engine.
+  const inflight = new Set()
+  page.on('request', (req) => req.resourceType() !== 'media' && inflight.add(req))
+  page.on('requestfinished', (req) => inflight.delete(req))
+  page.on('requestfailed', (req) => inflight.delete(req))
+  const idle = waitUntil === 'networkidle'
+  const res = await page.goto(new URL(pathname, base).href, { waitUntil: idle ? 'load' : waitUntil, timeout: NAV_TIMEOUT_MS })
+  if (idle) {
+    const deadline = Date.now() + NAV_TIMEOUT_MS
+    let quietSince = Date.now()
+    while (Date.now() - quietSince < QUIET_MS) {
+      if (Date.now() > deadline) throw new Error(`${pathname}: the network never went quiet`)
+      if (inflight.size) quietSince = Date.now()
+      await new Promise((resolve) => setTimeout(resolve, 50))
+    }
+  }
   if (res?.status() !== 200) fail(`${pathname}: answered ${res?.status()}, expected 200`)
   await page.evaluate(() => document.fonts.ready)
   const close = async () => {
@@ -244,7 +275,8 @@ async function checkLanding(browser, base, engine, pathname, codeFonts) {
     if (!/^"?Geist"?(,|$)/.test(seen.font)) fail(`${pathname}: body font-family ${seen.font}, expected Geist first`)
     if (seen.code !== null) {
       codeFonts.push(pathname)
-      if (!seen.code.startsWith('"JetBrains Mono"')) fail(`${pathname}: pre code font-family ${seen.code}, expected "JetBrains Mono" first`)
+      // WebKit serializes family names without quotes, as the body check above allows.
+      if (!/^"?JetBrains Mono"?(,|$)/.test(seen.code)) fail(`${pathname}: pre code font-family ${seen.code}, expected "JetBrains Mono" first`)
     }
     if (seen.primary.toLowerCase() !== BRAND.primary) fail(`${pathname}: --primary ${seen.primary}, expected ${BRAND.primary}`)
     if (!seen.header) fail(`${pathname}: no header logo (.slot-logo img)`)
@@ -264,6 +296,7 @@ async function checkLanding(browser, base, engine, pathname, codeFonts) {
 const ACTIONS = {
   none: { available: () => true, run: async () => {} },
   'open-drawer': { available: (groups) => groups.has('pet'), run: openDrawer, deferredTo: '--pet' },
+  switcher: { available: () => true, run: (page) => page.locator(SWITCHER).waitFor({ timeout: SWITCHER_MS }) },
 }
 
 // Click the pet and wait for holocron's chat drawer, the same click a visitor makes.
@@ -406,6 +439,187 @@ async function checkPet(browser, base, engine) {
     fail(`${NOT_FOUND_PAGE}: ${res.status} with ${notFoundHtml} <html> elements, expected 404 with holocron's not-found page`)
 
   return `pet ${PET_PAGES.length} pages, reduced motion, 404 shell`
+}
+
+// components/product-brand.tsx mounts after load and polls up to 15 s for hydration.
+const SWITCHER = '.slot-navbar .genie-switcher'
+const SWITCHER_MS = 20_000
+const HEADER_LOGO = '.slot-logo img'
+const FOOTER_LOGO = 'footer img[src$="/brand/genie-logo.png"]'
+const SWAP_MS = 5_000
+
+// The locator's screenshot once it differs from `from`, or null after SWAP_MS.
+async function changedShot(locator, from) {
+  const deadline = Date.now() + SWAP_MS
+  do {
+    const shot = await locator.screenshot()
+    if (!shot.equals(from)) return shot
+    await new Promise((resolve) => setTimeout(resolve, 200))
+  } while (Date.now() < deadline)
+  return null
+}
+
+async function checkProductPage(browser, base, engine, product, shots) {
+  const where = product.deep
+  const { page, close } = await openPage(browser, base, where, { waitUntil: 'load' })
+  try {
+    await page.locator(SWITCHER).waitFor({ timeout: SWITCHER_MS })
+    const seen = await page.evaluate(
+      ({ header, footer }) => {
+        const shown = (el) => el.getClientRects().length > 0 && getComputedStyle(el).visibility !== 'hidden'
+        const filter = (el) => (el ? getComputedStyle(el).filter : 'missing')
+        return {
+          product: document.documentElement.getAttribute('data-product'),
+          header: filter(document.querySelector(header)),
+          footer: filter(document.querySelector(footer)),
+          switcher: [...document.querySelectorAll('.genie-switcher img')].map(filter),
+          pills: [...document.querySelectorAll('.slot-navbar select[aria-label="Select section"]')].filter(shown).length,
+          switchers: [...document.querySelectorAll('.slot-navbar .genie-switcher')].filter(shown).length,
+        }
+      },
+      { header: HEADER_LOGO, footer: FOOTER_LOGO },
+    )
+    if (seen.product !== product.slug) fail(`${where}: data-product ${seen.product}, expected ${product.slug}`)
+    if (seen.header !== 'none') fail(`${where}: header logo filter ${seen.header}, expected none`)
+    if (seen.footer !== 'none') fail(`${where}: footer logo filter ${seen.footer}, expected none`)
+    const filtered = seen.switcher.filter((value) => value !== 'none')
+    if (seen.switcher.length === 0 || filtered.length) fail(`${where}: switcher logo filters ${seen.switcher.join(', ') || 'none found'}, expected none`)
+    if (seen.pills !== 0) fail(`${where}: the native Select section pill shows`)
+    if (seen.switchers !== 1) fail(`${where}: ${seen.switchers} header logo menus show, expected 1`)
+    await page.screenshot({ path: path.join(SHOTS, `${engine}-products-${product.slug}.png`) })
+    shots.header.set(product.slug, await page.locator(HEADER_LOGO).screenshot())
+    if (product === PRODUCTS[0]) {
+      const footer = page.locator(FOOTER_LOGO)
+      shots.footer = await footer.screenshot()
+      await footer.scrollIntoViewIfNeeded()
+      await page.screenshot({ path: path.join(SHOTS, `${engine}-products-footer.png`) })
+    }
+
+    // The open menu: every product by its logo, alt text its name, the current one selected.
+    await page.locator(`${SWITCHER} .genie-switcher__button`).click()
+    const menu = page.locator(`${SWITCHER} .genie-switcher__menu`)
+    await menu.waitFor({ timeout: SWAP_MS })
+    const options = await menu.locator('[role="option"]').evaluateAll((items) =>
+      items.map((li) => ({ alt: li.querySelector('img')?.getAttribute('alt'), selected: li.getAttribute('aria-selected') })),
+    )
+    const alts = options.map((option) => option.alt).join(', ')
+    const names = PRODUCTS.map((entry) => entry.name).join(', ')
+    if (alts !== names) fail(`${where}: menu logos ${alts}, expected ${names}`)
+    const selected = options.filter((option) => option.selected === 'true').map((option) => option.alt)
+    if (selected.join() !== product.name) fail(`${where}: menu selects ${selected.join(', ') || 'nothing'}, expected ${product.name}`)
+    await page.screenshot({ path: path.join(SHOTS, `${engine}-products-switcher-${product.slug}.png`) })
+  } catch (error) {
+    fail(`${where}: products ${error.message.split('\n')[0]}`)
+  } finally {
+    await close()
+  }
+}
+
+// After a choice in the menu: the same document, on the product's pages, its logo in the header.
+async function checkSwitched(page, product, how, before) {
+  const where = `${how} to ${product.name}`
+  await page.waitForURL((url) => url.pathname === product.folderUrl || url.pathname.startsWith(`${product.folderUrl}/`), {
+    timeout: NAV_TIMEOUT_MS,
+  })
+  if (!(await page.evaluate(() => window.__uiCheckSameDocument))) fail(`${where}: the page reloaded`)
+  try {
+    await page.waitForFunction((slug) => document.documentElement.getAttribute('data-product') === slug, product.slug, {
+      timeout: SWAP_MS,
+    })
+  } catch {
+    fail(`${where}: data-product stayed ${await page.evaluate(() => document.documentElement.getAttribute('data-product'))}`)
+  }
+  const shot = await changedShot(page.locator(HEADER_LOGO), before)
+  if (!shot) fail(`${where}: the header logo did not change`)
+  const switchers = await page.locator(SWITCHER).count()
+  if (switchers !== 1) fail(`${where}: ${switchers} header logo menus, expected 1`)
+  return shot ?? before
+}
+
+async function checkSwitching(browser, base, engine) {
+  const [from, byMouse, byKeyboard] = PRODUCTS
+  if (!byKeyboard) return fail(`docs.json: ${PRODUCTS.length} products, the switching check needs 3`)
+  const { page, close } = await openPage(browser, base, from.deep, { waitUntil: 'load' })
+  try {
+    await page.locator(SWITCHER).waitFor({ timeout: SWITCHER_MS })
+    await page.evaluate(() => {
+      window.__uiCheckSameDocument = true
+    })
+    let shot = await page.locator(HEADER_LOGO).screenshot()
+    await page.locator(`${SWITCHER} .genie-switcher__button`).click()
+    await page.locator(`${SWITCHER} [role="option"]:has(img[alt="${byMouse.name}"])`).click()
+    shot = await checkSwitched(page, byMouse, 'mouse', shot)
+
+    // ArrowDown opens the menu on the current product; each further ArrowDown moves one down.
+    await page.locator(`${SWITCHER} .genie-switcher__button`).focus()
+    await page.keyboard.press('ArrowDown')
+    for (let i = PRODUCTS.indexOf(byMouse); i < PRODUCTS.indexOf(byKeyboard); i++) await page.keyboard.press('ArrowDown')
+    await page.keyboard.press('Enter')
+    await checkSwitched(page, byKeyboard, 'keyboard', shot)
+    await page.screenshot({ path: path.join(SHOTS, `${engine}-products-switched.png`) })
+  } catch (error) {
+    fail(`switching from ${from.deep}: ${error.message.split('\n')[0]}`)
+  } finally {
+    await close()
+  }
+}
+
+// A click on the header logo of a product's deep page lands on that product's folder URL with a
+// clean query. Before hydration every built script answers as an empty module, so nothing
+// hydrates and only the inline head script can route the click; after hydration the click goes
+// through spiceflow's router, in the same document.
+async function checkLogoLink(browser, base, engine, product, phase) {
+  const where = `${product.deep} logo (${phase})`
+  let holding = phase === 'before hydration'
+  const prepare = (context) =>
+    context.route(/\/assets\/[^?#]*\.js(?:[?#]|$)/, (route) =>
+      holding ? route.fulfill({ status: 200, contentType: 'text/javascript', body: '' }) : route.continue(),
+    )
+  const waitUntil = holding ? 'domcontentloaded' : 'load'
+  const { page, close } = await openPage(browser, base, product.deep, { waitUntil, prepare })
+  try {
+    if (holding) {
+      const state = await page.evaluate(() => ({ landings: !!window.__genieProductLandings, navigate: typeof window.__genieNavigate }))
+      if (!state.landings || state.navigate !== 'undefined') fail(`${where}: expected the head script alone, saw ${JSON.stringify(state)}`)
+      holding = false
+    } else {
+      await page.locator(SWITCHER).waitFor({ timeout: SWITCHER_MS })
+      const href = await page.locator('a.slot-logo').getAttribute('href')
+      if (href !== product.landing) fail(`${where}: logo href ${href}, expected ${product.landing}`)
+      await page.evaluate(() => {
+        window.__uiCheckSameDocument = true
+      })
+    }
+    await page.locator('.slot-logo').click()
+    await page.waitForURL((url) => url.pathname === product.folderUrl, { timeout: NAV_TIMEOUT_MS })
+    await page.waitForLoadState('load')
+    const url = new URL(page.url())
+    if (url.search || url.hash) fail(`${where}: landed on ${url.pathname}${url.search}${url.hash}, expected ${product.folderUrl}`)
+    const marked = await page.evaluate(() => document.documentElement.getAttribute('data-product'))
+    if (marked !== product.slug) fail(`${where}: landed with data-product ${marked}, expected ${product.slug}`)
+    if (phase === 'after hydration' && !(await page.evaluate(() => window.__uiCheckSameDocument))) fail(`${where}: the click reloaded the page`)
+    await page.screenshot({ path: path.join(SHOTS, `${engine}-products-logo-${product.slug}-${phase.replace(' ', '-')}.png`) })
+  } catch (error) {
+    fail(`${where}: ${error.message.split('\n')[0]}`)
+  } finally {
+    await close()
+  }
+}
+
+async function checkProducts(browser, base, engine) {
+  const shots = { header: new Map(), footer: null }
+  for (const product of PRODUCTS) await checkProductPage(browser, base, engine, product, shots)
+  const headers = [...shots.header]
+  headers.forEach(([slug, shot], i) => {
+    for (const [other, otherShot] of headers.slice(i + 1))
+      if (shot.equals(otherShot)) fail(`products: the ${slug} and ${other} header logos look the same`)
+  })
+  const first = shots.header.get(PRODUCTS[0].slug)
+  if (shots.footer && first?.equals(shots.footer)) fail(`products: the footer logo looks like the ${PRODUCTS[0].slug} header logo`)
+  await checkSwitching(browser, base, engine)
+  for (const product of PRODUCTS)
+    for (const phase of ['before hydration', 'after hydration']) await checkLogoLink(browser, base, engine, product, phase)
+  return `products ${PRODUCTS.map((product) => product.slug).join(', ')}: logos, menu, switching, logo link`
 }
 
 const attribute = (tag, name) =>
