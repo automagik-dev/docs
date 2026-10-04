@@ -124,7 +124,7 @@ Starts after `docs-holocron-products` merges, because Group 2 edits the `src/ser
 6. `gateway/src/chat-bash-tool.ts`: the snapshot's file, with each command's output truncated to `MAX_TOOL_BYTES`.
 7. `gateway/src/index.ts`: Spiceflow app with the snapshot's routes, request schema, notices and streaming loop; routing first (unknown paths 404), then the bearer check on `/api/chat*` (401), then the body size (413), then `splitSystem` (400 on a stray `system` message), then `CHAT_GLOBAL_LIMITER.limit({ key: 'all' })` (rate-limit notice), then `ledger.reserve(day, worstCaseUsd(...), cap)` (budget notice "The docs assistant has used today's budget. Please try again tomorrow." when refused), then the turn with `maxOutputTokens` and `stopWhen: stepCountIs(MAX_STEPS)`, then `ledger.settle(id, measuredUsd)` in `finally`, and one log line with tokens, reserved and measured cost; `export default { fetch }` and `export { SpendLedger }`.
 8. `gateway/src/policy.test.ts` (vitest): the bearer accepts the exact token and rejects missing, wrong, prefixed and different-length values; the allowlist accepts `https://api.deepseek.com/chat/completions` and the listed origins and rejects `http://api.deepseek.com`, `https://api.deepseek.com.evil.example`, `https://api.deepseek.com@evil.example`, other hosts and ports; with a stub `fetch` that answers 302 to `https://evil.example/`, the allowlisted fetch passes `redirect: 'manual'`, throws, and never requests the second host; `usageCost` matches peak and off-peak rates; `dropInternal` removes `genie/_internal/...` entries; `splitSystem` accepts one leading `system` message and rejects a second one anywhere; the handler with a ledger that refuses returns the budget notice and never calls the provider.
-9. `gateway/src/ledger.test.ts` (vitest): `worstCaseUsd` grows with body size and bounds and is never below the measured cost of the spike's logged turns; serial reservations stop at the cap; 200 concurrent `reserve` calls (`Promise.allSettled`) at a $2 cap accept a set whose total is at most $2; settling below the reservation frees the difference; an expired reservation is released; a settle above the reservation is recorded and logged.
+9. `gateway/src/ledger.test.ts` (vitest): `worstCaseUsd` grows with body size and bounds and is never below the measured cost of the spike's logged turns; serial reservations stop at the cap; 200 concurrent `reserve` calls (`Promise.allSettled`) at a $2 cap accept a set whose total is at most $2; settling below the reservation frees the difference; an expired reservation is charged in full (fail closed: a turn that never settles still counts), and a late settle adds only the excess over the reservation; a settle above the reservation is recorded and logged.
 
 **Interfaces:**
 - Consumes: none from other groups.
@@ -253,6 +253,36 @@ _What must be verified on dev after merge. The QA agent tests each criterion._
 ## Review Results
 
 _The read-only reviewer returns evidence; the invoking orchestrator appends a timestamped block here after plan, execution, and PR reviews._
+
+### Group 1 execution review — 2026-10-04
+
+**Round 0 (9152987): FIX-FIRST.** Independent reviewer, read-only, on a `git archive` copy: `npm ci`, `npm run check` 44/44, dry run exit 0, the three grep gates pass. Findings:
+- HIGH: the AI SDK downloaded `file`/`image` part URLs with the global fetch, around the decision 8 allowlist and following redirects. Proven on workerd: an httpbin redirect answered 418 with no `outbound` line.
+- MEDIUM: an expired reservation was dropped uncharged, and a turn had no time bound.
+- LOW: the SDK's default `console.error` dumped the whole APICallError.
+- LOW: the bash tool and the parse-error log quoted visitor and model text.
+
+**Repair round 1 (46bac5f).**
+- Any part other than text, tool-call or tool-result gets 400 inside `splitSystem`'s pass, as does a `content` tool output.
+- `experimental_download` refuses all downloads.
+- An expired reservation is charged in full. The reservation id carries the reserved micros, so a late settle adds only the excess.
+- The turn is bound by `AbortSignal.any([abort, AbortSignal.timeout(TTL/2)])`.
+- A custom `onError` logs name and status only; the bash log carries the command name and length only.
+- `npm run check` 48/48, dry run exit 0. The reviewer's download probe now gets 400 with no outbound.
+- Deliverable 9 is reworded above to match: expired reservations are charged, not released.
+
+**Re-review (46bac5f): SHIP.**
+- HIGH closed: 26 live requests on `wrangler dev`. 13 bypass shapes got 400; the 5 the SDK ignores started turns with outbound only to `api.deepseek.com`. In a unit test, 17 shapes made zero global-fetch calls. A mutant without the part check still refused every download.
+- MEDIUM closed:
+  - expiry plus late settle charges exactly `max(reserved, measured)` once;
+  - days are isolated, and concurrent reservations near the cap hold;
+  - the reservation id never reaches the client;
+  - the turn bound cut a hung provider at about 1 s in a mutant with a short TTL.
+- No regression: the token gate is first, the streaming 413 holds, `redirect: 'manual'` and the caps are unchanged, there is no IP header, and a 3-turn round trip with a client tool works.
+- Remaining LOW, carried into Group 2: the `toUIMessageStream` `onError` (`gateway/src/index.ts:417-421`, `:441`, `:447`) still logs `err.message`. That text can quote a model-written tool input (tool-input errors) or DeepSeek's masked key text. Fix: log `name` and `statusCode` only.
+- Evidence: the orchestrator's scratchpad, `review-chat-g1/`, `repair-chat-g1/probe/` and `rereview-chat-g1/`.
+
+**Routed here from the docs-holocron-brand review (LOW):** `components/genie-pet.tsx:380-387` reads `failed` from message notices only. Subscribe to `errorMessage` from `src/chat/chat-store.ts` too, so a transport error plays `failed`. This is carried into Group 2.
 
 ---
 
