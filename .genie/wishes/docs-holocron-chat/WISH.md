@@ -287,6 +287,33 @@ _The read-only reviewer returns evidence; the invoking orchestrator appends a ti
 
 ---
 
+### Group 2 execution review — 2026-10-04 (independent reviewer, read-only, 92bd81f..886e093)
+
+**SHIP.** All deliverables and acceptance criteria pass, and the Validation block passes line by line. Routed items A (logs carry name and status only) and B (the pet plays `failed` on a transport error) are closed. Each has a mutant that fails on the pre-fix code.
+
+- **Guard bypass: none found.** 192 raw requests went to a probe build whose holocron points at a recorder.
+  - Every path spelling that reaches the chat handler gets 413 or 400 from the guard: `.rsc`, `?__rsc`, `/./`, `/x/../`, `%2e`, absolute form, a foreign Host, chunked bodies.
+  - The other spellings answer 404 before the handler: case, `;params`, `%2F`, `%00`, a trailing dot.
+  - 65,536 bytes pass and 65,537 get 413, multibyte bodies included.
+  - Compressed bodies get 400. Content-Length mismatches are refused.
+- **Workflows.**
+  - `chat.yml` has `contents: read`, `persist-credentials: false` and no `pull_request_target`. Its secrets sit only in the deploy step.
+  - The deploy runs only on a push to main, in `production`; that environment allows only main, and the secrets are scoped to it.
+  - The actions are pinned by SHA, and actionlint reports 0 errors.
+  - The `site.yml` `paths-ignore` changes no trust property.
+- **Rulings agreed:** the default checkout of the pushed SHA, and `npx --yes wrangler@4.147.0` in the deploy step.
+- **Local risk:** after a site build, `../.wrangler/deploy/config.json` breaks a `wrangler deploy` run inside `gateway/`. CI is unaffected (fresh checkout, no site build); `--config wrangler.jsonc` avoids it locally.
+- **Regression:** strict build, verify, `--chat-guard`, `check-deploy-config`, `ui-check --all`, gateway 50/50 and the dry run all pass. The merge with main is clean.
+- **LOW, routed to the polish follow-up:** browser text can still reach the system prompt through `currentSlug` (and `toolSchemas[].name`/`.description`), which holocron puts into its prompt unescaped. `pageSlug` is unbounded and logged verbatim.
+  - Impact is limited to the visitor's own conversation: the cap, bounds and allowlist hold.
+  - Fix:
+    - the guard refuses a `currentSlug` outside `^/[A-Za-z0-9/_.-]{0,200}$`;
+    - the gateway uses `pageSlug` `max(200)` and logs it as JSON;
+    - ruling: refuse a non-empty `toolSchemas` or `context`, since the site registers neither.
+- `84c4e61` (cap 10.00 + Group 3 record) landed after this review; it is an owner-decided config value plus WISH text.
+
+---
+
 ### Group 3 provisioning — 2026-10-04 (orchestrator; owner approval "Pode subir" and cap "$10/dia" through the question harness)
 
 **Secrets and deploy**

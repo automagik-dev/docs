@@ -76,4 +76,12 @@ jobs:
         run: npx --yes wrangler@4.147.0 deploy --name automagik-docs
       - run: |
           curl -fsS --retry 10 --retry-delay 6 --retry-all-errors -o /dev/null https://automagik-docs.felipehowit.workers.dev/genie
-          node scripts/verify-site.mjs https://automagik-docs.felipehowit.workers.dev
+          # While a deploy rolls out, requests are answered by the previous or the new version, so a
+          # page and its hashed assets can come from different versions and 404. Retry across that window.
+          for attempt in 1 2 3 4 5 6; do
+            node scripts/verify-site.mjs https://automagik-docs.felipehowit.workers.dev && exit 0
+            [ "$attempt" -lt 6 ] || break
+            echo "verify-site: attempt $attempt failed, retrying in 15s"
+            sleep 15
+          done
+          exit 1
