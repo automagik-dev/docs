@@ -1,24 +1,20 @@
 ---
 title: "Configuration"
 sidebarTitle: "Configuration"
-description: ".rlmx/ directory layout, rlmx.yaml format, config commands, and settings priority."
+description: ".mikro/ directory layout, mikro.yaml format, config commands, and settings priority."
 ---
 
 # Configuration
 
-RLMX uses a layered configuration system. Configuration lives in the `.rlmx/` directory at your project root.
+mikro uses a layered configuration system. Configuration lives in the `.mikro/` directory at your project root.
 
-<Warning>
-  **Breaking change (v0.260331+):** RLMX now requires the `.rlmx/` directory layout. Projects using the old flat-file `rlmx.yaml` in the project root must re-run `rlmx init` to migrate.
-</Warning>
+## `.mikro/` directory
 
-## `.rlmx/` directory
-
-Run `rlmx init` to scaffold the config directory. Choose a template with `--template default` (general-purpose) or `--template code` (code analysis).
+Run `mikro init` to scaffold the config directory. Choose a template with `--template default` (general-purpose) or `--template code` (code analysis).
 
 ```text
-.rlmx/
-├── rlmx.yaml       # Main configuration (model, budget, context, storage)
+.mikro/
+├── mikro.yaml       # Main configuration (model, budget, context, storage)
 ├── SYSTEM.md        # System prompt used by the RLM loop
 ├── CRITERIA.md      # Output criteria for quality checks
 └── TOOLS.md         # Custom Python tools exposed to the RLM
@@ -26,14 +22,25 @@ Run `rlmx init` to scaffold the config directory. Choose a template with `--temp
 
 | File | Purpose |
 |------|---------|
-| `rlmx.yaml` | Model provider, budget limits, context loading, storage, and session settings |
+| `mikro.yaml` | Model provider, budget limits, context loading, storage, and session settings |
 | `SYSTEM.md` | Override the default RLM paper system prompt — edit only if you know what you are doing |
 | `CRITERIA.md` | Output criteria appended to the system prompt (e.g., "Be concise", "Cite file paths") |
 | `TOOLS.md` | Custom Python functions injected into the REPL namespace |
 
-## `rlmx.yaml`
+## Projects set up before the rename
 
-The primary config file inside `.rlmx/`. Run `rlmx init` to scaffold one with inline comments.
+mikro was named rlmx until 2026-08-29. When `.mikro/mikro.yaml` is missing, mikro still reads a pre-rename `.rlmx/rlmx.yaml`, together with the `SYSTEM.md`, `CRITERIA.md` and `TOOLS.md` beside it, and prints a warning on stderr. A query run (`mikro "..."`) scaffolds a fresh `.mikro/` before it loads config, and from then on the new directory wins over the old one. Rename the old directory before your first query:
+
+```bash
+mikro migrate           # dry run: lists what it would change
+mikro migrate --apply   # renames .rlmx/ to .mikro/ and rlmx.yaml to mikro.yaml
+```
+
+`mikro migrate` scans the current directory and your home directory. Once a `.mikro/` exists beside the old directory, it only reports the old one for you to delete by hand.
+
+## `mikro.yaml`
+
+The primary config file inside `.mikro/`. Run `mikro init` to scaffold one with inline comments.
 
 ```yaml
 # Model configuration
@@ -42,29 +49,9 @@ model:
   model: gemini-3.1-flash-lite-preview        # Model ID
   sub-call-model: gemini-3.1-flash-lite-preview  # Model for llm_query() sub-calls (optional)
 
-# System prompt — the RLM paper prompt is used by default.
-# Override only if you know what you're doing.
-# system: |
-#   Custom system prompt here...
-
-# Custom Python tools injected into the REPL namespace
-tools:
-  search_docs: |
-    def search_docs(keyword):
-        """Search context for files matching keyword."""
-        matches = [item for item in context if keyword.lower() in item['content'].lower()]
-        return [m['path'] for m in matches]
-
-  summarize_chunk: |
-    def summarize_chunk(text, max_words=100):
-        """Summarize a chunk using an LLM sub-call."""
-        return llm_query(f"Summarize in {max_words} words:\n{text}")
-
-# Output criteria appended to the system prompt
-criteria: |
-  - Be concise and direct
-  - Cite specific file paths when referencing code
-  - Use code blocks for code snippets
+# The system prompt, output criteria and custom tools live in SYSTEM.md,
+# CRITERIA.md and TOOLS.md beside this file. mikro.yaml has no system:,
+# criteria: or tools: keys.
 
 # Context loading configuration
 context:
@@ -89,12 +76,23 @@ tools-level: core
 # Cache/CAG configuration
 cache:
   enabled: false          # Enable provider-level prompt caching
-  retention: long         # short | long — maps to provider TTL strategy
-  ttl: 3600              # seconds (optional, provider-specific)
-  expire-time: ""        # ISO 8601 (optional, for Google explicit caching)
+  retention: long         # short | long, maps to the provider's cache retention
+  ttl: 3600               # seconds; shown by `mikro cache`, not sent to the provider
+  expire-time: ""         # ISO 8601; accepted, not sent to the provider
   session-prefix: ""     # Prepended to content hash for cache key
 
-# Gemini 3 native features (silently ignored on non-Google providers)
+# pgserve storage for contexts larger than the provider limit
+storage:
+  enabled: auto           # auto | always | never
+  mode: persistent        # persistent | memory
+  data-dir: ~/.mikro/data # also where `mikro stats` reads from
+  port: 0                 # 0 picks a free port
+  chunk-size: null        # null derives it from the model context window
+  chunk-utilization: 0.6  # fraction of the context window per chunk
+  chars-per-token: 4      # ratio used for token estimates
+
+# Gemini 3 features. thinking-level applies to any provider whose model
+# supports a reasoning level; the other keys are ignored on non-Google providers.
 gemini:
   thinking-level: null         # minimal | low | medium | high
   google-search: false         # Enable web_search() battery in REPL
@@ -120,32 +118,13 @@ output:
 
 ### model
 
-Controls which LLM provider and model RLMX uses. Supports any provider available in [pi/ai](https://github.com/nickarora/pi-ai).
+Controls which LLM provider and model mikro uses. Supports any provider available in [pi/ai](https://www.npmjs.com/package/@earendil-works/pi-ai).
 
 | Field | Description |
 |-------|-------------|
 | `provider` | Provider name: `google`, `anthropic`, `openai`, etc. |
 | `model` | Model ID (provider-specific) |
 | `sub-call-model` | Optional model for `llm_query()` sub-calls. Defaults to `model` if omitted. |
-
-### system
-
-The system prompt sent to the LLM. Defaults to the exact RLM paper prompt, which includes research-backed guidance on decomposition, tool use, and iterative reasoning. Override only if you have a specific need.
-
-The system prompt supports a `{custom_tools_section}` placeholder that RLMX replaces with your custom tool definitions.
-
-### tools
-
-Custom Python functions injected into the REPL namespace. Each key is the function name, and the value is the Python source code.
-
-Custom tools have access to:
-- `context` — the loaded context variable
-- `llm_query()` — make LLM sub-calls
-- All standard Python builtins
-
-### criteria
-
-Quality and format criteria appended to the system prompt. Use this to control output style without touching the core system prompt.
 
 ### context
 
@@ -177,18 +156,32 @@ Controls provider-level context caching (CAG mode). See [Cache Mode](/mikro/cach
 | Field | Description |
 |-------|-------------|
 | `enabled` | Enable caching. Can also use `--cache` flag per-invocation. |
-| `retention` | `short` or `long` — maps to provider-specific TTL behavior. |
-| `ttl` | TTL in seconds (optional, provider-specific). |
-| `expire-time` | ISO 8601 timestamp for Google explicit caching (optional). |
+| `retention` | `short` or `long` (default): the cache retention mikro asks the provider for. |
+| `ttl` | Seconds. Shown in `mikro cache` output; mikro does not send it to the provider. |
+| `expire-time` | ISO 8601 timestamp. Accepted, but mikro does not send it to the provider. |
 | `session-prefix` | Prepended to the content hash for the cache session ID. |
 
-### gemini
+### storage
 
-Gemini 3 native features. All are opt-in and silently ignored on non-Google providers.
+pgserve-backed storage for contexts larger than the provider limit. A run in storage mode loads the context into Postgres, queries it from the REPL with `pg_search()`, `pg_slice()`, `pg_sources()`, `pg_time()`, `pg_count()` and `pg_query()`, and records its calls for `mikro stats`.
 
 | Field | Description |
 |-------|-------------|
-| `thinking-level` | Controls reasoning depth: `minimal`, `low`, `medium`, `high` |
+| `enabled` | `auto` (default) switches to storage mode when the context exceeds the provider limit; `always` uses it for every run; `never` turns it off. |
+| `mode` | `persistent` (default) keeps data on disk; `memory` keeps it in memory only. |
+| `data-dir` | Where pgserve stores data, and where `mikro stats` reads from. Default `~/.mikro/data`. |
+| `port` | `0` (default) picks a free port. |
+| `chunk-size` | `null` (default) derives the chunk size from the model context window. |
+| `chunk-utilization` | Fraction of the context window to use per chunk, above 0 and up to 1. Default `0.6`. |
+| `chars-per-token` | Character-to-token ratio for estimates. Default `4`. |
+
+### gemini
+
+Gemini 3 native features. `thinking-level` reaches any provider whose model supports a reasoning level; the other fields are opt-in and silently ignored on non-Google providers.
+
+| Field | Description |
+|-------|-------------|
+| `thinking-level` | Controls reasoning depth: `minimal`, `low`, `medium`, `high`. Despite the `gemini` prefix, it applies to every provider whose model accepts a reasoning level. |
 | `google-search` | Enable `web_search()` battery in REPL |
 | `url-context` | Enable `fetch_url()` battery in REPL |
 | `code-execution` | Enable server-side Python execution alongside local REPL |
@@ -196,29 +189,29 @@ Gemini 3 native features. All are opt-in and silently ignored on non-Google prov
 
 ### output.schema
 
-JSON Schema for structured output. On Google providers, this is enforced via the API. On other providers, RLMX falls back to `FINAL()` text parsing.
+JSON Schema for structured output. On Google providers, this is enforced via the API. On other providers, mikro falls back to `FINAL()` text parsing.
 
 ---
 
 ## Global settings
 
-Global settings are stored at `~/.rlmx/settings.json` and managed with `rlmx config` commands.
+Global settings are stored at `~/.mikro/settings.json` and managed with `mikro config` commands.
 
 ```bash
 # Set an API key
-rlmx config set GEMINI_API_KEY your-key
+mikro config set GEMINI_API_KEY your-key
 
 # Set a default provider
-rlmx config set model.provider google
+mikro config set model.provider google
 
 # View all settings
-rlmx config list
+mikro config list
 
 # Show settings file path
-rlmx config path
+mikro config path
 ```
 
-See the [CLI Reference](/mikro/cli/reference#rlmx-config) for the full list of config commands and keys.
+See the [CLI Reference](/mikro/cli/reference#mikro-config) for the full list of config commands and keys.
 
 ## Priority order
 
@@ -226,28 +219,44 @@ Settings are resolved highest-priority first:
 
 | Priority | Source | Example |
 |----------|--------|---------|
-| 1 (highest) | CLI flags | `--max-cost 0.10` |
-| 2 | Project `rlmx.yaml` | `budget.max-cost: 0.50` |
-| 3 | Global settings | `~/.rlmx/settings.json` |
+| 1 (highest) | CLI flags | `--max-cost 0.10`, `--model openai/gpt-4o` |
+| 2 | Global settings, for the model keys | `model.provider` in `~/.mikro/settings.json` |
+| 3 | Project `.mikro/mikro.yaml` | `budget.max-cost: 0.50` |
 | 4 (lowest) | Hardcoded defaults | `max-iterations: 30` |
+
+From `~/.mikro/settings.json`, mikro reads only API keys, `model.provider`, `model.model`, `model.sub-call-model`, and a `providers` block. Budgets, tool level, cache and Gemini options come from `.mikro/mikro.yaml` or a flag.
 
 ---
 
-## `.rlmx/` companion files
+## `.mikro/` companion files
 
-The `.rlmx/` directory includes companion Markdown files alongside `rlmx.yaml`. These files let you keep long-form content (prompts, tools, criteria) out of the YAML file.
+The prompt, the output criteria and custom tools live in Markdown files beside `mikro.yaml`. mikro loads them from `.mikro/` whenever `.mikro/mikro.yaml` exists, and `mikro.yaml` has no keys for them.
 
-| File | Purpose | Overrides `rlmx.yaml` section |
-|------|---------|-------------------------------|
-| `SYSTEM.md` | System prompt for the RLM loop | `system:` |
-| `TOOLS.md` | Custom Python tools | `tools:` |
-| `CRITERIA.md` | Output criteria | `criteria:` |
+| File | Purpose |
+|------|---------|
+| `SYSTEM.md` | System prompt for the RLM loop |
+| `TOOLS.md` | Custom Python tools |
+| `CRITERIA.md` | Output criteria |
 
-If both the Markdown file and the corresponding `rlmx.yaml` section are present, the Markdown file takes precedence.
+### SYSTEM.md
+
+The system prompt sent to the LLM. `mikro init` writes the RLM paper prompt here, which includes research-backed guidance on decomposition, tool use, and iterative reasoning. Override it only if you have a specific need.
+
+The system prompt supports a `{custom_tools_section}` placeholder that mikro replaces with your custom tool definitions. Without the placeholder, mikro appends them after the prompt.
+
+### CRITERIA.md
+
+Quality and format criteria appended to the system prompt. Use this to control output style without touching the core system prompt.
+
+```markdown
+- Be concise and direct
+- Cite specific file paths when referencing code
+- Use code blocks for code snippets
+```
 
 ### TOOLS.md format
 
-Custom tools defined as `## heading` + Python code block:
+Custom Python functions injected into the REPL namespace. Each tool is a `## heading` with the function name, followed by a Python code block with its source:
 
 ```markdown
 ## search_docs
@@ -258,17 +267,26 @@ def search_docs(keyword):
     matches = [item for item in context if keyword.lower() in item['content'].lower()]
     return [m['path'] for m in matches]
 ` ``
+
+## summarize_chunk
+
+` ``python
+def summarize_chunk(text, max_words=100):
+    """Summarize a chunk using an LLM sub-call."""
+    return llm_query(f"Summarize in {max_words} words:\n{text}")
+` ``
 ```
 
-<Tip>
-  You can inline tools directly in `rlmx.yaml` under the `tools:` section, or keep them in `TOOLS.md` for readability. Same applies to `system:` / `SYSTEM.md` and `criteria:` / `CRITERIA.md`.
-</Tip>
+Custom tools have access to:
+- `context`, the loaded context variable
+- `llm_query()`, to make LLM sub-calls
+- Standard Python builtins, except `eval`, `exec`, `input`, `compile`, `globals` and `locals`, which the REPL blocks
 
 ---
 
 ## Environment variables
 
-API keys can also be set as environment variables instead of using `rlmx config set`:
+API keys can also be set as environment variables instead of using `mikro config set`:
 
 | Variable | Provider |
 |----------|----------|
@@ -279,4 +297,4 @@ API keys can also be set as environment variables instead of using `rlmx config 
 | `XAI_API_KEY` | xAI |
 | `OPENROUTER_API_KEY` | OpenRouter |
 
-Keys set via `rlmx config set` are injected into `process.env` before any command runs, so they behave identically to environment variables.
+Keys set via `mikro config set` are injected into `process.env` before any command runs, so they behave like environment variables. When the environment variable is already set, it wins over the stored key.

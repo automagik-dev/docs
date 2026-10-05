@@ -1,7 +1,7 @@
 ---
 title: "Cache Mode (CAG)"
 sidebarTitle: "Cache Mode"
-description: "Cache-Augmented Generation — bake full context into the system prompt and lean on provider-level prompt caching for 50–95% discounts."
+description: "Cache-Augmented Generation: bake full context into the system prompt and lean on provider-level prompt caching for 50 to 90% discounts."
 ---
 
 # Cache Mode (CAG)
@@ -19,23 +19,23 @@ Cache-Augmented Generation (CAG) embeds your **full context directly in the syst
 | **Default RLM** | Context loaded into a Python REPL `context` variable; LLM writes code to navigate it programmatically | Very large codebases, exploratory analysis, unknown questions |
 | **Cache (CAG)** | Full context embedded in the system prompt and cached at the provider | Repeated questions on the same docs, study sessions, batch Q&A |
 
-Switch into cache mode with the `--cache` flag on any query, or set `cache.enabled: true` in `rlmx.yaml` inside `.rlmx/`.
+Switch into cache mode with the `--cache` flag on any query, or set `cache.enabled: true` in `mikro.yaml` inside `.mikro/`.
 
 ## End-to-end example
 
-Interrogate a documentation folder three times — the first query warms the cache, the next two ride it.
+Interrogate a documentation folder three times: the first query warms the cache, the next two ride it.
 
 ### 1. Estimate the cost
 
 ```bash
-rlmx cache --context ./docs/ --estimate
+mikro cache --context ./docs/ --estimate
 ```
 
 ```text Output
-rlmx cache estimate
+mikro cache estimate
 ---
   context:          ./docs/
-  metadata:         42 files, 310KB
+  metadata:         Context is a list of 42 items with 309580 total characters, chunk lengths: [11904, 3127, 8466, ...]
   estimated tokens: 93,000
   provider limit:   1,000,000 tokens
   utilization:      9.3%
@@ -50,12 +50,12 @@ The context fits well under the 1M-token Gemini window — safe to cache.
 ### 2. Warm the cache
 
 ```bash
-rlmx cache --context ./docs/
+mikro cache --context ./docs/
 ```
 
 ```text Output (stderr)
-rlmx: warming cache for ./docs/ (~93,000 tokens)
-rlmx: cache warmup complete
+mikro: warming cache for ./docs/ (~93,000 tokens)
+mikro: cache warmup complete
   provider:         google
   model:            gemini-3.1-flash-lite-preview
   estimated tokens: 93,000
@@ -68,9 +68,9 @@ One warmup call primes the provider cache for the next hour (Gemini default TTL)
 ### 3. Run cached queries
 
 ```bash
-rlmx "What RPC primitives are available?" --context ./docs/ --cache
-rlmx "How are errors surfaced?" --context ./docs/ --cache
-rlmx "What's the threading model?" --context ./docs/ --cache
+mikro "What RPC primitives are available?" --context ./docs/ --cache
+mikro "How are errors surfaced?" --context ./docs/ --cache
+mikro "What's the threading model?" --context ./docs/ --cache
 ```
 
 ```text Approximate cost per query
@@ -84,62 +84,62 @@ Each `--cache` invocation hashes the context; matching content hashes hit the ca
 
 ## How it works
 
-When `--cache` is enabled RLMX:
+When `--cache` is enabled mikro:
 
 1. Computes a SHA-256 content hash over sorted context items
 2. Builds a session ID: `{cache.session-prefix}-{hash}` (or just the hash)
 3. Writes the full context into the system prompt under a `## Context Files` block
-4. Sends the request with provider-specific cache headers (`cache_control` for Anthropic, explicit cached content for Gemini, etc.)
+4. Sends the request with the provider's cache options (`cache_control` for Anthropic, a prompt cache key for OpenAI); Gemini caches repeated prefixes on its own
 5. Provider returns usage metrics including `cache_read_tokens` — billed at the discount rate
 
-If the context exceeds the provider limit, RLMX logs a warning, **disables cache mode automatically**, and falls back to RLM navigation (or storage mode if `storage.enabled` is `auto`/`always`).
+If the context exceeds the provider limit, mikro logs a warning, **disables cache mode automatically**, and falls back to RLM navigation (or storage mode if `storage.enabled` is `auto`/`always`).
 
 ## Provider support
 
 | Provider | Cache limit | Discount on cached input | TTL behavior |
 |----------|-------------|--------------------------|--------------|
-| Google Gemini | 1,000,000 tokens | ~90% | Implicit + explicit; `retention: long` maps to 1-hour TTL |
+| Google Gemini | 1,000,000 tokens | ~90% | Implicit caching by Google; mikro sends no cache TTL, so `retention` has no effect |
 | Anthropic | 200,000 tokens | ~90% | Ephemeral (~5 min) or long-lived via `cache_control` |
 | OpenAI | 128,000 tokens | ~50% | Automatic prompt caching, no TTL knob |
 | Amazon Bedrock | 128,000 tokens | Provider-dependent | Inherits underlying model support |
 
 <Warning>
-  **Anthropic note:** Anthropic's default cache TTL is ~5 minutes. Set `cache.retention: long` in your `rlmx.yaml` to use the 1-hour tier (usually 2× base cost to write, ~90% discount on reads).
+  **Anthropic note:** Anthropic's default cache TTL is ~5 minutes. mikro defaults to `cache.retention: long`, which asks for the 1-hour tier where the model supports it (usually 2× base cost to write, ~90% discount on reads). Set `retention: short` in your `mikro.yaml` for the 5-minute tier.
 </Warning>
 
 ## Configuration
 
-Cache behavior lives under `cache:` in `rlmx.yaml` inside `.rlmx/`:
+Cache behavior lives under `cache:` in `mikro.yaml` inside `.mikro/`:
 
 ```yaml
 cache:
   enabled: false          # enable globally (or use --cache per-invocation)
-  retention: long         # short | long — maps to provider TTL tier
-  ttl: 3600               # TTL seconds (provider-specific override)
-  expire-time: ""         # ISO 8601 absolute expiry (Google explicit caching)
+  retention: long         # short | long, maps to the provider's cache retention
+  ttl: 3600               # seconds; shown by `mikro cache`, not sent to the provider
+  expire-time: ""         # ISO 8601; accepted, not sent to the provider
   session-prefix: "myproj" # prepended to the content hash in the session ID
 ```
 
 | Field | Description |
 |-------|-------------|
-| `enabled` | Turn cache mode on by default for every `rlmx` invocation. CLI `--cache` overrides this per-run. |
+| `enabled` | Turn cache mode on by default for every `mikro` invocation. CLI `--cache` overrides this per-run. |
 | `retention` | `short` for ephemeral caches, `long` for extended TTL. Maps to provider-specific behavior. |
-| `ttl` | Explicit TTL in seconds when the provider supports it. |
-| `expire-time` | ISO 8601 timestamp for Google explicit caching. Mutually exclusive with `ttl`. |
+| `ttl` | Seconds. Shown in `mikro cache` output; mikro does not send it to the provider. |
+| `expire-time` | ISO 8601 timestamp. Accepted, but mikro does not send it to the provider. |
 | `session-prefix` | Namespace for the cache session ID — useful when multiple projects share a provider account. |
 
 See the full table in [Configuration → cache](/mikro/config#cache).
 
-## The `rlmx cache` command
+## The `mikro cache` command
 
-`rlmx cache` is the operator-facing entry point for CAG. It has two modes:
+`mikro cache` is the operator-facing entry point for CAG. It has two modes:
 
 | Invocation | Behavior |
 |------------|----------|
-| `rlmx cache --context <path> --estimate` | Prints token count, provider limit, utilization %, and projected first-query cost. **No LLM calls.** |
-| `rlmx cache --context <path>` | Issues a one-iteration warmup query to prime the provider cache. |
+| `mikro cache --context <path> --estimate` | Prints token count, provider limit, utilization %, and projected first-query cost. **No LLM calls.** |
+| `mikro cache --context <path>` | Issues a one-iteration warmup query to prime the provider cache. |
 
-Full flag reference: [CLI → `rlmx cache`](/mikro/cli/reference#rlmx-cache).
+Full flag reference: [CLI → `mikro cache`](/mikro/cli/reference#mikro-cache).
 
 ## Practical patterns
 
@@ -148,19 +148,19 @@ Full flag reference: [CLI → `rlmx cache`](/mikro/cli/reference#rlmx-cache).
 Warm once, then ask as many follow-ups as you want within the TTL:
 
 ```bash
-rlmx cache --context ./src/ --ext .ts,.js
-rlmx "Where is the auth middleware?" --context ./src/ --cache --ext .ts,.js
-rlmx "What drives rate limiting?" --context ./src/ --cache --ext .ts,.js
-rlmx "List the database migrations" --context ./src/ --cache --ext .ts,.js
+mikro cache --context ./src/ --ext .ts,.js
+mikro "Where is the auth middleware?" --context ./src/ --cache --ext .ts,.js
+mikro "What drives rate limiting?" --context ./src/ --cache --ext .ts,.js
+mikro "List the database migrations" --context ./src/ --cache --ext .ts,.js
 ```
 
 ### Cached batch interrogation
 
-Batch mode always enables caching — it's effectively `rlmx cache` plus a question loop. See [Batch Mode](/mikro/batch) for the questions-file format and cost math.
+Batch mode always enables caching, so it works like `mikro cache` plus a question loop. See [Batch Mode](/mikro/batch) for the questions-file format and cost math.
 
 ```bash
-rlmx cache --context ./docs/
-rlmx batch study.txt --context ./docs/
+mikro cache --context ./docs/
+mikro batch study.txt --context ./docs/
 ```
 
 ### Budget-capped cached run
@@ -168,7 +168,7 @@ rlmx batch study.txt --context ./docs/
 Set a hard spend ceiling so runaway iterations can't overshoot cache savings:
 
 ```bash
-rlmx "Summarize the entire repo" \
+mikro "Summarize the entire repo" \
   --context ./src/ \
   --cache \
   --max-cost 0.50 \
@@ -177,11 +177,11 @@ rlmx "Summarize the entire repo" \
 
 ### Automatic fallback to RLM
 
-If the context inflates past the provider limit, RLMX logs a warning and silently downgrades to RLM navigation:
+If the context inflates past the provider limit, mikro logs a warning and downgrades to RLM navigation:
 
 ```text
-rlmx: context exceeds model limit (~1,250,000 tokens > 1,000,000), disabling cache mode
-rlmx: storage mode activated for large context (~1,250,000 tokens)
+mikro: context exceeds model limit (~1,250,000 tokens > 1,000,000), disabling cache mode
+mikro: storage mode activated for large context (~1,250,000 tokens)
 ```
 
 No action needed — the query still runs, just without caching.
@@ -196,13 +196,13 @@ No action needed — the query still runs, just without caching.
 
 <CardGroup cols={2}>
   <Card title="Batch Mode" icon="layer-group" href="/mikro/batch">
-    Bulk interrogation that stacks caching with the Gemini Batch API for up to 95% savings.
+    Bulk interrogation over one cached context, with cost estimation up front.
   </Card>
-  <Card title="CLI Reference" icon="terminal" href="/mikro/cli/reference#rlmx-cache">
-    Every flag on `rlmx cache` and `--cache` documented.
+  <Card title="CLI Reference" icon="terminal" href="/mikro/cli/reference#mikro-cache">
+    Every flag on `mikro cache` and `--cache` documented.
   </Card>
   <Card title="Configuration" icon="gear" href="/mikro/config#cache">
-    `cache:` section of `rlmx.yaml` in full.
+    `cache:` section of `mikro.yaml` in full.
   </Card>
   <Card title="Provider limits" icon="ruler" href="/mikro/batch#provider-context-limits">
     Max cacheable context size by provider.

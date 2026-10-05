@@ -1,17 +1,17 @@
 ---
 title: "CLI Reference"
 sidebarTitle: "CLI Reference"
-description: "Complete reference for all RLMX commands, flags, and output modes."
+description: "Complete reference for all mikro commands, flags, and output modes."
 ---
 
 # CLI Reference
 
-## `rlmx "query"`
+## `mikro "query"`
 
 Run an RLM query against a context.
 
 ```bash
-rlmx "query" [options]
+mikro "query" [options]
 ```
 
 The default command. Loads context into a Python REPL, then iterates with the LLM until it produces a final answer.
@@ -31,9 +31,12 @@ The default command. Loads context into a Python REPL, then iterates with the LL
 | `--max-cost <n>` | number | — | Maximum USD spend per run |
 | `--max-tokens <n>` | number | — | Maximum total tokens per run |
 | `--max-depth <n>` | number | — | Maximum recursive `rlm_query` depth |
+| `--model <ref>` | string | from config | Model for this run: `provider/model`, or a bare model id on the configured provider. Outranks `settings.json` and `mikro.yaml` |
 | `--ext <list>` | string | `.md` | File extensions for context dirs (comma-separated) |
-| `--thinking <level>` | string | — | Thinking level: `minimal`, `low`, `medium`, `high` (Gemini only) |
+| `--thinking <level>` | string | — | Thinking level: `minimal`, `low`, `medium`, `high`. Sent to any provider whose model supports a reasoning level |
+| `--temperature <n>` | number | unset | Sampling temperature, 0 to 2. Unset sends no temperature, so the provider decides |
 | `--cache` | boolean | `false` | Enable CAG mode (full context cached in system prompt) |
+| `--no-session` | boolean | `false` | Skip saving the run under `~/.mikro/sessions/` |
 
 ### Context loading
 
@@ -42,32 +45,32 @@ The default command. Loads context into a Python REPL, then iterates with the LL
 | `--context dir/` | Recursively reads files matching `--ext` as `list[{path, content}]` |
 | `--context file.md` | Reads as single string |
 | `--context file.json` | Parses JSON as dict or list |
-| stdin pipe | Reads as single string |
+| stdin pipe | Read as the query when no query argument is given. With a query argument, stdin is ignored |
 
 ### Examples
 
 ```bash
 # Basic query with directory context
-rlmx "How does IPC work?" --context ./docs/
+mikro "How does IPC work?" --context ./docs/
 
 # JSON output with stats
-rlmx "Summarize this" --context paper.md --output json --stats
+mikro "Summarize this" --context paper.md --output json --stats
 
 # Code analysis with extended file types
-rlmx "Analyze code" --context ./src/ --tools full --ext .ts,.js
+mikro "Analyze code" --context ./src/ --tools full --ext .ts,.js
 
 # Budget-limited query
-rlmx "Quick question" --max-cost 0.10 --max-tokens 5000
+mikro "Quick question" --max-cost 0.10 --max-tokens 5000
 
-# Piped input with logging
-echo "data" | rlmx "Analyze this" --log run.jsonl
+# Query read from stdin, with logging
+echo "Summarize this" | mikro --context paper.md --log run.jsonl
 
 # CAG mode for repeated queries
-rlmx "First question" --context ./docs/ --cache
-rlmx "Follow-up question" --context ./docs/ --cache
+mikro "First question" --context ./docs/ --cache
+mikro "Follow-up question" --context ./docs/ --cache
 
-# Gemini thinking mode
-rlmx "Complex analysis" --context ./src/ --thinking high
+# Higher thinking level
+mikro "Complex analysis" --context ./src/ --thinking high
 ```
 
 ### Output formats
@@ -80,6 +83,9 @@ rlmx "Complex analysis" --context ./src/ --thinking high
   "usage": {
     "inputTokens": 12500,
     "outputTokens": 3200,
+    "cacheReadTokens": 0,
+    "cacheWriteTokens": 0,
+    "totalCost": 0.0041,
     "llmCalls": 5
   },
   "iterations": 3,
@@ -88,20 +94,22 @@ rlmx "Complex analysis" --context ./src/ --thinking high
 ```
 
 ```jsonl Stream output (--output stream)
-{"type":"iteration","index":1,"code":"context_files = [c['path'] for c in context]...","result":"['src/auth.ts', ...]"}
-{"type":"iteration","index":2,"code":"auth_code = [c for c in context if 'auth' in c['path']]...","result":"..."}
-{"type":"final","answer":"Authentication uses JWT tokens...","iterations":2}
+{"type":"iteration","iteration":0,"code":"context_files = [c['path'] for c in context]...","stdout":"['src/auth.ts', ...]"}
+{"type":"iteration","iteration":1,"code":"auth_code = [c for c in context if 'auth' in c['path']]...","stdout":"..."}
+{"type":"final","answer":"Authentication uses JWT tokens...","references":["src/auth.ts"],"usage":{"inputTokens":9100,"outputTokens":640,"cacheReadTokens":0,"cacheWriteTokens":0,"totalCost":0.0009,"llmCalls":3},"iterations":3,"model":"google/gemini-3.1-flash-lite-preview"}
 ```
 </CodeGroup>
 
+`--output json` prints the object on one line. Besides the fields above it can carry `budgetHit`, `usageBreakdown`, `geminiCounts`, `geminiBatteriesUsed`, and `stats` (with `--stats`), and `usage` can carry `reasoningTokens`. Stream iterations count from `0`, and the final event's `iterations` is the total.
+
 ---
 
-## `rlmx init`
+## `mikro init`
 
-Scaffold a `.rlmx/` config directory with templates.
+Scaffold a `.mikro/` config directory with templates.
 
 ```bash
-rlmx init [--template <type>] [--dir <path>]
+mikro init [--template <type>] [--dir <path>]
 ```
 
 | Flag | Type | Default | Description |
@@ -109,54 +117,54 @@ rlmx init [--template <type>] [--dir <path>]
 | `--template <type>` | string | `default` | Template type: `default` or `code` |
 | `--dir <path>` | string | `.` (cwd) | Directory to scaffold in |
 
-Creates a `.rlmx/` directory containing:
+Creates a `.mikro/` directory containing:
 
 | File | Purpose |
 |------|---------|
-| `rlmx.yaml` | Main configuration (model, budget, context, storage) |
+| `mikro.yaml` | Main configuration (model, budget, context, storage) |
 | `SYSTEM.md` | System prompt used by the RLM loop |
 | `CRITERIA.md` | Output criteria for quality checks |
 | `TOOLS.md` | Custom Python tools exposed to the RLM |
 
 <Warning>
-  RLMX v0.260331+ uses the `.rlmx/` directory as the only config location. Projects using the old flat-file `rlmx.yaml` in the project root must re-run `rlmx init` to migrate.
+  mikro reads configuration only from the `.mikro/` directory. A `mikro.yaml` or `SYSTEM.md` at the project root is ignored. For a project set up before the rename to mikro, see [Configuration](/mikro/config#projects-set-up-before-the-rename).
 </Warning>
 
 ### Templates
 
-- **`default`** — General-purpose RLM usage with balanced system prompt and criteria
-- **`code`** — Code analysis template with code-focused system prompt and tool definitions
+- **`default`**: General-purpose RLM usage with balanced system prompt and criteria
+- **`code`**: Code analysis template with a code-focused system prompt and criteria, code file extensions in `context.extensions`, and `tools-level: standard`
 
 ### Example
 
 ```bash
 # Scaffold with default template
-rlmx init
+mikro init
 
 # Scaffold with code analysis template
-rlmx init --template code
+mikro init --template code
 
 # Scaffold in a specific directory
-rlmx init --template default --dir ./my-project
+mikro init --template default --dir ./my-project
 ```
 
 ---
 
-## `rlmx cache`
+## `mikro cache`
 
 Pre-warm the provider cache for a given context, or estimate its size and cost without making any API calls.
 
 ```bash
-rlmx cache --context <path> [--estimate] [options]
+mikro cache --context <path> [--estimate] [options]
 ```
 
-`--context` is required. Without `--estimate`, rlmx performs a single-iteration warmup run so the provider caches the prompt prefix for subsequent queries.
+`--context` is required. Without `--estimate`, mikro performs a single-iteration warmup run so the provider caches the prompt prefix for subsequent queries.
 
 | Flag | Type | Default | Description |
 |------|------|---------|-------------|
 | `--context <path>` | string | **required** | Path to context directory or file |
 | `--estimate` | boolean | `false` | Print token/cost estimate only — skip the warmup call |
-| `--ext <list>` | string | from `rlmx.yaml` | File extensions when `--context` is a directory (comma-separated) |
+| `--ext <list>` | string | from `mikro.yaml` | File extensions when `--context` is a directory (comma-separated) |
 | `--tools <level>` | string | `core` | Tool level: `core`, `standard`, or `full` |
 | `--timeout <ms>` | number | `300000` | Warmup timeout |
 | `--verbose` | boolean | `false` | Verbose stderr logging |
@@ -164,39 +172,39 @@ rlmx cache --context <path> [--estimate] [options]
 ### Examples
 
 ```bash
-# Estimate only — no LLM calls
-rlmx cache --context ./docs/ --estimate
+# Estimate only, no LLM calls
+mikro cache --context ./docs/ --estimate
 
 # Warm the provider cache for future queries
-rlmx cache --context ./docs/
+mikro cache --context ./docs/
 
 # Custom extensions for a source-code corpus
-rlmx cache --context ./src/ --ext .ts,.js --estimate
+mikro cache --context ./src/ --ext .ts,.js --estimate
 ```
 
 ### Outputs
 
-**With `--estimate`** — a `key: value` block is printed to stdout and the process exits without calling any LLM:
+**With `--estimate`**, a `key: value` block is printed to stdout and the process exits without calling any LLM:
 
 ```
-rlmx cache estimate
+mikro cache estimate
 ---
   context:          ./docs/
-  metadata:         23 files, 145KB
+  metadata:         Context is a list of 23 items with 144700 total characters, chunk lengths: [5120, 11873, 2960, ...]
   estimated tokens: 43,500
-  provider limit:   1,048,576 tokens
-  utilization:      4.1%
+  provider limit:   1,000,000 tokens
+  utilization:      4.3%
   provider:         google
   model:            gemini-3.1-flash-lite-preview
   ttl:              3600s
   estimated cost:   $0.0033
 ```
 
-**Without `--estimate`** — a minimal RLM loop runs to prime the provider cache. Progress and the summary are emitted to stderr:
+**Without `--estimate`**, a minimal RLM loop runs to prime the provider cache. Progress and the summary are emitted to stderr:
 
 ```
-rlmx: warming cache for ./docs/ (~43,500 tokens)
-rlmx: cache warmup complete
+mikro: warming cache for ./docs/ (~43,500 tokens)
+mikro: cache warmup complete
   provider:         google
   model:            gemini-3.1-flash-lite-preview
   estimated tokens: 43,500
@@ -208,12 +216,12 @@ If the context exceeds the provider's token limit, the command exits with a non-
 
 ---
 
-## `rlmx batch`
+## `mikro batch`
 
-Run bulk queries from a questions file against a shared cached context. Each question is executed through the same RLM loop used by `rlmx "query"`, with provider-level prompt caching always enabled so the first question pays full price and subsequent questions benefit from the cache.
+Run bulk queries from a questions file against a shared cached context. Each question is executed through the same RLM loop used by `mikro "query"`, with provider-level prompt caching always enabled so the first question pays full price and subsequent questions benefit from the cache.
 
 ```bash
-rlmx batch <questions-file> [options]
+mikro batch <questions-file> [options]
 ```
 
 Questions are read one per line. Blank lines and lines beginning with `#` are ignored.
@@ -228,31 +236,28 @@ Questions are read one per line. Blank lines and lines beginning with `#` are ig
 | `--max-tokens <n>` | number | — | Per-question token cap |
 | `--max-depth <n>` | number | — | Maximum recursive `rlm_query` depth |
 | `--parallel <n>` | number | `1` | Concurrency hint (currently executes sequentially) |
-| `--batch-api` | boolean | `false` | Opt into the Gemini Batch API path (requires `provider: google`) |
+| `--batch-api` | boolean | `false` | Accepted, but mikro does not submit Gemini Batch API jobs yet, so the run is unchanged |
 | `--tools <level>` | string | `core` | Tool level: `core`, `standard`, or `full` |
-| `--ext <list>` | string | from `rlmx.yaml` | File extensions for directory context |
+| `--ext <list>` | string | from `mikro.yaml` | File extensions for directory context |
 | `--verbose` | boolean | `false` | Show per-question progress on stderr |
 
 <Note>
-  `--cache` does not need to be passed — batch mode always runs with `cache.enabled = true`. If the context exceeds the provider's token limit, rlmx falls back to pgserve storage mode when `storage.enabled` is `auto` or `always`.
+  `--cache` does not need to be passed: batch mode always runs with `cache.enabled = true`. If the context exceeds the provider's token limit, mikro falls back to pgserve storage mode when `storage.enabled` is `auto` or `always`.
 </Note>
 
 ### Example
 
 ```bash
 # Run a questions file against a cached docs corpus
-rlmx batch questions.txt --context ./docs/
+mikro batch questions.txt --context ./docs/
 
 # Stop if total spend crosses $1.00
-rlmx batch questions.txt --context ./src/ --max-cost 1.00
-
-# Gemini Batch API for 50% input/output token discount
-rlmx batch questions.txt --context ./docs/ --batch-api
+mikro batch questions.txt --context ./src/ --max-cost 1.00
 ```
 
 ### Outputs
 
-`rlmx batch` writes **JSONL to stdout** — one JSON object per question, followed by a final aggregate line:
+`mikro batch` writes **JSONL to stdout**: one JSON object per question, followed by a final aggregate line:
 
 ```jsonl
 {"question":"How does IPC work?","answer":"IPC uses...","stats":{"iterations":2,"inputTokens":42100,"outputTokens":520,"cost":0.0042}}
@@ -264,12 +269,12 @@ Budget trips, cache fallbacks, and verbose progress are logged to stderr so the 
 
 ---
 
-## `rlmx stats`
+## `mikro stats`
 
-Query run history and cost breakdowns from the rlmx observability database (pgserve at `~/.rlmx/data`). Stats are populated automatically by every run that saves a session.
+Query run history and cost breakdowns from the mikro observability database (pgserve, in `storage.data-dir`, which defaults to `~/.mikro/data`). A run records there only when it uses storage mode: `storage.enabled: always`, or `auto` when the context exceeds the provider limit.
 
 ```bash
-rlmx stats [options]
+mikro stats [options]
 ```
 
 | Flag | Type | Default | Description |
@@ -277,32 +282,32 @@ rlmx stats [options]
 | `--run <id>` | string | — | Show the event timeline for a specific session id |
 | `--costs` | boolean | `false` | Show cost breakdown grouped by model |
 | `--tools` | boolean | `false` | Show REPL tool usage grouped by session |
-| `--since <duration>` | string | — | Limit to the recent window (`30m`, `24h`, `7d`) |
+| `--since <duration>` | string | — | Limit `--costs` or `--tools` to the recent window (`30m`, `24h`, `7d`) |
 | `--output json` | literal | — | Emit structured JSON instead of the terminal table |
 
-Without any flags, `rlmx stats` prints the 20 most recent sessions as a terminal table (id, query, model, iterations, cost, status, duration).
+Without any flags, `mikro stats` prints the 20 most recent sessions as a terminal table (id, query, model, iterations, cost, status, duration).
 
 <Note>
-  Stats require pgserve storage. If `~/.rlmx/data` does not exist, the command prints `"No stats yet. Run a query first."` and exits cleanly. See [Configuration](/mikro/config) for storage setup.
+  Stats require pgserve storage. If the data directory (`~/.mikro/data` by default) does not exist, the command prints `"No stats yet. Run a query first."` and exits cleanly. See [Configuration](/mikro/config#storage) for storage setup.
 </Note>
 
 ### Examples
 
 ```bash
 # Most recent 20 runs as a table
-rlmx stats
+mikro stats
 
 # JSON for scripting / jq pipelines
-rlmx stats --output json
+mikro stats --output json
 
 # Cost by model over the last 24 hours
-rlmx stats --costs --since 24h
+mikro stats --costs --since 24h
 
 # Tool usage over the last week
-rlmx stats --tools --since 7d
+mikro stats --tools --since 7d
 
 # Full event timeline for a specific run
-rlmx stats --run 0c3e2f1a-...-9f02
+mikro stats --run 0c3e2f1a-...-9f02
 ```
 
 ### Outputs
@@ -326,12 +331,12 @@ f91d8a05..  Summarize paper.md              google/gemini-3.1-flash...     2    
 
 ---
 
-## `rlmx benchmark`
+## `mikro benchmark`
 
-Run benchmarks that compare the RLM loop against a direct LLM call on the same question. rlmx benchmark does **not** accept `--context` — each mode ships its own dataset.
+Run benchmarks that compare the RLM loop against a direct LLM call on the same question. `mikro benchmark` does **not** accept `--context`: each mode ships its own dataset.
 
 ```bash
-rlmx benchmark <mode> [options]
+mikro benchmark <mode> [options]
 ```
 
 | Mode | Dataset | Measures |
@@ -348,25 +353,25 @@ rlmx benchmark <mode> [options]
 | `--idx <n>` | `oolong` | — | Run a specific sample index only (ignores `--samples`) |
 | `--tools <level>` | both | `core` | Tool level used for the RLM runs |
 
-Model and provider are resolved from `rlmx.yaml` / `~/.rlmx/settings.json` via the usual priority order.
+Model and provider are resolved from `.mikro/mikro.yaml` and `~/.mikro/settings.json` in the usual priority order.
 
 ### Examples
 
 ```bash
 # Cost benchmark, formatted table on stderr
-rlmx benchmark cost
+mikro benchmark cost
 
 # Cost benchmark, machine-readable JSON on stdout
-rlmx benchmark cost --output json
+mikro benchmark cost --output json
 
-# Oolong quality run — 5 samples (default)
-rlmx benchmark oolong
+# Oolong quality run, 5 samples (default)
+mikro benchmark oolong
 
-# Oolong — 20 samples
-rlmx benchmark oolong --samples 20
+# Oolong, 20 samples
+mikro benchmark oolong --samples 20
 
-# Oolong — just sample index 42
-rlmx benchmark oolong --idx 42
+# Oolong, sample index 42 only
+mikro benchmark oolong --idx 42
 ```
 
 ### Outputs
@@ -387,66 +392,64 @@ Both modes print a **box-drawn comparison table to stderr** with per-question ro
 └───────────────┴──────────┴─────────┴──────────┴──────────┴──────┘
 ```
 
-With `rlmx benchmark cost --output json`, the same results are emitted as a structured JSON document to **stdout** (timestamp, mode, model, per-question `runs[]`, and `totals`). Every benchmark — table or JSON — is also persisted to `~/.rlmx/benchmarks/benchmark-<mode>-<timestamp>.json` and the saved path is printed to stderr.
+With `mikro benchmark cost --output json`, the same results are emitted as a structured JSON document to **stdout** (timestamp, mode, model, per-question `runs[]`, and `totals`). Every benchmark, table or JSON, is also persisted to `~/.mikro/benchmarks/benchmark-<mode>-<timestamp>.json` and the saved path is printed to stderr.
 
 ---
 
-## `rlmx config`
+## `mikro config`
 
-Manage global settings stored at `~/.rlmx/settings.json`.
+Manage global settings stored at `~/.mikro/settings.json`.
 
-### `rlmx config set`
+### `mikro config set`
 
 ```bash
-rlmx config set <key> <value>
+mikro config set <key> <value>
 ```
 
 Set a configuration value. Values are type-coerced: `"true"` becomes boolean, numeric strings become numbers.
 
 ```bash
-rlmx config set GEMINI_API_KEY sk-abc123
-rlmx config set model.provider google
-rlmx config set model.model gemini-3.1-flash-lite-preview
-rlmx config set budget.max_cost 0.50
-rlmx config set gemini.thinking_level medium
+mikro config set GEMINI_API_KEY sk-abc123
+mikro config set model.provider google
+mikro config set model.model gemini-3.1-flash-lite-preview
 ```
 
-### `rlmx config get`
+### `mikro config get`
 
 ```bash
-rlmx config get <key>
+mikro config get <key>
 ```
 
 Retrieve a setting value. API keys are masked in output.
 
 ```bash
-$ rlmx config get model.provider
+$ mikro config get model.provider
 google
 ```
 
-### `rlmx config list`
+### `mikro config list`
 
 ```bash
-rlmx config list
+mikro config list
 ```
 
 Show all configured settings. Sensitive keys (containing `API_KEY`, `SECRET`, `TOKEN`) are masked.
 
-### `rlmx config delete`
+### `mikro config delete`
 
 ```bash
-rlmx config delete <key>
+mikro config delete <key>
 ```
 
 Remove a setting.
 
-### `rlmx config path`
+### `mikro config path`
 
 ```bash
-rlmx config path
+mikro config path
 ```
 
-Print the settings file path (`~/.rlmx/settings.json`).
+Print the settings file path (`~/.mikro/settings.json`).
 
 ### Common keys
 
@@ -460,24 +463,38 @@ Print the settings file path (`~/.rlmx/settings.json`).
 | `OPENROUTER_API_KEY` | OpenRouter API key | `sk-or-...` |
 | `model.provider` | LLM provider | `google`, `anthropic`, `openai` |
 | `model.model` | Model ID | `gemini-3.1-flash-lite-preview` |
-| `model.sub_call_model` | Model for `llm_query()` sub-calls | `gemini-3.1-flash-lite-preview` |
-| `budget.max_cost` | Default max USD per run | `0.50` |
-| `budget.max_tokens` | Default max tokens per run | `100000` |
-| `budget.max_depth` | Default max recursion depth | `3` |
-| `tools_level` | Default tool level | `core`, `standard`, `full` |
-| `cache.retention` | Cache TTL strategy | `short`, `long` |
-| `gemini.thinking_level` | Default thinking level | `minimal`, `low`, `medium`, `high` |
-| `gemini.google_search` | Enable web search battery | `true` |
-| `gemini.code_execution` | Enable server-side Python | `true` |
+| `model.sub-call-model` | Model for `llm_query()` sub-calls | `gemini-3.1-flash-lite-preview` |
+
+mikro also reads `GOOGLE_API_KEY`, `DEEPSEEK_API_KEY`, `KIMI_API_KEY`, `MOONSHOT_API_KEY`, `MINIMAX_API_KEY`, `ZAI_API_KEY` and `GLM_API_KEY` from settings. A key stored here is used only when the matching environment variable is unset.
+
+`mikro config set` stores any key you give it, and the help that `mikro config` prints also lists `budget.*`, `tools_level`, `cache.retention` and `gemini.*` keys. mikro reads none of those from `settings.json`: set budgets, tool level, cache and Gemini options in `.mikro/mikro.yaml` or with a flag.
 
 ### Priority order
 
 Settings are resolved in this order (highest priority first):
 
-1. CLI flags (`--max-cost 0.10`)
-2. Project `rlmx.yaml`
-3. Global `~/.rlmx/settings.json`
+1. CLI flags (`--max-cost 0.10`, `--model openai/gpt-4o`)
+2. Global `~/.mikro/settings.json`, for `model.provider`, `model.model` and `model.sub-call-model`
+3. Project `.mikro/mikro.yaml`
 4. Hardcoded defaults
+
+---
+
+## Other commands
+
+| Command | What it does |
+|---------|--------------|
+| `mikro doctor` | Prints the version, which of six provider keys are set (Gemini, OpenAI, Anthropic, Groq, xAI, OpenRouter), config-declared providers, whether the configured model resolves, and the settings file. Exits `1` when any of those six keys is unset |
+| `mikro update [--force]` | Fetches the newest `main` commit of the git install and rebuilds it in place. Refuses a checkout with local changes unless `--force` is given |
+| `mikro migrate [--apply]` | Finds config directories, `.mcp.json` entries and Claude Code plugin registrations left from before the rename to mikro, and rewrites them. Dry run unless `--apply`; see [Configuration](/mikro/config#projects-set-up-before-the-rename) |
+| `mikro mcp [--dir <path>]` | Runs a stdio MCP server that exposes `mikro_query` plus one tool per microagent; `--dir` sets the project root |
+| `mikro acp` | Runs a stdio Agent Client Protocol agent (experimental) |
+
+To give Claude Code the MCP tools:
+
+```bash
+claude mcp add mikro -- mikro mcp
+```
 
 ---
 
@@ -500,7 +517,7 @@ Paper-faithful RLM functions:
 | `FINAL(answer)` | Terminate with answer string |
 | `FINAL_VAR(name)` | Terminate with variable value |
 
-Plus any custom tools defined in `rlmx.yaml`.
+Plus any custom tools defined in `.mikro/TOOLS.md`.
 
 ### `standard` (core + batteries)
 
@@ -510,12 +527,13 @@ All core functions plus utility batteries:
 |----------|-------------|
 | `describe_context()` | Metadata overview of loaded context |
 | `preview_context()` | Content sample |
-| `search_context(query)` | Semantic search over context |
+| `search_context(query)` | Keyword search over context, ranked by match count |
 | `grep_context(pattern)` | Regex search over context |
 | `chunk_context()` | Split context into chunks |
 | `chunk_text(text)` | Split arbitrary text by size |
-| `map_query(fn, items)` | Distributed LLM calls |
-| `reduce_query(fn, items)` | Aggregation queries |
+| `map_query(items, template)` | Run one LLM call per item through a template with an `{item}` placeholder |
+| `reduce_query(results, prompt)` | Combine results into one answer with a prompt holding a `{results}` placeholder |
+| `run_cli(cmd, *args)` | Run a command and capture its `returncode`, `stdout` and `stderr` |
 
 With Google provider, also includes Gemini batteries:
 
@@ -539,3 +557,4 @@ These flags work with any command:
 |------|-------------|
 | `--help`, `-h` | Show help message |
 | `--version`, `-v` | Show version |
+| `--schema` | Print the machine-readable CLI schema (flags, JSON output, exit codes) as JSON |

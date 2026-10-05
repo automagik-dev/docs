@@ -1,53 +1,54 @@
 ---
-title: "RLMX"
+title: "mikro"
 sidebarTitle: "Overview"
-description: "RLM algorithm CLI for coding agents — prompt externalization, iterative REPL execution, and recursive sub-calls."
+description: "RLM algorithm CLI for coding agents: prompt externalization, iterative REPL execution, and recursive sub-calls."
 ---
 
-# RLMX
+# mikro
 
-RLMX is a CLI research tool that implements the [RLM (REPL-LM) algorithm](https://arxiv.org/abs/2501.12599). It lets LLMs navigate large codebases and document collections programmatically through a persistent Python REPL — instead of stuffing everything into context.
+mikro is a CLI that implements the [RLM (REPL-LM) algorithm](https://arxiv.org/abs/2501.12599). It lets LLMs navigate large codebases and document collections programmatically through a persistent Python REPL, instead of stuffing everything into context.
 
 <Note>
-  **Research Preview** — RLMX is experimental. The RLM algorithm is bleeding-edge research. Expect sharp edges. [Tell us on Discord](https://discord.gg/automagik).
+  The RLM algorithm comes from recent research. mikro's public CLI surface has been stable since version 1 (August 2026), and its version number records the build date, so read the [changelog](https://github.com/automagik-dev/mikro/blob/main/CHANGELOG.md) to learn about breaking changes. Questions are welcome [on Discord](https://discord.gg/automagik).
 </Note>
 
 ## How it works
 
-Traditional RAG retrieves chunks and hopes for the best. RLMX takes a different approach:
+Traditional RAG retrieves chunks and hopes for the best. mikro takes a different approach:
 
-1. **Prompt externalization** — Your context (files, directories) is loaded into a Python REPL as the `context` variable. Only metadata appears in the LLM message history. The LLM never sees raw context in its messages.
+1. **Prompt externalization:** Your context (files, directories) is loaded into a Python REPL as the `context` variable. Only metadata appears in the LLM message history. The LLM never sees raw context in its messages.
 
-2. **Iterative REPL loop** — The LLM writes Python code in ` ```repl``` ` blocks. RLMX executes each block in a persistent subprocess, feeds results back, and the LLM iterates until it has the answer.
+2. **Iterative REPL loop:** The LLM writes Python code in ` ```repl``` ` blocks. mikro executes each block in a persistent subprocess, feeds results back, and the LLM iterates until it has the answer.
 
-3. **Recursive sub-calls** — Inside REPL code, the LLM can spawn child queries:
+3. **Recursive sub-calls:** Inside REPL code, the LLM can spawn child queries:
    - `llm_query(prompt)` — single LLM completion
    - `llm_query_batched(prompts)` — concurrent LLM calls
    - `rlm_query(prompt)` — spawn a full child RLM session
    - `rlm_query_batched(prompts)` — parallel child RLM sessions
 
-4. **Termination** — The loop ends when the LLM calls `FINAL("answer")` or `FINAL_VAR("variable_name")`, or when max iterations is reached.
+4. **Termination:** The loop ends when the LLM calls `FINAL("answer")` or `FINAL_VAR("variable_name")`, or when max iterations is reached.
 
-## Why use RLMX?
+## Why use mikro?
 
 | Approach | Context handling | Best for |
 |----------|-----------------|----------|
 | **RAG** | Retrieve chunks, stuff into prompt | Simple Q&A over small docs |
 | **Full context** | Dump everything into system prompt | Small codebases, high cost |
-| **RLMX (RLM)** | LLM navigates programmatically | Large codebases, complex analysis |
-| **RLMX (CAG)** | Cache full context at provider level | Repeated queries, batch Q&A |
+| **mikro (RLM)** | LLM navigates programmatically | Large codebases, complex analysis |
+| **mikro (CAG)** | Cache full context at provider level | Repeated queries, batch Q&A |
 
-RLMX handles codebases and document collections that are too large for a single context window, while keeping costs low through programmatic navigation and provider-level caching.
+mikro handles codebases and document collections that are too large for a single context window, while keeping costs low through programmatic navigation and provider-level caching.
 
 ## Part of the Automagik ecosystem
 
-RLMX works standalone or as part of a [Genie](/genie/index) workflow. Use it as a research tool inside agent sessions, as a batch processor for document interrogation, or as a library in your own tools.
+mikro works standalone or as part of a [Genie](/genie/index) workflow. Use it as a research tool inside agent sessions, as a batch processor for document interrogation, or as a library in your own tools.
 
 ## Requirements
 
-- Node.js >= 18
+- Node.js 22.19.0 or later
 - Python 3.10+ (for the REPL subprocess)
-- An LLM API key (Google Gemini, Anthropic, OpenAI, or any [pi/ai](https://github.com/nickarora/pi-ai) provider)
+- git (the installer clones the mikro repository)
+- An LLM API key (Google Gemini, Anthropic, OpenAI, or any [pi/ai](https://www.npmjs.com/package/@earendil-works/pi-ai) provider), or a local `station/` gateway, which needs no key
 
 <CardGroup cols={2}>
   <Card title="Quickstart" icon="rocket" href="/mikro/quickstart">
@@ -57,12 +58,12 @@ RLMX works standalone or as part of a [Genie](/genie/index) workflow. Use it as 
     Every command, flag, and output mode documented.
   </Card>
   <Card title="Configuration" icon="gear" href="/mikro/config">
-    rlmx.yaml format, config commands, and fallback files.
+    `mikro.yaml` format, config commands, and companion files.
   </Card>
   <Card title="Batch Mode" icon="layer-group" href="/mikro/batch">
     Bulk interrogation, caching, and cost estimation.
   </Card>
   <Card title="Cache Mode (CAG)" icon="bolt" href="/mikro/cache">
-    Cache full context at the provider for 50–95% cheaper repeated queries.
+    Cache full context at the provider for 50 to 90% cheaper repeated queries.
   </Card>
 </CardGroup>
