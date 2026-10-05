@@ -9,7 +9,7 @@ description: "Install mikro and run your first query in under five minutes."
 Five minutes. One query. Any LLM provider you already use.
 
 <Note>
-  mikro implements the RLM algorithm from a [recent paper](https://arxiv.org/abs/2501.12599). If something surprises you, [tell us on Discord](https://discord.gg/automagik).
+  mikro implements the algorithm from the [Recursive Language Models (RLM) paper](https://arxiv.org/abs/2512.24601). If something surprises you, [tell us on Discord](https://discord.gg/automagik).
 </Note>
 
 <Steps>
@@ -49,16 +49,18 @@ Five minutes. One query. Any LLM provider you already use.
     mikro config set ANTHROPIC_API_KEY your-key
     mikro config set model.provider anthropic
     mikro config set model.model claude-sonnet-5
+    mikro config set model.sub-call-model claude-sonnet-5
     ```
 
     ```bash OpenAI
     mikro config set OPENAI_API_KEY your-key
     mikro config set model.provider openai
     mikro config set model.model gpt-4o
+    mikro config set model.sub-call-model gpt-4o
     ```
     </CodeGroup>
 
-    Settings are stored at `~/.mikro/settings.json` with `0600` permissions. A `model.provider` or `model.model` set here takes precedence over the `model:` block in a project's `.mikro/mikro.yaml`.
+    Settings are stored at `~/.mikro/settings.json` with `0600` permissions. A `model.provider`, `model.model` or `model.sub-call-model` set here takes precedence over the `model:` block in a project's `.mikro/mikro.yaml`. Set `model.sub-call-model` whenever you change the provider, because the `mikro.yaml` that mikro scaffolds names a Gemini model for `llm_query()` sub-calls, and that model fails on any other provider.
   </Step>
 
   <Step title="Initialize a project">

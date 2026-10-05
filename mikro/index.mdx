@@ -6,7 +6,7 @@ description: "RLM algorithm CLI for coding agents: prompt externalization, itera
 
 # mikro
 
-mikro is a CLI that implements the [RLM (REPL-LM) algorithm](https://arxiv.org/abs/2501.12599). It lets LLMs navigate large codebases and document collections programmatically through a persistent Python REPL, instead of stuffing everything into context.
+mikro is a CLI that implements the [RLM (Recursive Language Models) algorithm](https://arxiv.org/abs/2512.24601). It lets LLMs navigate large codebases and document collections programmatically through a persistent Python REPL, instead of stuffing everything into context.
 
 <Note>
   The RLM algorithm comes from recent research. mikro's public CLI surface has been stable since version 1 (August 2026), and its version number records the build date, so read the [changelog](https://github.com/automagik-dev/mikro/blob/main/CHANGELOG.md) to learn about breaking changes. Questions are welcome [on Discord](https://discord.gg/automagik).
@@ -41,14 +41,14 @@ mikro handles codebases and document collections that are too large for a single
 
 ## Part of the Automagik ecosystem
 
-mikro works standalone or as part of a [Genie](/genie/index) workflow. Use it as a research tool inside agent sessions, as a batch processor for document interrogation, or as a library in your own tools.
+mikro works standalone or as part of a [Genie](/genie) workflow. Use it as a research tool inside agent sessions, as a batch processor for document interrogation, or as a library in your own tools.
 
 ## Requirements
 
 - Node.js 22.19.0 or later
 - Python 3.10+ (for the REPL subprocess)
 - git (the installer clones the mikro repository)
-- An LLM API key (Google Gemini, Anthropic, OpenAI, or any [pi/ai](https://www.npmjs.com/package/@earendil-works/pi-ai) provider), or a local `station/` gateway, which needs no key
+- An LLM API key (Google Gemini, Anthropic, OpenAI, or any [pi/ai](https://www.npmjs.com/package/@earendil-works/pi-ai) provider), or a local Lemonade gateway through mikro's `station/` provider, which needs no key
 
 <CardGroup cols={2}>
   <Card title="Quickstart" icon="rocket" href="/mikro/quickstart">

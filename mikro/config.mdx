@@ -6,7 +6,7 @@ description: ".mikro/ directory layout, mikro.yaml format, config commands, and 
 
 # Configuration
 
-mikro uses a layered configuration system. Configuration lives in the `.mikro/` directory at your project root.
+mikro uses a layered configuration system. Configuration lives in a `.mikro/` directory inside the directory you run mikro from, usually your project root.
 
 ## `.mikro/` directory
 
@@ -29,7 +29,7 @@ Run `mikro init` to scaffold the config directory. Choose a template with `--tem
 
 ## Projects set up before the rename
 
-mikro was named rlmx until 2026-08-29. When `.mikro/mikro.yaml` is missing, mikro still reads a pre-rename `.rlmx/rlmx.yaml`, together with the `SYSTEM.md`, `CRITERIA.md` and `TOOLS.md` beside it, and prints a warning on stderr. A query run (`mikro "..."`) scaffolds a fresh `.mikro/` before it loads config, and from then on the new directory wins over the old one. Rename the old directory before your first query:
+mikro was named rlmx until 2026-08-29. When `.mikro/mikro.yaml` is missing, mikro still reads a pre-rename `rlmx.yaml` in `.rlmx/`, together with the `SYSTEM.md`, `CRITERIA.md` and `TOOLS.md` beside it, and prints a warning on stderr. A query run (`mikro "..."`) scaffolds a fresh `.mikro/` before it loads config, and from then on the new directory wins over the old one. Rename the old directory before your first query:
 
 ```bash
 mikro migrate           # dry run: lists what it would change

@@ -23,7 +23,7 @@ Switch into cache mode with the `--cache` flag on any query, or set `cache.enabl
 
 ## End-to-end example
 
-Interrogate a documentation folder three times: the first query warms the cache, the next two ride it.
+Interrogate a documentation folder three times: one warmup call fills the cache, and the three queries after it ride it.
 
 ### 1. Estimate the cost
 
@@ -63,7 +63,7 @@ mikro: cache warmup complete
   estimated cost:   $0.0070
 ```
 
-One warmup call primes the provider cache for the next hour (Gemini default TTL).
+One warmup call primes Gemini's implicit cache. Google decides how long it lasts; the `ttl` line is mikro's own display value.
 
 ### 3. Run cached queries
 
@@ -73,14 +73,15 @@ mikro "How are errors surfaced?" --context ./docs/ --cache
 mikro "What's the threading model?" --context ./docs/ --cache
 ```
 
-```text Approximate cost per query
-First  (warmup):  $0.0070  full input tokens billed
-Second (cached):  $0.0007  90% discount on cached input
-Third  (cached):  $0.0007  90% discount on cached input
-Total for four runs: ~$0.0084
+```text Approximate input cost per run
+Warmup (mikro cache):  $0.0070  full input tokens billed
+Query 1 (cached):      $0.0007  90% discount on cached input
+Query 2 (cached):      $0.0007  90% discount on cached input
+Query 3 (cached):      $0.0007  90% discount on cached input
+Total for four runs:  ~$0.0091
 ```
 
-Each `--cache` invocation hashes the context; matching content hashes hit the cached system prompt instead of re-sending it.
+Each `--cache` run sends the full context in the system prompt again, with a session ID built from the content hash. While the provider still holds that prefix, the repeated input tokens are billed at the cached rate.
 
 ## How it works
 
@@ -100,7 +101,7 @@ If the context exceeds the provider limit, mikro logs a warning, **disables cach
 |----------|-------------|--------------------------|--------------|
 | Google Gemini | 1,000,000 tokens | ~90% | Implicit caching by Google; mikro sends no cache TTL, so `retention` has no effect |
 | Anthropic | 200,000 tokens | ~90% | Ephemeral (~5 min) or long-lived via `cache_control` |
-| OpenAI | 128,000 tokens | ~50% | Automatic prompt caching, no TTL knob |
+| OpenAI | 128,000 tokens | ~50% | Automatic prompt caching; `retention: long`, mikro's default, asks for 24-hour retention where the model supports it |
 | Amazon Bedrock | 128,000 tokens | Provider-dependent | Inherits underlying model support |
 
 <Warning>

@@ -127,7 +127,7 @@ Creates a `.mikro/` directory containing:
 | `TOOLS.md` | Custom Python tools exposed to the RLM |
 
 <Warning>
-  mikro reads configuration only from the `.mikro/` directory. A `mikro.yaml` or `SYSTEM.md` at the project root is ignored. For a project set up before the rename to mikro, see [Configuration](/mikro/config#projects-set-up-before-the-rename).
+  mikro reads configuration only from the `.mikro/` directory. A `mikro.yaml` or `SYSTEM.md` outside `.mikro/` is ignored. For a project set up before the rename to mikro, see [Configuration](/mikro/config#projects-set-up-before-the-rename).
 </Warning>
 
 ### Templates
@@ -467,7 +467,7 @@ Print the settings file path (`~/.mikro/settings.json`).
 
 mikro also reads `GOOGLE_API_KEY`, `DEEPSEEK_API_KEY`, `KIMI_API_KEY`, `MOONSHOT_API_KEY`, `MINIMAX_API_KEY`, `ZAI_API_KEY` and `GLM_API_KEY` from settings. A key stored here is used only when the matching environment variable is unset.
 
-`mikro config set` stores any key you give it, and the help that `mikro config` prints also lists `budget.*`, `tools_level`, `cache.retention` and `gemini.*` keys. mikro reads none of those from `settings.json`: set budgets, tool level, cache and Gemini options in `.mikro/mikro.yaml` or with a flag.
+`mikro config set` stores any key you give it, and the help that `mikro config` prints also lists `model.sub_call_model`, `budget.*`, `tools_level`, `cache.retention` and `gemini.*` keys. mikro reads none of those from `settings.json` (for the sub-call model it reads only the hyphenated `model.sub-call-model`): set budgets, tool level, cache and Gemini options in `.mikro/mikro.yaml` or with a flag.
 
 ### Priority order
 
