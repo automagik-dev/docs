@@ -30,6 +30,11 @@ function productForPath(pathname: string): string {
 const inlineJson = (value: unknown) => JSON.stringify(value).replace(/</g, '\\u003c')
 const productPrefixes = Object.fromEntries(PRODUCTS.map((p) => [p.prefix, p.slug]))
 const productLandings = Object.fromEntries(PRODUCTS.map((p) => [p.slug, p.landing]))
+// The header logo's href: the landing as a visitor sees it. holocron answers a landing's
+// `<folder>/index` form with a 308 to the folder URL, so the link skips that hop.
+const logoHrefs: Record<string, string> = Object.fromEntries(
+  PRODUCTS.map((p) => [p.slug, p.landing.replace(/\/index$/, '') || '/']),
+)
 
 // Runs before first paint: sets html[data-product] from the URL (style.css shows that
 // product's logo), publishes the landings, and sends a click on the header logo to the
@@ -40,16 +45,27 @@ const productLandings = Object.fromEntries(PRODUCTS.map((p) => [p.slug, p.landin
 const productScript = `<script>(function(){var m=${inlineJson(productPrefixes)},L=${inlineJson(productLandings)},d=document.documentElement;function k(){var p=location.pathname,r=${inlineJson(defaultProduct)};for(var s in m)if(p===s||p.indexOf(s+"/")===0)r=m[s];return r}d.setAttribute("data-product",k());window.__genieProductLandings=L;addEventListener("click",function(e){var a=e.target&&e.target.closest&&e.target.closest(".slot-logo");if(!a||e.defaultPrevented||e.button!==0||e.metaKey||e.ctrlKey||e.shiftKey||e.altKey)return;var to=L[k()];if(!to)return;e.preventDefault();e.stopPropagation();if(window.__genieNavigate)window.__genieNavigate(to);else location.assign(to)},true)})()</script>`
 
 // Every HTML document names its product on <html> (the header logo is right on first paint;
-// <html> carries suppressHydrationWarning), carries the head script, and shares its product's
-// logo as og:image and twitter:image. holocron points both tags at an /api/og renderer this
-// site does not run; the first of each is rewritten and any further one removed. The rewriter
-// streams, and every other response (RSC payloads, redirects, files) is returned untouched.
+// <html> carries suppressHydrationWarning), carries the head script, points the header logo's
+// link at its product's landing, and shares its product's logo as og:image and twitter:image.
+// The head script goes right after <meta charset>, which a browser reads only within the
+// document's first 1024 bytes, and still ahead of every stylesheet (holocron's document always
+// declares its charset; `ui-check --meta` fails on a page without the script). The logo link's
+// href is not the one React renders (docs.json's logo.href): React's production build does not
+// compare attributes when it hydrates, so the server's href stays (the development build logs
+// the difference once and keeps it too), and components/product-brand.tsx keeps it in step
+// after client navigation. holocron points both share-image tags at an /api/og renderer this
+// site does not run; the first of each is rewritten and any further one removed (after
+// hydration, components/product-brand.tsx reconciles them with the pair React renders). The
+// rewriter streams, and every other response (RSC payloads, redirects, files) is returned
+// untouched.
 async function productMarks({ request }: { request: Request }, next: () => Promise<Response | undefined>) {
   const response = await next()
   if (!response?.headers.get('content-type')?.startsWith('text/html')) return response
   const { origin, pathname } = new URL(request.url)
   const slug = productForPath(pathname)
   const image = `${origin}/brand/${slug}-logo.png`
+  const logoHref = logoHrefs[slug]
+  let scriptPlaced = false
   const shareImage = () => {
     let seen = false
     return {
@@ -62,7 +78,14 @@ async function productMarks({ request }: { request: Request }, next: () => Promi
   }
   return new HTMLRewriter()
     .on('html', { element: (html) => void html.setAttribute('data-product', slug) })
-    .on('head', { element: (head) => void head.prepend(productScript, { html: true }) })
+    .on('head meta[charset]', {
+      element(meta) {
+        if (scriptPlaced) return
+        scriptPlaced = true
+        meta.after(productScript, { html: true })
+      },
+    })
+    .on('a.slot-logo', { element: (link) => void (logoHref && link.setAttribute('href', logoHref)) })
     .on('meta[property="og:image"]', shareImage())
     .on('meta[name="twitter:image"]', shareImage())
     .transform(response)

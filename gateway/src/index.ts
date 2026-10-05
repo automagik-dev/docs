@@ -161,7 +161,7 @@ const chatRequestSchema = z.object({
   docsZipUrl: z.string().url().optional(),
   docsPages: z.record(z.string(), z.string()).optional(),
   skillUrls: z.array(z.string().url()).optional(),
-  pageSlug: z.string().optional(),
+  pageSlug: z.string().max(200).optional(),
   toolSchemas: z.array(toolSchemaItem).optional(),
   sessionId: sessionIdSchema.optional(),
 })
@@ -353,7 +353,7 @@ export function createGateway(deps: GatewayDeps) {
         try {
           const files = body.docsPages ? dropInternal(body.docsPages) : await getDocsZipFiles(docsZipUrl!)
           tlog(
-            `turn start site=${site} page=${body.pageSlug || '/'} docs=${Object.keys(files).length} via=${body.docsPages ? 'inline' : 'docs.zip'} bodyBytes=${bodyBytes} reservedUsd=${reservedUsd.toFixed(6)}`,
+            `turn start site=${site} page=${JSON.stringify(body.pageSlug || '/')} docs=${Object.keys(files).length} via=${body.docsPages ? 'inline' : 'docs.zip'} bodyBytes=${bodyBytes} reservedUsd=${reservedUsd.toFixed(6)}`,
           )
           const bash = createChatBashTool({ files, log: tlog })
           const model = deepseek(deps.model)

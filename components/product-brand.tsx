@@ -10,6 +10,7 @@
 //     the inline head script set it before first paint; style.css swaps the header logo from it);
 //   - names the header logo after the product (alt), since the image now shows it, and points
 //     the logo link at the product's landing page;
+//   - leaves one og:image and one twitter:image in <head>, on the current product's logo;
 //   - replaces each "Select section" <select> with a logo menu that navigates with
 //     spiceflow's router.push, the call holocron's NavSelect makes on change.
 // Products, labels and hrefs are read from holocron's own <select> options, so the menu
@@ -34,18 +35,51 @@ function activeOf(products: Product[], pathname = location.pathname): Product {
   return products.find((p) => pathname === p.href || pathname.startsWith(`${p.href}/`)) ?? products[0]!
 }
 
+const SVG_NS = 'http://www.w3.org/2000/svg'
+const CHEVRON_PATH = {
+  d: 'm6 9 6 6 6-6',
+  fill: 'none',
+  stroke: 'currentColor',
+  'stroke-width': '2',
+  'stroke-linecap': 'round',
+  'stroke-linejoin': 'round',
+}
 const chevron = () => {
-  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+  const svg = document.createElementNS(SVG_NS, 'svg')
   svg.setAttribute('viewBox', '0 0 24 24')
   svg.setAttribute('aria-hidden', 'true')
   svg.classList.add('genie-switcher__chevron')
-  svg.innerHTML = '<path d="m6 9 6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'
+  const path = document.createElementNS(SVG_NS, 'path')
+  for (const [name, value] of Object.entries(CHEVRON_PATH)) path.setAttribute(name, value)
+  svg.append(path)
   return svg
 }
 
-// Never touch a React-managed node before React has hydrated it: a changed attribute
-// or an inserted sibling at that point fails hydration and React regenerates the whole
-// document. A hydrated (or client-rendered) node carries React's __reactFiber$ key.
+// A landing as a visitor sees it: holocron answers a landing's `<folder>/index` form with a 308
+// to the folder URL. src/server.tsx gives the header logo's link the same href.
+const folderUrl = (landing: string) => landing.replace(/\/index$/, '') || '/'
+
+// The share images React renders. src/server.tsx points the server's og:image and twitter:image
+// at the product's logo, but React adopts a server <meta> only when its content is unchanged:
+// at hydration it adds holocron's own pair, on an /api/og renderer this site does not run, and
+// it updates only that pair on client navigation. Once React's pair is there, the server's copies
+// go (React never knew them) and React's pair points at the current product's logo; React writes
+// a <meta> attribute again only when its own value for it changes, and this runs again then.
+const SHARE_IMAGES = 'meta[property="og:image"], meta[name="twitter:image"]'
+function syncShareImages(slug: string) {
+  const metas = [...document.head.querySelectorAll<HTMLMetaElement>(SHARE_IMAGES)]
+  if (!metas.some(hydrated)) return // before hydration the server's tags are the right ones
+  const logo = new URL(`/brand/${slug}-logo.png`, location.origin).href
+  for (const meta of metas) {
+    if (!hydrated(meta)) meta.remove()
+    else if (meta.getAttribute('content') !== logo) meta.setAttribute('content', logo)
+  }
+}
+
+// Never touch a React-managed node before React has hydrated it: an inserted sibling at that
+// point fails hydration and React regenerates the whole document (a changed attribute is kept,
+// but React's development build reports it). A hydrated (or client-rendered) node carries
+// React's __reactFiber$ key.
 const hydrated = (el: Element | null) => !!el && Object.keys(el).some((k) => k.startsWith('__reactFiber$'))
 
 export function mountProductBrand(): () => void {
@@ -144,18 +178,23 @@ export function mountProductBrand(): () => void {
       const headerLogo = document.querySelector<HTMLImageElement>('.slot-logo img')
       if (hydrated(headerLogo) && headerLogo!.alt !== active.label) headerLogo!.alt = active.label
       // The logo link follows the product too. Clicks are routed by the inline head script;
-      // the attribute keeps hover, copy-link and open-in-new-tab right.
+      // the attribute keeps hover, copy-link and open-in-new-tab right. The server sets it for
+      // the first page; this follows client navigation.
       const landing = (window as BrandWindow).__genieProductLandings?.[active.slug]
       const logoLink = document.querySelector<HTMLAnchorElement>('a.slot-logo')
-      if (landing && hydrated(logoLink) && logoLink!.getAttribute('href') !== landing) logoLink!.setAttribute('href', landing)
+      const href = landing && folderUrl(landing)
+      if (href && hydrated(logoLink) && logoLink!.getAttribute('href') !== href) logoLink!.setAttribute('href', href)
       if (location.pathname !== lastPath) { lastPath = location.pathname; openMenu?.() }
     }
+    const product = document.documentElement.getAttribute('data-product')
+    if (product) syncShareImages(product)
     selects.filter(hydrated).forEach(enhance)
     for (const fn of syncers) fn() // cheap: a few attribute writes
   }
 
   // Navigation and React re-renders both mutate the DOM: one observer covers new selects
-  // (the mobile menu renders its own) and URL changes, with no history patching.
+  // (the mobile menu renders its own), URL changes and React's share images in <head>, with
+  // no history patching.
   const observer = new MutationObserver(update)
   function onDocClick(e: MouseEvent) {
     if (openMenu && !(e.target as Element).closest?.('.genie-switcher')) openMenu()
@@ -164,10 +203,11 @@ export function mountProductBrand(): () => void {
   // holocron answers a landing's `<folder>/index` form with a 308 to the folder URL; a full
   // load follows it, but a client navigation through it leaves `?__rsc=` in the address bar,
   // so the router is sent to the folder URL itself.
-  ;(window as BrandWindow).__genieNavigate = (to) => router.push(to.replace(/\/index$/, '') || '/')
+  ;(window as BrandWindow).__genieNavigate = (to) => router.push(folderUrl(to))
 
   let waitTimer = 0
   observer.observe(document.body, { childList: true, subtree: true })
+  observer.observe(document.head, { childList: true, subtree: true, attributes: true, attributeFilter: ['content'] })
   window.addEventListener('popstate', update)
   document.addEventListener('click', onDocClick)
   // Hydration mutates no DOM, so the observer cannot see it finish: poll briefly.

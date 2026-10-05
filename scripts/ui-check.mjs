@@ -14,19 +14,23 @@
 // under reduced motion, that a question the site refuses (70 KB, which src/chat-guard.ts
 // answers 413) shows the guard's message in the drawer and plays the pet's failed pose, and
 // one <html> per document; it also makes the open-drawer canaries available.
-// Every page fails on a console error (but the upstream ones UPSTREAM_CONSOLE_ERRORS names), a
-// hydration warning or a same-origin HTTP error (but the 413 the failed-pose check provokes).
-// The meta group reads the raw HTML of one deep page per docs.json product: <html data-product>
-// names the product, the logo-link head script is there once, and exactly one og:image and one
-// twitter:image point at the product's logo on the site's own origin, which answers 200 with
-// the PNG in public/brand/; no meta tag points at the chat gateway, and the page's RSC payload
-// carries none of the HTML rewrites. The products group, on the same deep pages: the header
-// logos differ pairwise and the footer's (AUTOMAGIK) differs from Genie's, no header, footer or
-// switcher logo carries a filter, the native "Select section" pill is hidden and one logo menu
-// shows instead, listing every product by its logo with the current one selected; Omni chosen
-// by mouse and then mikro by keyboard navigate without a reload and swap data-product and the
-// header logo; and on each product's deep page a click on the header logo lands on that
-// product's folder URL, once before hydration (every built script answered as an empty module)
+// Every page fails on a console error (but, in WebKit, the upstream ones UPSTREAM_CONSOLE_ERRORS
+// names), a hydration warning or a same-origin HTTP error (but the 413 the failed-pose check
+// provokes).
+// The meta group reads the raw HTML of each docs.json product's landing and one deep page:
+// <meta charset> ends within the first 1024 bytes, <html data-product> names the product, the
+// logo-link head script is there once, and exactly one og:image and one twitter:image point at
+// the product's logo on the site's own origin, which answers 200 with the PNG in public/brand/;
+// no meta tag points at the chat gateway, and the page's RSC payload carries none of the HTML
+// rewrites. The products group, on the deep pages: the header logos differ pairwise and the
+// footer's (AUTOMAGIK) differs from Genie's, no header, footer or switcher logo carries a
+// filter, the native "Select section" pill is hidden and one logo menu shows instead, listing
+// every product by its logo with the current one selected; once React has taken over the head,
+// the live document holds exactly one og:image and one twitter:image, on the product's logo;
+// Omni chosen by mouse and then mikro by keyboard navigate without a reload and swap
+// data-product, the header logo and both share images; and on each product's deep page the
+// header logo's href is the product's folder URL and a click on it lands there, showing the
+// landing's own <h1>, once before hydration (every built script answered as an empty module)
 // and once after it.
 //
 // Canaries: each rule in style.css that reaches into holocron's markup carries a
@@ -218,7 +222,8 @@ const slug = (pathname) => pathname.replace(/^\//, '').replaceAll('/', '-') || '
 // Console errors that WebKit alone reports, from upstream holocron 0.36.0 markup, present before
 // docs-holocron-products: its side nav passes size='var(--sidebar-icon-size)' to an <svg> as
 // width and height attributes, and its document head carries <link rel="preload" as="stylesheet">.
-// Each is matched on its exact text; every other console error still fails the page.
+// Each is matched on its exact text, in WebKit only; every other console error, and these in any
+// other engine, still fails the page.
 const UPSTREAM_CONSOLE_ERRORS = new Set([
   'Error: Invalid value for <svg> attribute width="var(--sidebar-icon-size)"',
   'Error: Invalid value for <svg> attribute height="var(--sidebar-icon-size)"',
@@ -233,6 +238,7 @@ async function openPage(browser, base, pathname, { waitUntil = 'networkidle', pr
   await prepare?.(context)
   const page = await context.newPage()
   const errors = []
+  const upstream = browser.browserType().name() === 'webkit' ? UPSTREAM_CONSOLE_ERRORS : new Set()
   const origin = new URL(base).origin
   const provoked = (status, url) => {
     try {
@@ -247,7 +253,7 @@ async function openPage(browser, base, pathname, { waitUntil = 'networkidle', pr
     if (message.type() === 'error') {
       const status = /^Failed to load resource: the server responded with a status of (\d+)/.exec(text)?.[1]
       if (status && provoked(Number(status), message.location().url)) return
-      if (!UPSTREAM_CONSOLE_ERRORS.has(text)) errors.push(text)
+      if (!upstream.has(text)) errors.push(text)
     } else if (/hydrat/i.test(text)) errors.push(`hydration ${message.type()}: ${text}`)
   })
   page.on('pageerror', (error) => errors.push(`uncaught ${error.message}`))
@@ -528,6 +534,34 @@ async function changedShot(locator, from) {
   return null
 }
 
+// The share images in the live document. React adopts a server <meta> only when its content is
+// unchanged, so at hydration it adds holocron's own og:image and twitter:image beside the
+// server's, and it updates them on every client navigation. Once React has committed the head
+// (a <meta> there is React's node), exactly one of each must remain, on the product's logo.
+async function checkShareImages(page, where, product) {
+  const expected = new URL(`/brand/${product.slug}-logo.png`, page.url()).href
+  const read = () =>
+    page.evaluate(() => {
+      const contents = (selector) => [...document.querySelectorAll(selector)].map((meta) => meta.getAttribute('content'))
+      return {
+        committed: [...document.head.querySelectorAll('meta')].some((meta) => Object.keys(meta).some((key) => key.startsWith('__reactFiber$'))),
+        'og:image': contents('meta[property="og:image"]'),
+        'twitter:image': contents('meta[name="twitter:image"]'),
+      }
+    })
+  const IMAGES = ['og:image', 'twitter:image']
+  const right = (seen) => seen.committed && IMAGES.every((key) => seen[key].length === 1 && seen[key][0] === expected)
+  const deadline = Date.now() + SWAP_MS
+  let seen = await read()
+  while (!right(seen) && Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, 200))
+    seen = await read()
+  }
+  if (!seen.committed) return fail(`${where}: React never took over the head's <meta> tags`)
+  for (const key of IMAGES)
+    if (seen[key].length !== 1 || seen[key][0] !== expected) fail(`${where}: live ${key} ${JSON.stringify(seen[key])}, expected ["${expected}"]`)
+}
+
 async function checkProductPage(browser, base, engine, product, shots) {
   const where = product.deep
   const { page, close } = await openPage(browser, base, where, { waitUntil: 'load' })
@@ -555,6 +589,7 @@ async function checkProductPage(browser, base, engine, product, shots) {
     if (seen.switcher.length === 0 || filtered.length) fail(`${where}: switcher logo filters ${seen.switcher.join(', ') || 'none found'}, expected none`)
     if (seen.pills !== 0) fail(`${where}: the native Select section pill shows`)
     if (seen.switchers !== 1) fail(`${where}: ${seen.switchers} header logo menus show, expected 1`)
+    await checkShareImages(page, where, product)
     await page.screenshot({ path: path.join(SHOTS, `${engine}-products-${product.slug}.png`) })
     shots.header.set(product.slug, await page.locator(HEADER_LOGO).screenshot())
     if (product === PRODUCTS[0]) {
@@ -600,6 +635,7 @@ async function checkSwitched(page, product, how, before) {
   }
   const shot = await changedShot(page.locator(HEADER_LOGO), before)
   if (!shot) fail(`${where}: the header logo did not change`)
+  await checkShareImages(page, where, product)
   const switchers = await page.locator(SWITCHER).count()
   if (switchers !== 1) fail(`${where}: ${switchers} header logo menus, expected 1`)
   return shot ?? before
@@ -633,12 +669,33 @@ async function checkSwitching(browser, base, engine) {
   }
 }
 
-// A click on the header logo of a product's deep page lands on that product's folder URL with a
-// clean query. Before hydration every built script answers as an empty module, so nothing
-// hydrates and only the inline head script can route the click; after hydration the click goes
-// through spiceflow's router, in the same document.
+// The text of a landing's own <h1>, read from its raw HTML: a logo click has landed only once
+// that heading shows, not when the URL changes.
+const ENTITIES = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: '\u00a0' }
+const decodeText = (text) =>
+  text.replace(/&(?:#(\d+)|#x([\da-f]+)|([a-z]+));/gi, (entity, dec, hex, name) =>
+    dec ? String.fromCodePoint(Number(dec)) : hex ? String.fromCodePoint(parseInt(hex, 16)) : (ENTITIES[name] ?? entity),
+  )
+const headings = new Map()
+async function landingHeading(base, product) {
+  if (!headings.has(product.slug)) {
+    const html = await (await fetch(new URL(product.folderUrl, base), { headers: { accept: 'text/html' } })).text()
+    const inner = /<h1\b[^>]*>([\s\S]*?)<\/h1>/i.exec(html)?.[1]
+    headings.set(product.slug, inner === undefined ? null : decodeText(inner.replace(/<[^>]*>/g, '')).trim())
+  }
+  return headings.get(product.slug)
+}
+
+// The header logo's href on a product's deep page is that product's folder URL, so a
+// middle-click, a new tab or a copied link goes there too, and a click lands there with a clean
+// query, showing the landing's own <h1>. Before hydration every built script answers as an
+// empty module, so nothing hydrates: the href is the server's, and only the inline head script
+// can route the click. After hydration the click goes through spiceflow's router, in the same
+// document.
 async function checkLogoLink(browser, base, engine, product, phase) {
   const where = `${product.deep} logo (${phase})`
+  const heading = await landingHeading(base, product)
+  if (!heading) return fail(`${where}: ${product.folderUrl} has no <h1> in its raw HTML`)
   let holding = phase === 'before hydration'
   const prepare = (context) =>
     context.route(/\/assets\/[^?#]*\.js(?:[?#]|$)/, (route) =>
@@ -653,15 +710,23 @@ async function checkLogoLink(browser, base, engine, product, phase) {
       holding = false
     } else {
       await page.locator(SWITCHER).waitFor({ timeout: SWITCHER_MS })
-      const href = await page.locator('a.slot-logo').getAttribute('href')
-      if (href !== product.landing) fail(`${where}: logo href ${href}, expected ${product.landing}`)
       await page.evaluate(() => {
         window.__uiCheckSameDocument = true
       })
     }
+    const href = await page.locator('a.slot-logo').getAttribute('href')
+    if (href !== product.folderUrl) fail(`${where}: logo href ${href}, expected ${product.folderUrl}`)
     await page.locator('.slot-logo').click()
     await page.waitForURL((url) => url.pathname === product.folderUrl, { timeout: NAV_TIMEOUT_MS })
     await page.waitForLoadState('load')
+    try {
+      await page.waitForFunction((text) => document.querySelector('h1')?.textContent?.trim() === text, heading, {
+        timeout: NAV_TIMEOUT_MS,
+      })
+    } catch {
+      const shown = await page.evaluate(() => document.querySelector('h1')?.textContent?.trim() ?? null)
+      fail(`${where}: landed on ${product.folderUrl} showing <h1> ${JSON.stringify(shown)}, expected ${JSON.stringify(heading)}`)
+    }
     const url = new URL(page.url())
     if (url.search || url.hash) fail(`${where}: landed on ${url.pathname}${url.search}${url.hash}, expected ${product.folderUrl}`)
     const marked = await page.evaluate(() => document.documentElement.getAttribute('data-product'))
@@ -688,22 +753,29 @@ async function checkProducts(browser, base, engine) {
   await checkSwitching(browser, base, engine)
   for (const product of PRODUCTS)
     for (const phase of ['before hydration', 'after hydration']) await checkLogoLink(browser, base, engine, product, phase)
-  return `products ${PRODUCTS.map((product) => product.slug).join(', ')}: logos, menu, switching, logo link`
+  return `products ${PRODUCTS.map((product) => product.slug).join(', ')}: logos, menu, share images, switching, logo link`
 }
 
 const attribute = (tag, name) =>
   tag.match(new RegExp(`\\s${name}="([^"]*)"`))?.[1]?.replaceAll('&amp;', '&').replaceAll('&quot;', '"')
 
+// A browser reads the encoding only from a <meta charset> serialized within the first 1024 bytes.
+const CHARSET_BYTES = 1024
+
 async function checkMeta(_browser, base) {
   if (!GATEWAY_ORIGIN) fail("vite.config.ts: no GATEWAY_ORIGIN = '<url>' to check the meta tags against")
-  for (const product of PRODUCTS) {
-    const where = product.deep
+  const pages = PRODUCTS.flatMap((product) => [product.folderUrl, product.deep].map((where) => ({ product, where })))
+  for (const { product, where } of pages) {
     const res = await fetch(new URL(where, base), { headers: { accept: 'text/html' }, redirect: 'manual' })
     const html = await res.text()
     if (res.status !== 200) {
       fail(`${where}: answered ${res.status}, expected 200`)
       continue
     }
+    const charset = /<meta\b[^>]*\bcharset\s*=[^>]*>/i.exec(html)
+    const charsetEnd = charset && Buffer.byteLength(html.slice(0, charset.index + charset[0].length))
+    if (!charset) fail(`${where}: no <meta charset>`)
+    else if (charsetEnd > CHARSET_BYTES) fail(`${where}: <meta charset> ends at byte ${charsetEnd}, past the first ${CHARSET_BYTES}`)
     const marked = attribute(html.match(/<html\b[^>]*>/i)?.[0] ?? '', 'data-product')
     if (marked !== product.slug) fail(`${where}: <html data-product="${marked}">, expected ${product.slug}`)
     const scripts = html.match(/window\.__genieProductLandings=/g)?.length ?? 0
@@ -744,7 +816,7 @@ async function checkMeta(_browser, base) {
     if (rsc.status !== 200 || !rscType.startsWith('text/x-component')) fail(`${where}.rsc: answered ${rsc.status} ${rscType}, expected 200 text/x-component`)
     else if (payload.includes('__genieProductLandings') || payload.includes('data-product')) fail(`${where}.rsc: carries an HTML rewrite`)
   }
-  return `meta ${PRODUCTS.map((product) => product.deep).join(', ')}`
+  return `meta ${pages.map(({ where }) => where).join(', ')}`
 }
 
 // True when anything accepts a TCP connection on the preview port, over IPv4 or IPv6.
