@@ -245,6 +245,24 @@ Closes the six findings above, plus item 7 from the docs-holocron-chat Group 2 r
 
 Validation, all exit 0, on 6a22bf6: `npm ci`, the strict build, `npm run verify`, `check-deploy-config` (deploy config unchanged), `ui-check --serve --all` in Chromium (31 canaries), `--products` in Firefox and in WebKit (`mcr.microsoft.com/playwright:v1.63.0-noble`), `verify-site --serve --chat-guard`, and `cd gateway && npm run check` (51 tests). After the ruling and the merge of `origin/main` at 1bd6f13 (9c0e0e8), all exit 0 again: the strict build, `npm run verify`, `check-deploy-config`, `verify-site --serve --chat-guard` (21 requests), `ui-check --serve --all` in Chromium, and the gateway check.
 
+
+### Polish review — 2026-10-05 (independent reviewer, read-only, at d97c1b5)
+
+**SHIP.** All seven items are closed, and each new check fails on main's code: `--chat-guard` 7 failures, `ui-check --meta --products` 21.
+- **Charset:** within 522 bytes on all 41 pages and the 404s.
+- **Share images:** exactly one `og:image` and one `twitter:image` in the live DOM, in all three engines. Checked after hydration, through product switches and history back, and after leaving a 404.
+- **Logo href:**
+  - middle-click opens the product landing before hydration, with JS disabled and after client navigation;
+  - the chevron is pixel-identical;
+  - the console allowlist applies to WebKit only.
+- **`currentSlug`:** 20 crafted-link shapes in holocron's own client (Chromium and Firefox, drawer, sidebar box and mobile button). A real page always sends its clean `docs.json` href, and a 404 always sends `/`, so no crafted link reaches a victim's prompt. Raw guard probes refuse every unsafe slug. The gateway's `pageSlug` is capped at 200 and logged as JSON; mutants fail its test.
+- **Validation:** strict build, verify, deploy-config, `--chat-guard` (21), `ui-check --all` (31 canaries), Firefox and WebKit `--products`, gateway 51/51 and the dry run.
+- **MEDIUM, present on main and live, routed to `docs-holocron-cutover` Group 2:** the 404 has no pet, because `siteLayout` is excluded from the 404 by design (brand deviation 3). ui-check's "404 shell" never checked for the pet, and the cutover plan expects "404 with the site chrome and the pet". The earlier line here, "the 404 keeps it", is corrected by this note.
+- **INFO, upstream holocron:**
+  - `/constructor`, `/__proto__` and similar paths answer 500 with a stack trace;
+  - an invalid chat body answers 500 with a `stack` field;
+  - on a 404 the logo menu is not mounted.
+
 ---
 
 ## Files to Create/Modify
