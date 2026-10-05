@@ -315,6 +315,53 @@ _The read-only reviewer returns evidence; the invoking orchestrator appends a ti
 - `cache.ttl` and `expire-time` are never sent;
 - the README cites the wrong RLM arXiv id.
 
+### Group 2 — 2026-10-05
+
+**Owner sign-off (question harness, 2026-10-05):**
+- the screenshots were "Aprovado";
+- for the `/genie` Lighthouse performance miss (39): "Vira e otimiza depois";
+- the 404 without a pet: "Quero o pet na 404".
+
+The last two shipped as #99 (worker-played hero, live `/genie` performance 70 to 76) and #98 (the pet and the logo menu on every 404).
+
+**Round 0 (b136cb7): FIX-FIRST.**
+- F1: secrets reached child processes. wrangler tail got `GATEWAY_TOKEN`; Lighthouse and Chrome got both tokens.
+- F2: some output lines were not redacted.
+- F3: a Lighthouse timeout orphaned Chrome.
+- F4: the host-audit gaps (popups, workers, WebSockets).
+- F5: chat turns were spent when the tail failed to connect.
+
+Every check was shown to fail for the right reason.
+
+**Repair round 1 (237f789), re-review: SHIP.** Each child process gets an explicit environment: the tail gets only `CLOUDFLARE_*`, and Lighthouse and both Chromiums get no credential variable. Stub-env proofs back this. Redaction everywhere, process-group kills, a context-level host audit, and the paid parts skipped when the tail fails.
+
+**Follow-up (05c5e1e..baec0aa), re-review: SHIP.**
+- Main was merged.
+- The 404 check now requires the pet, a drawer open, and the logo menu.
+- Outbound-audit ruling: Workers tail is best-effort and dropped events in one live run ("saw 2 of 4"). The audit passes on at least 1 chat request seen when every host seen is allowed and both allowed hosts appear. Zero requests seen, or any foreign host, fails. The reviewer showed it cannot pass vacuously (8 tail scenarios).
+- `LIGHTHOUSE_ACCEPTED` is emptied because #99 met the target. Decision 6's 50 applies to all three landings, and a faked 45 fails.
+
+**Live `--full` against workers.dev at 8664f74: exit 0.**
+- 41 pages, 57 files, 21 chat-guard requests.
+- Chat answers 2.9 to 3.5 s, each linking its own product.
+- Outbound: the site origin and api.deepseek.com only.
+- 131 browser requests, all to the site origin.
+- The 404 shows the pet and the logo menu.
+- Lighthouse `/genie` 70 to 76, `/omni` 72 to 78, `/mikro` 70 to 73; accessibility 95, best practices 96, SEO 100.
+- No token appears in any of 438 scanned files.
+
+### Group 3 — attempt 1 (2026-10-05 05:02 UTC)
+
+The owner approved: "Pode virar".
+- The exact artifact main deployed was staged and checked with `check-deploy-config`.
+- `wrangler@4.147.0 deploy --name automagik-docs --domain docs.automagik.dev` ran non-TTY, so wrangler sent `override_existing_dns_record: true`. The Worker redeployed unchanged.
+- The Custom Domain was refused: "Hostname 'docs.automagik.dev' already has externally managed DNS records … Delete them first" [code 100117].
+- Nothing changed; docs.automagik.dev is still on Mintlify.
+- Plan error: decision 3 assumed the override replaces a CNAME created outside Workers. Cloudflare refuses that, so step 5's fallback (delete the CNAME first) is the only path.
+- The orchestrator's OAuth token has no DNS scope, and no bws token has DNS on automagik.dev: `CLOUDFLARE_TOKEN` and `CLOUDFLARE_API_TOKEN` have DNS on khal.ai only.
+- The owner declined the dashboard step at 4 am. Pending: either the owner deletes the `docs` CNAME, or he adds Zone DNS:Edit for automagik.dev to a bws token, so the orchestrator deletes and attaches back to back.
+
+
 ---
 
 ## Files to Create/Modify
