@@ -267,6 +267,23 @@ _The read-only reviewer returns evidence; the invoking orchestrator appends a ti
 
 Open: Group 1's "CI passes on the PR" criterion, pending the PR.
 
+### 404 pet follow-up — 2026-10-05 (engineer, `feat/pet-on-404`)
+
+**Owner ask (Felipe, 2026-10-05): "Quero o pet na 404".** Every 404 now shows the pet, and a click on it opens the chat. The product logo menu comes with the same change. Deviation 3 still holds: `siteLayout` stays innermost and out of the 404's rendered tree, and the server's 404 answer is unchanged (status 404, one `<html>`, holocron's chrome).
+
+- **Mechanism.** `components/genie-pet.tsx` and `components/product-brand.tsx` start their pieces from module code once React has hydrated `<body>` (`components/hydration.ts`), not from an effect, since on a 404 no component of the site renders. The modules still load on a 404, by one of two paths:
+  - under `vite dev`, spiceflow serializes `siteLayout` without rendering it, so the 404's payload names `GeniePet` and `ProductBrand`;
+  - in a production build, both modules sit in the same client chunk as holocron's own client components (`worker-entry-*.js`), which the not-found page loads.
+  - The reviewer removed the payload reference: production still showed the pet and the logo menu and ui-check passed; `vite dev` lost the pet. ui-check's 404 shell checks that the pet shows, not which path loaded it.
+- **Deviation from Decision 3.** The pet reads holocron's chat store (`src/chat/chat-store.ts`) directly instead of `useChatWidget()`, because a hook needs a rendered component. Reviewer-confirmed safe:
+  - one store instance, the same `src/` one the hook reads;
+  - the same toggle, flipping `drawerState` as the hook's `toggle` does;
+  - the store subscription is removed when the pet is disposed;
+  - holocron sets `errorMessage` before `isGenerating` goes false, so the failed pose still plays.
+- **React internals.** The hydration wait reads React's `__reactFiber$` key on `<body>`, as `product-brand.tsx` already did for its selects. If a React upgrade renames the key, neither piece starts, and CI's ui-check fails on the pet pages and the 404 shell.
+- **Checks.** ui-check's 404 shell opens `/genie/no-such-page` and `/omni/no-such-page` and requires one visible pet that a click opens the drawer with and a second click closes, a refused question playing the failed pose with `/` as `currentSlug`, and the pet opening the drawer at 390x844. `--products` requires the logo menu on the Omni 404. On main's code these four checks fail and every other passes.
+- **Review of e5799b2: SHIP**, one LOW: the comments credited the 404 to the payload path alone. The commit that adds this note rewords them to name both paths.
+
 ---
 
 ## Files to Create/Modify
