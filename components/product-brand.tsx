@@ -4,8 +4,9 @@
 //
 // holocron has no per-product logo option (navigation.products takes a name, icon and
 // href), and its switcher is a native <select>, whose open list is drawn by the OS and
-// cannot show images. src/server.tsx renders <ProductBrand /> in the site-wide layout, and
-// once per page lifetime it mounts this client piece, which:
+// cannot show images. src/server.tsx renders <ProductBrand />, which renders nothing, in the
+// site-wide layout so that every page loads this module, a 404 included (it says why), and
+// once per page lifetime the module itself mounts this client piece, which:
 //   - keeps html[data-product] in step with the URL after client navigation (the server and
 //     the inline head script set it before first paint; style.css swaps the header logo from it);
 //   - names the header logo after the product (alt), since the image now shows it, and points
@@ -15,8 +16,8 @@
 //     spiceflow's router.push, the call holocron's NavSelect makes on change.
 // Products, labels and hrefs are read from holocron's own <select> options, so the menu
 // follows docs.json. Logos: public/brand/<product>-logo.png, trimmed copies of the drops.
-import { useEffect } from 'react'
 import { router } from 'spiceflow/react'
+import { afterHydration, hydrated } from './hydration.ts'
 
 type Product = { href: string; label: string; slug: string; logo: string }
 type BrandWindow = Window & {
@@ -76,12 +77,7 @@ function syncShareImages(slug: string) {
   }
 }
 
-// Never touch a React-managed node before React has hydrated it: an inserted sibling at that
-// point fails hydration and React regenerates the whole document (a changed attribute is kept,
-// but React's development build reports it). A hydrated (or client-rendered) node carries
-// React's __reactFiber$ key.
-const hydrated = (el: Element | null) => !!el && Object.keys(el).some((k) => k.startsWith('__reactFiber$'))
-
+// Every React-managed node this touches is first checked with hydrated() (./hydration.ts).
 export function mountProductBrand(): () => void {
   let openMenu: (() => void) | null = null // closes whichever menu is open
   const syncers = new Set<() => void>()
@@ -230,15 +226,17 @@ export function mountProductBrand(): () => void {
   }
 }
 
-let mounted = false // once per page lifetime: client navigation never mounts it again
-
-export function ProductBrand(): null {
-  useEffect(() => {
-    if (mounted) return
-    mounted = true
+// Once per page lifetime, after hydration and the load event: a module runs once, so client
+// navigation never mounts it again.
+if (typeof document !== 'undefined') {
+  afterHydration(() => {
     const mount = () => setTimeout(() => mountProductBrand(), 0)
     if (document.readyState === 'complete') mount()
     else window.addEventListener('load', mount, { once: true })
-  }, [])
+  })
+}
+
+/** Renders nothing: the site layout renders it so that every page loads this module. */
+export function ProductBrand(): null {
   return null
 }

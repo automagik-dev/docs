@@ -13,10 +13,14 @@
 // holocron's chat drawer and a second one closes it, the lamp hero on /genie, the neutral pose
 // under reduced motion, that a question the site refuses (70 KB, which src/chat-guard.ts
 // answers 413) shows the guard's message in the drawer and plays the pet's failed pose, and
-// one <html> per document; it also makes the open-drawer canaries available.
+// one <html> per document; it also makes the open-drawer canaries available. On two routes with
+// no page it checks the 404 shell: holocron's not-found document, answered 404 with one <html>,
+// and in it, at 1440x900, exactly one visible pet that a click opens the chat drawer with and a
+// second click closes it, and a refused question that plays the failed pose and carries `/` as
+// the page; at 390x844, a visible pet that a click opens the drawer with.
 // Every page fails on a console error (but, in WebKit, the upstream ones UPSTREAM_CONSOLE_ERRORS
 // names), a hydration warning or a same-origin HTTP error (but the 413 the failed-pose check
-// provokes).
+// provokes, and a 404 page's own 404).
 // The meta group reads the raw HTML of each docs.json product's landing and one deep page:
 // <meta charset> ends within the first 1024 bytes, <html data-product> names the product, the
 // logo-link head script is there once, and exactly one og:image and one twitter:image point at
@@ -31,7 +35,8 @@
 // data-product, the header logo and both share images; and on each product's deep page the
 // header logo's href is the product's folder URL and a click on it lands there, showing the
 // landing's own <h1>, once before hydration (every built script answered as an empty module)
-// and once after it.
+// and once after it. On a 404 under the second product, the header shows one logo menu in place
+// of the pill, with that product selected.
 //
 // Canaries: each rule in style.css that reaches into holocron's markup carries a
 // `/* holocron-internal: <id> */` tag, and CANARIES holds one entry per tag. A canary's
@@ -54,6 +59,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const SHOTS = path.join(ROOT, '.ui-check')
 const PREVIEW_PORT = 4174
 const VIEWPORT = { width: 1440, height: 900 }
+const MOBILE = { width: 390, height: 844 }
 const NAV_TIMEOUT_MS = 60_000
 const QUIET_MS = 500 // Playwright's networkidle window
 const ENGINES = { chromium, firefox, webkit }
@@ -64,7 +70,7 @@ const DRAWER_MS = 5_000
 const FAILED_MS = 10_000 // the refused request, then the pet's one pass of its failed clip
 const CHAT_PATH = '/holocron-api/chat'
 const CHAT_TOO_LONG = 'Your question is too long. Please shorten it and ask again.' // src/chat-guard.ts
-const NOT_FOUND_PAGE = '/genie/no-such-page'
+const NOT_FOUND_PAGES = ['/genie/no-such-page', '/omni/no-such-page'] // routes with no page
 
 // The products, read from docs.json the way src/server.tsx reads them: the first navigation
 // page is the landing (holocron 308s `<folder>/index` to the folder URL) and the lowercased
@@ -232,8 +238,13 @@ const UPSTREAM_CONSOLE_ERRORS = new Set([
 
 // `allowHttp` lists the same-origin error answers a check provokes on purpose, as
 // { status, pathname }; each is excused both as a response and as the browser's console line
-// about it.
-async function openPage(browser, base, pathname, { waitUntil = 'networkidle', prepare, allowHttp = [], ...contextOptions } = {}) {
+// about it. `status` is the answer the page itself must give.
+async function openPage(
+  browser,
+  base,
+  pathname,
+  { waitUntil = 'networkidle', prepare, allowHttp = [], status: expected = 200, ...contextOptions } = {},
+) {
   const context = await browser.newContext({ viewport: VIEWPORT, ...contextOptions })
   await prepare?.(context)
   const page = await context.newPage()
@@ -279,7 +290,7 @@ async function openPage(browser, base, pathname, { waitUntil = 'networkidle', pr
       await new Promise((resolve) => setTimeout(resolve, 50))
     }
   }
-  if (res?.status() !== 200) fail(`${pathname}: answered ${res?.status()}, expected 200`)
+  if (res?.status() !== expected) fail(`${pathname}: answered ${res?.status()}, expected ${expected}`)
   await page.evaluate(() => document.fonts.ready)
   const close = async () => {
     for (const error of errors) fail(`${pathname}: console ${error.split('\n')[0].slice(0, 240)}`)
@@ -464,28 +475,79 @@ async function checkPet(browser, base, engine) {
     await openDrawer(drawer.page)
     await drawer.page.waitForTimeout(1_500) // the pet docks beside the panel
     await drawer.page.screenshot({ path: path.join(SHOTS, `${engine}-pet-drawer.png`) })
-    await checkFailedPose(drawer.page, engine)
+    await checkFailedPose(drawer.page, engine, '/genie/quickstart', '/genie/quickstart', 'pet-failed')
   } catch (error) {
     fail(`/genie/quickstart drawer: ${error.message.split('\n')[0]}`)
   } finally {
     await drawer.close()
   }
 
-  // A route with no page still gets holocron's not-found document, and only one <html>.
-  const res = await fetch(new URL(NOT_FOUND_PAGE, base), { headers: { accept: 'text/html' }, redirect: 'manual' })
-  const body = await res.text()
-  const notFoundHtml = body.match(/<html[\s>]/gi)?.length ?? 0
-  if (res.status !== 404 || notFoundHtml !== 1 || !body.includes('Page not found'))
-    fail(`${NOT_FOUND_PAGE}: ${res.status} with ${notFoundHtml} <html> elements, expected 404 with holocron's not-found page`)
+  for (const [i, pathname] of NOT_FOUND_PAGES.entries()) {
+    const res = await fetch(new URL(pathname, base), { headers: { accept: 'text/html' }, redirect: 'manual' })
+    const body = await res.text()
+    const notFoundHtml = body.match(/<html[\s>]/gi)?.length ?? 0
+    if (res.status !== 404 || notFoundHtml !== 1 || !body.includes('Page not found'))
+      fail(`${pathname}: ${res.status} with ${notFoundHtml} <html> elements, expected 404 with holocron's not-found page`)
+    await checkNotFoundPet(browser, base, engine, pathname, VIEWPORT, i === 0)
+  }
+  await checkNotFoundPet(browser, base, engine, NOT_FOUND_PAGES[0], MOBILE, false)
 
-  return `pet ${PET_PAGES.length} pages, reduced motion, failed pose, 404 shell`
+  return `pet ${PET_PAGES.length} pages, reduced motion, failed pose, 404 shell with the pet on ${NOT_FOUND_PAGES.length} routes`
+}
+
+// A route with no page: holocron's not-found document, and in it the pet. Spiceflow renders only
+// the outermost layout on a 404, holocron's not-found shell, so the site layout that renders
+// <GeniePet /> on every other page never renders here. A click on the pet opens the chat drawer;
+// at 1440x900 a second click closes it, and with `question` a refused question plays the failed
+// pose and names `/` as the page, as holocron's client does from any 404.
+async function checkNotFoundPet(browser, base, engine, pathname, viewport, question) {
+  const where = `${pathname} at ${viewport.width}x${viewport.height}`
+  const { page, close } = await openPage(browser, base, pathname, {
+    waitUntil: 'load',
+    viewport,
+    status: 404,
+    allowHttp: [{ status: 404, pathname }, ...(question ? [{ status: 413, pathname: CHAT_PATH }] : [])],
+  })
+  try {
+    const pet = page.locator('.genie-pet.is-visible')
+    try {
+      await pet.waitFor({ timeout: PET_VISIBLE_MS })
+    } catch {
+      return fail(`${where}: no visible pet within ${PET_VISIBLE_MS / 1000}s`)
+    }
+    const pets = await page.locator('.genie-pet').count()
+    if (pets !== 1) fail(`${where}: ${pets} pets, expected 1`)
+    const box = await pet.boundingBox()
+    if (!box || box.x < 0 || box.y < 0 || box.x + box.width > viewport.width || box.y + box.height > viewport.height)
+      fail(`${where}: the pet is not inside the viewport (${JSON.stringify(box)})`)
+    await page.screenshot({ path: path.join(SHOTS, `${engine}-pet-404-${slug(pathname)}-${viewport.width}.png`) })
+    if (viewport !== VIEWPORT) {
+      await pet.click()
+      try {
+        await page.locator('.holocron-chat-drawer-panel').waitFor({ timeout: DRAWER_MS })
+      } catch {
+        fail(`${where}: a click on the pet did not open the chat drawer`)
+      }
+      return
+    }
+    await checkToggle(page, where, 'a click', (target) => target.click())
+    if (question) {
+      await openDrawer(page)
+      await checkFailedPose(page, engine, where, '/', `pet-failed-404-${slug(pathname)}`)
+    }
+  } catch (error) {
+    fail(`${where}: pet ${error.message.split('\n')[0]}`)
+  } finally {
+    await close()
+  }
 }
 
 // A 70 KB question: the site's chat guard answers 413 before holocron's proxy, holocron shows
 // the guard's message in the drawer and sets its errorMessage, and the pet, which reads that
 // field from holocron's chat store, plays its failed clip once. The clips the pet shows are
-// recorded from the moment of the question, so a pass between two polls is still seen.
-async function checkFailedPose(page, engine) {
+// recorded from the moment of the question, so a pass between two polls is still seen. The
+// request names `currentSlug` as the page the question was asked on.
+async function checkFailedPose(page, engine, where, currentSlug, shot) {
   await page.evaluate(() => {
     const pet = document.querySelector('.genie-pet')
     const clips = (window.__uiCheckClips = [])
@@ -501,22 +563,28 @@ async function checkFailedPose(page, engine) {
   )
   await input.press('Enter')
   const res = await answered
-  if (res.status() !== 413) return fail(`/genie/quickstart: a 70 KB question answered ${res.status()}, expected 413 from the chat guard`)
+  let sent
+  try {
+    sent = JSON.parse(res.request().postData() ?? '').currentSlug
+  } catch {}
+  if (sent !== currentSlug) fail(`${where}: the question named the page ${JSON.stringify(sent)}, expected ${JSON.stringify(currentSlug)}`)
+  if (res.status() !== 413) return fail(`${where}: a 70 KB question answered ${res.status()}, expected 413 from the chat guard`)
   try {
     await page.locator('.holocron-chat-drawer-panel').getByText(CHAT_TOO_LONG).waitFor({ timeout: DRAWER_MS })
   } catch {
-    fail(`/genie/quickstart: the drawer does not show "${CHAT_TOO_LONG}" after the refused question`)
+    fail(`${where}: the drawer does not show "${CHAT_TOO_LONG}" after the refused question`)
   }
   try {
     await page.waitForFunction(() => window.__uiCheckClips.includes('failed'), null, { timeout: FAILED_MS })
   } catch {
     const clips = await page.evaluate(() => window.__uiCheckClips.join(' -> '))
-    return fail(`/genie/quickstart: after the refused question the pet showed ${clips || 'no clip change'}, expected failed`)
+    return fail(`${where}: after the refused question the pet showed ${clips || 'no clip change'}, expected failed`)
   }
-  await page.screenshot({ path: path.join(SHOTS, `${engine}-pet-failed.png`) })
+  await page.screenshot({ path: path.join(SHOTS, `${engine}-${shot}.png`) })
 }
 
-// components/product-brand.tsx mounts after load and polls up to 15 s for hydration.
+// components/product-brand.tsx mounts after hydration and load, and polls up to 15 s for the
+// selects' hydration.
 const SWITCHER = '.slot-navbar .genie-switcher'
 const SWITCHER_MS = 20_000
 const HEADER_LOGO = '.slot-logo img'
@@ -753,7 +821,39 @@ async function checkProducts(browser, base, engine) {
   await checkSwitching(browser, base, engine)
   for (const product of PRODUCTS)
     for (const phase of ['before hydration', 'after hydration']) await checkLogoLink(browser, base, engine, product, phase)
-  return `products ${PRODUCTS.map((product) => product.slug).join(', ')}: logos, menu, share images, switching, logo link`
+  await checkNotFoundSwitcher(browser, base, engine, PRODUCTS[1] ?? PRODUCTS[0])
+  return `products ${PRODUCTS.map((product) => product.slug).join(', ')}: logos, menu, share images, switching, logo link, 404 menu`
+}
+
+// A route with no page under a product: the site layout does not render on a 404 (see
+// checkNotFoundPet), yet the header shows one logo menu in place of the pill, on that product.
+async function checkNotFoundSwitcher(browser, base, engine, product) {
+  const where = `${product.folderUrl}/no-such-page`
+  const { page, close } = await openPage(browser, base, where, { waitUntil: 'load', status: 404, allowHttp: [{ status: 404, pathname: where }] })
+  try {
+    await page.locator(SWITCHER).waitFor({ timeout: SWITCHER_MS })
+    const seen = await page.evaluate(() => {
+      const shown = (el) => el.getClientRects().length > 0 && getComputedStyle(el).visibility !== 'hidden'
+      return {
+        product: document.documentElement.getAttribute('data-product'),
+        pills: [...document.querySelectorAll('.slot-navbar select[aria-label="Select section"]')].filter(shown).length,
+        switchers: [...document.querySelectorAll('.slot-navbar .genie-switcher')].filter(shown).length,
+      }
+    })
+    if (seen.product !== product.slug) fail(`${where}: data-product ${seen.product}, expected ${product.slug}`)
+    if (seen.pills !== 0) fail(`${where}: the native Select section pill shows`)
+    if (seen.switchers !== 1) fail(`${where}: ${seen.switchers} header logo menus show, expected 1`)
+    await page.locator(`${SWITCHER} .genie-switcher__button`).click()
+    const selected = await page
+      .locator(`${SWITCHER} [role="option"][aria-selected="true"] img`)
+      .evaluateAll((imgs) => imgs.map((img) => img.getAttribute('alt')))
+    if (selected.join() !== product.name) fail(`${where}: menu selects ${selected.join(', ') || 'nothing'}, expected ${product.name}`)
+    await page.screenshot({ path: path.join(SHOTS, `${engine}-products-404-${product.slug}.png`) })
+  } catch (error) {
+    fail(`${where}: products ${error.message.split('\n')[0]}`)
+  } finally {
+    await close()
+  }
 }
 
 const attribute = (tag, name) =>
