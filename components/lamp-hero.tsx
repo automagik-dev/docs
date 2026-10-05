@@ -68,12 +68,14 @@ export function LampHero() {
       requestAnimationFrame(() => requestAnimationFrame(() => { btn.style.boxShadow = '' }))
     }
     // A worker that fails, such as one whose file a rolling deploy answers 404, leaves the film to
-    // the page's canvas.
+    // the page's canvas: it plays there unless it already settled (play waits for the art).
     const dropFilm = () => {
+      if (!film) return
       hideFilm()
-      film?.worker.terminate()
-      film?.layer.remove()
+      film.worker.terminate()
+      film.layer.remove()
       film = null
+      if (!handedOff) still?.play()
     }
     const settled = (face: Face) => {
       hideFilm()
@@ -96,12 +98,19 @@ export function LampHero() {
           const layer = btn.appendChild(document.createElement('canvas'))
           layer.className = 'genie-hero__film'
           layer.setAttribute('aria-hidden', 'true')
-          const worker = new Worker(new URL('./lamp-hero-worker.ts', import.meta.url), { type: 'module' })
-          worker.onmessage = (e: MessageEvent<Face>) => settled(e.data)
-          worker.onerror = dropFilm
-          const offscreen = layer.transferControlToOffscreen()
-          worker.postMessage({ canvas: offscreen }, [offscreen])
-          film = { layer, worker }
+          let worker: Worker | null = null
+          try {
+            worker = new Worker(new URL('./lamp-hero-worker.ts', import.meta.url), { type: 'module' })
+            worker.onmessage = (e: MessageEvent<Face>) => settled(e.data)
+            worker.onerror = dropFilm
+            const offscreen = layer.transferControlToOffscreen()
+            worker.postMessage({ canvas: offscreen }, [offscreen])
+            film = { layer, worker }
+          } catch {
+            // A worker the browser refuses outright, before the layer ever paints: the page's canvas plays.
+            worker?.terminate()
+            layer.remove()
+          }
         }
         size()
         ro.observe(el)
@@ -110,7 +119,7 @@ export function LampHero() {
           page.setArt(art)
           if (film) {
             const bitmaps = await toBitmaps(art)
-            if (disposed) return
+            if (disposed || !film) return // the worker failed meanwhile, and dropFilm started the page's canvas
             film.worker.postMessage({ art: bitmaps }, [bitmaps.lamp, bitmaps.face, bitmaps.logo])
             page.draw(T_SETTLED)
           } else if (seek !== null) page.draw(Number.isFinite(seek) ? seek : reduce ? T_SETTLED : T0)
