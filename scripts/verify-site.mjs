@@ -120,17 +120,12 @@ const NOT_FOUND_PATH = '/genie/does-not-exist'
 const LIGHTHOUSE = 'lighthouse@13.5.0'
 const LIGHTHOUSE_MIN = { performance: 50, accessibility: 90, 'best-practices': 90, seo: 90 } // decision 6
 // Misses the owner has accepted, each with a lowered floor rather than a skip, so a further
-// regression still fails. A run that meets decision 6 again no longer needs the entry.
-const LIGHTHOUSE_ACCEPTED = [
-  {
-    landing: '/genie',
-    category: 'performance',
-    // Measured on workers.dev on 2026-10-05: 39 in five runs, 52 and 53 in two. 30 leaves room
-    // for Lighthouse's run-to-run spread and still catches a heavier hero or pet.
-    floor: 30,
-    accepted: 'Felipe, 2026-10-05: "Vira e otimiza depois"; a performance follow-up comes after the cutover',
-  },
-]
+// regression still fails: { landing, category, floor, accepted: '<who, date: words>' }. A run
+// that meets decision 6 again no longer needs the entry.
+// Empty since 2026-10-05: the one entry held /genie performance at a floor of 30 (measured 39,
+// accepted by Felipe as "Vira e otimiza depois"), and #99 delivered that optimisation, so /genie
+// scores 73 to 76 live and decision 6's 50 applies to every landing again.
+const LIGHTHOUSE_ACCEPTED = []
 const LIGHTHOUSE_TIMEOUT_MS = 240_000
 
 const failures = []
