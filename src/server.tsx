@@ -95,11 +95,15 @@ async function productMarks({ request }: { request: Request }, next: () => Promi
 // one. On a 404 every layout gets null children and only the outermost renders, which would
 // replace holocron's not-found page with an empty document. Mounted after holocron, this
 // layout is the innermost one: it wraps each page inside holocron's shell and stays out of
-// the 404 root. GeniePet and ProductBrand render nothing; they are here so that every page's
-// payload references their modules. On a 404 spiceflow still runs and serializes this layout,
-// though it renders only holocron's shell, so the browser loads both modules there too, and
-// each module starts its own piece once React has hydrated the page: the pet on document.body,
-// and the product logo menu.
+// the 404 root. GeniePet and ProductBrand render nothing; rendering them here puts their client
+// modules on every page, and each module starts its own piece once React has hydrated the
+// page: the pet on document.body, and the product logo menu. On a 404 this layout runs but does
+// not render, and the modules still load, by one of two paths. Under `vite dev`, spiceflow
+// still serializes this layout, so the 404's payload names both components. In a production
+// build, both modules sit in the same client chunk as holocron's own client components
+// (worker-entry-*.js), which the not-found page loads whatever the payload names. Both paths
+// are upstream behaviour: ui-check's 404 shell checks that the pet shows, not which path
+// loaded it.
 const siteLayout = new Spiceflow().layout('/*', ({ children }) => (
   <>
     {children}

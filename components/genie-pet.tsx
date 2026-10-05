@@ -2,8 +2,9 @@
 
 // Genie, the site-wide companion: a plain-DOM pet on document.body, mounted once per page
 // lifetime by this module's own code (bottom of the file), so client-side navigation never
-// remounts it. src/server.tsx renders <GeniePet />, which renders nothing, in the site layout so
-// that every page loads this module, a 404 included.
+// remounts it. src/server.tsx renders <GeniePet />, which renders nothing, in the site layout to
+// put this module on every page; on a 404, where that layout does not render, the module still
+// loads (src/server.tsx says how: the payload in dev, a shared client chunk in production).
 //
 // Art and timing come only from the pet bundle (assets/render/genie-render):
 //   - spritesheet.webp: 8 x 11 cells of 192 x 208, drawn whole (never trimmed),
@@ -387,9 +388,11 @@ const port: ChatPort = {
 }
 
 // ---------------- one pet per page lifetime, started by this module ----------------
-// Not from an effect of <GeniePet />: on a 404 the site layout is serialized but not rendered
-// (src/server.tsx), so no component of this site renders there, yet the page loads this module.
-// A module runs once per page lifetime, so client navigation never starts a second pet.
+// Not from an effect of <GeniePet />: on a 404 the site layout runs but does not render, so no
+// component of this site renders there, yet the page still loads this module, through the 404's
+// payload in dev and through the client chunk it shares with holocron's own components in
+// production (src/server.tsx). A module runs once per page lifetime, so client navigation never
+// starts a second pet.
 let disposePet: (() => void) | null = null
 function startPet() {
   disposePet?.()
@@ -403,7 +406,7 @@ if (typeof document !== 'undefined') {
   })
 }
 
-/** Renders nothing: the site layout renders it so that every page loads this module. */
+/** Renders nothing: the site layout renders it to put this module on every page. */
 export function GeniePet(): null {
   return null
 }

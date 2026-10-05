@@ -5,8 +5,10 @@
 // holocron has no per-product logo option (navigation.products takes a name, icon and
 // href), and its switcher is a native <select>, whose open list is drawn by the OS and
 // cannot show images. src/server.tsx renders <ProductBrand />, which renders nothing, in the
-// site-wide layout so that every page loads this module, a 404 included (it says why), and
-// once per page lifetime the module itself mounts this client piece, which:
+// site-wide layout to put this module on every page; on a 404, where that layout does not
+// render, the module still loads (src/server.tsx says how: the payload in dev, a shared client
+// chunk in production). Once per page lifetime the module itself mounts this client piece,
+// which:
 //   - keeps html[data-product] in step with the URL after client navigation (the server and
 //     the inline head script set it before first paint; style.css swaps the header logo from it);
 //   - names the header logo after the product (alt), since the image now shows it, and points
@@ -236,7 +238,7 @@ if (typeof document !== 'undefined') {
   })
 }
 
-/** Renders nothing: the site layout renders it so that every page loads this module. */
+/** Renders nothing: the site layout renders it to put this module on every page. */
 export function ProductBrand(): null {
   return null
 }
