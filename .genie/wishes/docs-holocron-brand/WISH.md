@@ -284,6 +284,33 @@ Open: Group 1's "CI passes on the PR" criterion, pending the PR.
 - **Checks.** ui-check's 404 shell opens `/genie/no-such-page` and `/omni/no-such-page` and requires one visible pet that a click opens the drawer with and a second click closes, a refused question playing the failed pose with `/` as `currentSlug`, and the pet opening the drawer at 390x844. `--products` requires the logo menu on the Omni 404. On main's code these four checks fail and every other passes.
 - **Review of e5799b2: SHIP**, one LOW: the comments credited the 404 to the payload path alone. The commit that adds this note rewords them to name both paths.
 
+### Lamp hero performance follow-up — 2026-10-05 (engineer, `fix/genie-hero-perf`)
+
+**Owner decision (Felipe, 2026-10-05): "Vira e otimiza depois".** The cutover went ahead with `/genie` at Lighthouse mobile performance 39 on workers.dev, below the 50 of the cutover's Decision 6, and this optimisation followed.
+
+- **Measured cause.** Each frame of the lamp hero cost the page's main thread 50 to 80 ms: about 15 ms of drawing and 40 to 55 ms of canvas raster with three blur passes, in the frame's Commit, which Lighthouse filed under `worker-entry-*.js`. The 2.6 s film was about 35 long tasks and 6 s of total blocking time. The same build with the hero's effect switched off scored 55 locally, against 31.
+- **Design.** The film plays in a worker (`components/lamp-hero-worker.ts`) on a canvas layer over the page's canvas; the render function moved, as it was, to `components/lamp-hero-film.ts`.
+  - The page's canvas draws the settled frame from the `<img>` art as before, because Chrome draws a scaled `ImageBitmap` a shade sharper. The layer hides when the film settles and shows again to replay on click.
+  - The film's code and art load after the first contentful paint, on idle.
+  - Reduced motion, `?hero-t=`, browsers without OffscreenCanvas or its blur, and a worker that fails all play on the page's canvas.
+  - Hiding the layer repaints the hero once (a transparent extra shadow for one frame), because Chrome otherwise kept its rounded corners as drawn around the layer.
+- **Lighthouse**, local Worker, mobile, 5 interleaved runs each (local scores run below workers.dev):
+
+  | Page | Before | After |
+  |------|--------|-------|
+  | `/genie` | 31 median (31 ×5), TBT 6.3 s | 53 median (45, 53, 58, 53, 57), TBT 0.33 s |
+  | `/omni` | 52 median | 50 median |
+  | `/mikro` | 53 median | 53 median |
+
+  `/omni` and `/mikro` serve the same HTML but for asset hashes; their spread is the INFO below. After the repair, `/genie` scored 51, 55 and 56.
+- **Visuals.** The settled hero is pixel-identical at 1440x900 and 390x844: played, under reduced motion, after a replay, and on each failure path.
+- **Review of 6751a50: FIX-FIRST.** Performance and visuals held (reviewer median 52; the settled frame identical in Chromium, Firefox and WebKit). The failed-worker fallback had three gaps, each fixed in 0daee51:
+  - MEDIUM: a worker failing during the bitmap step nulled the film and the next line threw, leaving the hero blank. The art branch now stops when the film is gone.
+  - LOW: a throwing `new Worker` or `transferControlToOffscreen` left the opaque layer on top. It is caught, and the layer is removed before it paints.
+  - LOW: a worker failing after it had the art never played the film. `dropFilm` now plays it on the page's canvas unless it already settled.
+  - The review's five failure cases (worker 404, a slow 404, a 404 during the bitmap step, no `Worker`, CSP `worker-src 'none'`) each play on the page's canvas and hand off to the pet once, with no page error.
+- **INFO, candidate follow-up (pet).** `components/genie-pet.tsx` sets the 1.8 MB `spritesheet.webp` on `load`. When `load` fires before the first paint, in about 1 run in 4 on every page, the first paint waits about a second for the sheet, and `/genie` scores about 45 in that run. Starting the sheet after the first paint, as the hero now does, would remove it.
+
 ---
 
 ## Files to Create/Modify

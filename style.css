@@ -312,6 +312,10 @@ img[src$="/brand/genie-logo.png"] {
 }
 .genie-hero:focus-visible { outline: 2px solid var(--gx-magenta); outline-offset: 3px; }
 .genie-hero__canvas { display: block; width: 100%; height: 100%; }
+/* The film's layer, lifted over the held frame and opaque before its first frame lands. It is
+   not positioned: a positioned box in the hero changes how its rounded corners are clipped. */
+.genie-hero__film { display: block; width: 100%; height: 100%; transform: translateY(-100%); background: var(--gx-cosmos); }
+.genie-hero__film[hidden] { display: none; }
 @media (max-width: 560px) { .genie-hero { height: 320px; } }
 
 /* ---------- the pet (components/genie-pet.ts): whole 192x208 cells, anchored center/bottom ---------- */
