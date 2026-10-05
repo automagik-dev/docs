@@ -1,7 +1,7 @@
 ---
 title: "Batch Mode"
 sidebarTitle: "Batch Mode"
-description: "Bulk interrogation with caching, cost estimation, and the Gemini Batch API."
+description: "Bulk interrogation with caching and cost estimation."
 ---
 
 # Batch Mode
@@ -20,11 +20,11 @@ Where is user input validated?
 Are SQL queries parameterized?
 EOF
 
-# 2. Warm the cache (optional — first batch question pays full cost otherwise)
-rlmx cache --context ./src/ --ext .ts,.js
+# 2. Warm the cache (optional: otherwise the first batch question pays full cost)
+mikro cache --context ./src/ --ext .ts,.js
 
 # 3. Run the batch against the warm cache
-rlmx batch audit.txt --context ./src/ --ext .ts,.js --max-cost 1.00
+mikro batch audit.txt --context ./src/ --ext .ts,.js --max-cost 1.00
 ```
 
 ```jsonl stdout
@@ -51,7 +51,7 @@ Where are the API routes defined?
 Run it:
 
 ```bash
-rlmx batch questions.txt --context ./src/
+mikro batch questions.txt --context ./src/
 ```
 
 Output is JSONL — one JSON object per question, plus a final aggregate line:
@@ -102,10 +102,10 @@ Warm the cache before running batch queries to ensure the first question also ge
 
 ```bash
 # Warm the cache
-rlmx cache --context ./docs/
+mikro cache --context ./docs/
 
 # Now run batch — all questions hit warm cache
-rlmx batch questions.txt --context ./docs/
+mikro batch questions.txt --context ./docs/
 ```
 
 ### Estimating costs
@@ -113,17 +113,24 @@ rlmx batch questions.txt --context ./docs/
 Check how much a batch run will cost before committing:
 
 ```bash
-rlmx cache --context ./docs/ --estimate
+mikro cache --context ./docs/ --estimate
 ```
 
 ```
-Context: ./docs/ (23 files, 145KB)
-Estimated tokens: 43,500
-Provider limit: 1,000,000 (google)
-Cache retention: long
-Estimated first-query cost: $0.003
-Estimated cached-query cost: $0.0003 (90% savings)
+mikro cache estimate
+---
+  context:          ./docs/
+  metadata:         Context is a list of 23 items with 144700 total characters, chunk lengths: [5120, 11873, 2960, ...]
+  estimated tokens: 43,500
+  provider limit:   1,000,000 tokens
+  utilization:      4.3%
+  provider:         google
+  model:            gemini-3.1-flash-lite-preview
+  ttl:              3600s
+  estimated cost:   $0.0033
 ```
+
+`estimated cost` is the input cost of sending the context once, uncached. mikro prints no cached figure; with Gemini's ~90% cache discount, each later question costs about a tenth of it.
 
 For a 100-question batch over this context: ~$0.003 (first) + 99 * $0.0003 = ~$0.033 total.
 
@@ -132,10 +139,10 @@ For a 100-question batch over this context: ~$0.003 (first) + 99 * $0.0003 = ~$0
 Set a maximum spend to prevent runaway costs:
 
 ```bash
-rlmx batch questions.txt --context ./src/ --max-cost 1.00
+mikro batch questions.txt --context ./src/ --max-cost 1.00
 ```
 
-Cumulative cost is tracked across all questions. When the budget is exceeded, RLMX stops gracefully and reports how many questions were completed.
+Cumulative cost is tracked across all questions. When the budget is exceeded, mikro stops gracefully and reports how many questions were completed.
 
 ## Batch options
 
@@ -144,33 +151,22 @@ Cumulative cost is tracked across all questions. When the budget is exceeded, RL
 | `--context <path>` | — | Context directory or file |
 | `--max-iterations <n>` | `30` | Max RLM iterations per question |
 | `--max-cost <n>` | — | Max total USD spend |
-| `--parallel <n>` | `1` | Concurrent questions |
-| `--batch-api` | `false` | Use Gemini Batch API for 50% cost reduction |
-| `--output <mode>` | — | Output mode |
+| `--parallel <n>` | `1` | Accepted; questions currently run one at a time |
+| `--batch-api` | `false` | Accepted; mikro does not submit Gemini Batch API jobs yet |
 | `--verbose` | `false` | Show progress |
+
+Batch output is always JSONL on stdout, so `--output` has no effect here. The [CLI reference](/mikro/cli/reference#mikro-batch) lists every batch flag.
 
 ## Gemini Batch API
 
-For Google Gemini models, the `--batch-api` flag enables the Gemini Batch API, which provides an additional 50% cost reduction on top of caching:
+`mikro batch` accepts `--batch-api`, but mikro does not submit Gemini Batch API jobs yet. A run with the flag makes the same standard calls as a run without it, and no batch discount applies.
 
-```bash
-rlmx batch questions.txt --context ./docs/ --batch-api
-```
-
-### Cost stacking
+### Input cost with caching
 
 | Mode | Input cost (per 1M tokens) | Savings |
 |------|---------------------------|---------|
 | Base (flash-lite) | $0.075 | — |
 | + Context caching | ~$0.0075 | 90% |
-| + Batch API | ~$0.0375 | 50% |
-| Cache + Batch | ~$0.00375 | **95%** |
-
-**100 queries over 500K tokens of context: under $2.00** with both cache and batch stacking.
-
-<Note>
-  Batch API jobs are asynchronous. Results may take longer to return compared to standard API calls, but the cost savings are significant for large runs.
-</Note>
 
 ## Practical patterns
 
@@ -187,8 +183,8 @@ What patterns does the codebase use?
 EOF
 
 # Warm cache, then batch
-rlmx cache --context ./docs/
-rlmx batch study.txt --context ./docs/ --max-iterations 5
+mikro cache --context ./docs/
+mikro batch study.txt --context ./docs/ --max-iterations 5
 ```
 
 ### Code audit
@@ -203,7 +199,7 @@ How is authentication implemented?
 What error information is leaked to users?
 EOF
 
-rlmx batch audit.txt --context ./src/ --ext .ts,.js --max-cost 2.00
+mikro batch audit.txt --context ./src/ --ext .ts,.js --max-cost 2.00
 ```
 
 ### Codebase onboarding
@@ -218,7 +214,7 @@ How are tests organized?
 What CI/CD pipeline is used?
 EOF
 
-rlmx batch onboard.txt --context . --ext .ts,.js,.json,.yaml --tools standard
+mikro batch onboard.txt --context . --ext .ts,.js,.json,.yaml --tools standard
 ```
 
 ## CAG vs RLM for batch
@@ -228,7 +224,7 @@ rlmx batch onboard.txt --context . --ext .ts,.js,.json,.yaml --tools standard
 | **Batch + cache (CAG)** | Context fits in provider window, many questions, cost matters |
 | **Batch + RLM (no cache)** | Context too large for system prompt, complex navigation needed |
 
-By default, batch mode uses CAG (cache enabled). For very large contexts that exceed provider limits, RLMX falls back to standard RLM iteration automatically.
+By default, batch mode uses CAG (cache enabled). For very large contexts that exceed provider limits, mikro falls back to standard RLM iteration automatically.
 
 ### Provider context limits
 
@@ -239,4 +235,4 @@ By default, batch mode uses CAG (cache enabled). For very large contexts that ex
 | OpenAI | 128,000 tokens |
 | Amazon Bedrock | 128,000 tokens |
 
-If your context exceeds the provider limit, RLMX will warn you and fall back to RLM mode where the LLM navigates the context programmatically.
+If your context exceeds the provider limit, mikro will warn you and fall back to RLM mode where the LLM navigates the context programmatically.

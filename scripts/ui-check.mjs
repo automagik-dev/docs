@@ -6,7 +6,7 @@
 //
 // Flags: --engine chromium|firefox|webkit (default chromium); --pet, --meta and --products add
 // those groups; --all runs every check group this script knows. The brand group always runs: on
-// /genie, /omni and /rlmx at 1440x900 it checks the body surface, text color and font, the code
+// /genie, /omni and /mikro at 1440x900 it checks the body surface, text color and font, the code
 // font, --primary, and that the header and footer logos carry no filter; it then runs every CSS
 // canary whose action is available. The pet group, on two pages per product, checks that
 // exactly one pet shows and stays through client navigation, that a click or Enter on it opens
@@ -57,8 +57,8 @@ const VIEWPORT = { width: 1440, height: 900 }
 const NAV_TIMEOUT_MS = 60_000
 const QUIET_MS = 500 // Playwright's networkidle window
 const ENGINES = { chromium, firefox, webkit }
-const LANDINGS = ['/genie', '/omni', '/rlmx']
-const PET_PAGES = ['/genie', '/genie/quickstart', '/omni', '/omni/quickstart', '/rlmx', '/rlmx/quickstart']
+const LANDINGS = ['/genie', '/omni', '/mikro']
+const PET_PAGES = ['/genie', '/genie/quickstart', '/omni', '/omni/quickstart', '/mikro', '/mikro/quickstart']
 const PET_VISIBLE_MS = 8_000 // the hero hands the Genie over, or the pet shows after 6 s
 const DRAWER_MS = 5_000
 const FAILED_MS = 10_000 // the refused request, then the pet's one pass of its failed clip

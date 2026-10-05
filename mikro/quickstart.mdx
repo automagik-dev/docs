@@ -1,0 +1,186 @@
+---
+title: "Quickstart"
+sidebarTitle: "Quickstart"
+description: "Install mikro and run your first query in under five minutes."
+---
+
+# Quickstart
+
+Five minutes. One query. Any LLM provider you already use.
+
+<Note>
+  mikro implements the algorithm from the [Recursive Language Models (RLM) paper](https://arxiv.org/abs/2512.24601). If something surprises you, [tell us on Discord](https://discord.gg/automagik).
+</Note>
+
+<Steps>
+  <Step title="Install mikro">
+    ```bash
+    curl -fsSL https://raw.githubusercontent.com/automagik-dev/mikro/main/scripts/install.sh | bash
+    ```
+
+    The installer clones mikro into `~/.mikro/mikro`, builds it, and links the `mikro` command into `~/.local/bin`, which must be on your PATH. mikro is installed from git and is not published to npm.
+
+    Verify the install:
+
+    ```bash
+    mikro --version
+    ```
+
+    It prints the installed version, for example `mikro v1.260909.1`. Later, `mikro update` fetches the newest `main` commit and rebuilds in place.
+
+    <Tip>
+      mikro requires **Node.js 22.19.0 or later**, **Python 3.10+** (for the REPL subprocess) and **git**. Make sure all three are available on your PATH.
+    </Tip>
+  </Step>
+
+  <Step title="Set your API key">
+    mikro uses Google Gemini by default. Set your API key:
+
+    ```bash
+    mikro config set GEMINI_API_KEY your-api-key-here
+    ```
+
+    <CodeGroup>
+    ```bash Google Gemini (default)
+    mikro config set GEMINI_API_KEY your-key
+    ```
+
+    ```bash Anthropic
+    mikro config set ANTHROPIC_API_KEY your-key
+    mikro config set model.provider anthropic
+    mikro config set model.model claude-sonnet-5
+    mikro config set model.sub-call-model claude-sonnet-5
+    ```
+
+    ```bash OpenAI
+    mikro config set OPENAI_API_KEY your-key
+    mikro config set model.provider openai
+    mikro config set model.model gpt-4o
+    mikro config set model.sub-call-model gpt-4o
+    ```
+    </CodeGroup>
+
+    Settings are stored at `~/.mikro/settings.json` with `0600` permissions. A `model.provider`, `model.model` or `model.sub-call-model` set here takes precedence over the `model:` block in a project's `.mikro/mikro.yaml`. Set `model.sub-call-model` whenever you change the provider, because the `mikro.yaml` that mikro scaffolds names a Gemini model for `llm_query()` sub-calls, and that model fails on any other provider.
+  </Step>
+
+  <Step title="Initialize a project">
+    Navigate to your project directory and scaffold a config:
+
+    ```bash
+    mikro init
+    ```
+
+    This creates a `.mikro/` directory holding `mikro.yaml`, with sensible defaults and inline comments explaining every option, plus `SYSTEM.md`, `CRITERIA.md` and `TOOLS.md`. You can skip this step: mikro scaffolds `.mikro/` on the first query if no config exists.
+  </Step>
+
+  <Step title="Run your first query">
+    Point mikro at some context and ask a question:
+
+    ```bash
+    mikro "How does authentication work?" --context ./src/ --ext .ts,.js
+    ```
+
+    mikro loads your source files into a Python REPL, then iterates: it writes Python code to navigate the context, executes it, and refines until it calls `FINAL()` with the answer. A `--context` directory loads only `.md` files unless you pass `--ext` or set `context.extensions` in `mikro.yaml`.
+
+    <Frame>
+      <CodeGroup>
+```bash Text output (default)
+$ mikro "How does authentication work?" --context ./src/ --ext .ts,.js
+
+Authentication uses JWT tokens issued by the /auth/login endpoint.
+The middleware in src/middleware/auth.ts validates tokens on every
+request and attaches the decoded user to req.user. Refresh tokens
+are stored in HttpOnly cookies with a 7-day expiry.
+```
+
+```bash JSON output
+$ mikro "How does authentication work?" --context ./src/ --ext .ts,.js --output json
+
+{
+  "answer": "Authentication uses JWT tokens issued by the /auth/login endpoint...",
+  "references": ["src/middleware/auth.ts", "src/routes/auth.ts", "src/utils/jwt.ts"],
+  "usage": { "inputTokens": 12500, "outputTokens": 3200, "cacheReadTokens": 0, "cacheWriteTokens": 0, "totalCost": 0.0041, "llmCalls": 5 },
+  "iterations": 3,
+  "model": "google/gemini-3.1-flash-lite-preview"
+}
+```
+
+```bash Verbose output
+$ mikro "How does authentication work?" --context ./src/ --ext .ts,.js --verbose
+
+mikro: loaded context — Context is a list of 3 items with 18240 total characters, chunk lengths: [9120, 5310, 3810]
+mikro [iter 0]: calling LLM...
+mikro [iter 0]: LLM responded (412 chars, 3900+180 tokens)
+mikro [iter 0]: executing code (236 chars)
+mikro [iter 1]: calling LLM...
+mikro [iter 1]: LLM responded (520 chars, 4300+240 tokens)
+mikro [iter 1]: executing code (311 chars)
+mikro [iter 2]: calling LLM...
+mikro [iter 2]: LLM responded (188 chars, 4300+90 tokens)
+
+Authentication uses JWT tokens issued by the /auth/login endpoint...
+```
+      </CodeGroup>
+    </Frame>
+  </Step>
+
+  <Step title="Try different input modes">
+    mikro reads directories and single files as context, and it can read the query itself from a pipe:
+
+    ```bash
+    # Directory of docs (recursively loads .md files by default)
+    mikro "Summarize the API" --context ./docs/
+
+    # Single file
+    mikro "What are the key findings?" --context paper.md
+
+    # Any single file other than JSON is read as one string
+    mikro "Analyze this dataset" --context data.csv
+
+    # Piped query: stdin is read as the query when no query argument is given
+    echo "Summarize the API" | mikro --context ./docs/
+
+    # Custom file extensions
+    mikro "Review this code" --context ./src/ --ext .ts,.js,.py
+    ```
+
+    When a query argument is present, mikro does not read stdin, so pass data files with `--context`.
+  </Step>
+</Steps>
+
+## Output modes
+
+| Mode | Flag | Description |
+|------|------|-------------|
+| **text** | `--output text` (default) | Plain text answer to stdout |
+| **json** | `--output json` | Structured JSON with answer, references, usage stats |
+| **stream** | `--output stream` | JSONL events per iteration, then a final event |
+
+## What just happened?
+
+Under the hood, mikro:
+
+1. Loaded your files into a persistent Python subprocess as the `context` variable
+2. Sent the LLM a system prompt with metadata about the context (not the content itself)
+3. The LLM wrote Python code to search, filter, and read specific parts of the context
+4. mikro executed each code block and fed the results back
+5. After a few iterations, the LLM called `FINAL()` with its answer
+
+This is the RLM algorithm — the LLM navigates your code programmatically instead of having it stuffed into the prompt. It's cheaper and scales to larger codebases.
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="CLI Reference" icon="terminal" href="/mikro/cli/reference">
+    Every command and flag documented.
+  </Card>
+  <Card title="Configuration" icon="gear" href="/mikro/config">
+    Customize model, tools, caching, and budget limits.
+  </Card>
+  <Card title="Batch Mode" icon="layer-group" href="/mikro/batch">
+    Run hundreds of questions against cached context.
+  </Card>
+  <Card title="Stuck? Ask on Discord" icon="discord" href="https://discord.gg/automagik">
+    Real humans. Real answers.
+  </Card>
+</CardGroup>

@@ -128,22 +128,22 @@
           {
             "group": "Getting Started",
             "pages": [
-              "rlmx/index",
-              "rlmx/quickstart"
+              "mikro/index",
+              "mikro/quickstart"
             ]
           },
           {
             "group": "CLI Reference",
             "pages": [
-              "rlmx/cli/reference"
+              "mikro/cli/reference"
             ]
           },
           {
             "group": "Configuration",
             "pages": [
-              "rlmx/config",
-              "rlmx/batch",
-              "rlmx/cache"
+              "mikro/config",
+              "mikro/batch",
+              "mikro/cache"
             ]
           }
         ]

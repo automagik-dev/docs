@@ -286,6 +286,35 @@ _What must be verified on dev after merge. The QA agent tests each criterion._
 
 _The read-only reviewer returns evidence; the invoking orchestrator appends a timestamped block here after plan, execution, and PR reviews._
 
+### Group 1 and the mikro copy — 2026-10-05
+
+**Owner decision (2026-10-05, through the question harness): "Atualiza antes da virada".** The six mikro pages describe mikro as it is today before the cutover. This is a scope addition to Group 1 recorded here: the install via `scripts/install.sh` (mikro is not on npm), the real commands, flags, keys and paths, and corrections where the source contradicted the old pages. The `.rlmx/` fallback is mentioned once, on the config page.
+
+**Review round 0 (6878581): FIX-FIRST.** Group 1 met its criteria. The reviewer sampled 48 copy claims against mikro 1.260909.1, the source and isolated runs; 44 were correct. Findings:
+- F1: the Anthropic and OpenAI quickstart tabs broke `llm_query()`, because the scaffolded `mikro.yaml` names a Gemini sub-call model.
+- F2: the plan's `/rlmx` grep failed on the fallback note.
+- F3: the RLM paper link pointed at arXiv 2501.12599 (Kimi k1.5). The same error exists on main and in mikro's README.
+- F4 to F9: OpenAI cache retention, the Gemini TTL wording, cache arithmetic, the `.mikro/` location, the `sub_call_model` help key, and `station/` with the `/genie` link.
+- The plan's preview `kill` stops the `npx` wrapper and leaves vite on port 4174. Known plan error.
+
+**Repair round 1 (b33c8ce), re-review: SHIP.**
+- F1 was re-run end to end with the page's exact tab steps against a stand-in provider. Before the repair: `Unknown model`. After: the sub-call reaches the endpoint as `claude-sonnet-5` / `gpt-4o`.
+- F2 to F9 were verified against the source. The `/rlmx` grep exits 0.
+- Strict build passes (41 pages), and so do verify, `ui-check --all`, `--chat-guard` and `check-deploy-config`.
+- Status codes: `/mikro/*` 200, `/mikro/index` 308 to `/mikro`, `/rlmx/*` 404.
+- All authored links and anchors resolve. The copy rules hold on the changed lines.
+- Two optional nits are left: `quickstart.mdx:63` "any other provider", and `cli/reference.mdx:130` `SYSTEM.md` against microagent packs.
+
+**Ruling (orchestrator):** Group 1 ships in its own PR ahead of the rest of this wish, so Group 2's final `verify-site --full` runs against a workers.dev site that serves `/mikro`. Group 3 step 8 still merges the rest of the wish after the cutover.
+
+**Upstream mikro issues found (not filed; owner's call):**
+- `mikro config` help lists keys mikro never reads;
+- `--batch-api` is never passed to the batch runner;
+- `--parallel` is ignored;
+- the README's `echo data | mikro "query"` drops the data;
+- `cache.ttl` and `expire-time` are never sent;
+- the README cites the wrong RLM arXiv id.
+
 ---
 
 ## Files to Create/Modify
