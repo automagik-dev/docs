@@ -1,8 +1,10 @@
 'use client'
 
-// Genie, the site-wide companion. src/server.tsx renders <GeniePet /> in a layout on every
-// route; it renders nothing and mounts the plain-DOM pet on document.body once per page
-// lifetime, so client-side navigation never remounts it.
+// Genie, the site-wide companion: a plain-DOM pet on document.body, mounted once per page
+// lifetime by this module's own code (bottom of the file), so client-side navigation never
+// remounts it. src/server.tsx renders <GeniePet />, which renders nothing, in the site layout to
+// put this module on every page; on a 404, where that layout does not render, the module still
+// loads (src/server.tsx says how: the payload in dev, a shared client chunk in production).
 //
 // Art and timing come only from the pet bundle (assets/render/genie-render):
 //   - spritesheet.webp: 8 x 11 cells of 192 x 208, drawn whole (never trimmed),
@@ -10,12 +12,10 @@
 //   - animation.json: authoritative frame order and durationMs per clip;
 //   - look cells: 16 directions, 22.5 deg steps, 0 deg = up, clockwise;
 //     neutral = row 0 col 6 (also used for the pointer dead zone and reduced motion).
-import { useEffect, useSyncExternalStore } from 'react'
-// holocron's documented chat hook, from its source: the app is built from src/, so only this
-// path shares the app's chat store (the ./chat export resolves to dist/, a second store).
-import { useChatWidget } from '@holocron.so/vite/src/chat/use-chat-widget.ts'
-// The same store, read directly for the one field the hook does not expose: errorMessage.
-import { chatStore } from '@holocron.so/vite/src/chat/chat-store.ts'
+// holocron's chat store, from its source: the app is built from src/, so only this path shares
+// the app's store (the ./chat export resolves to dist/, a second store).
+import { type ChatMessage, chatStore } from '@holocron.so/vite/src/chat/chat-store.ts'
+import { afterHydration } from './hydration.ts'
 import anim from './pet/animation.json'
 
 export type ChatSnapshot = { open: boolean; generating: boolean; failed: boolean }
@@ -28,7 +28,6 @@ export type ChatPort = {
 type Cell = { x: number; y: number; w: number; h: number; durationMs?: number }
 type Clip = { row: number; loop: boolean; frames: Cell[] }
 type Play = { name: string; frame: number; acc: number; loopsLeft: number }
-type ChatMessages = ReturnType<typeof useChatWidget>['messages']
 
 const SHEET = '/pet/spritesheet.webp'
 const COLS = anim.atlas.columns
@@ -358,55 +357,56 @@ export function mountPet(chat: ChatPort): () => void {
   }
 }
 
-// ---------------- the React side: one port and one pet per page lifetime ----------------
-// The port lives at module level, so the pet keeps a live chat even if the layout remounts
-// <GeniePet />: whichever instance is mounted publishes the hook's state into it.
-let chatState: ChatSnapshot = { open: false, generating: false, failed: false }
-let toggleChat: () => void = () => {}
-const chatListeners = new Set<(s: ChatSnapshot) => void>()
+// ---------------- the chat port: holocron's chat store, read directly ----------------
+// An answer failed when the last assistant message carries an error notice, or when the
+// request itself failed: holocron then sets errorMessage (an HTTP error such as the site's
+// 413 or 400, a network error, an empty answer) and clears it on the next question.
+function lastAnswerFailed(messages: ChatMessage[]): boolean {
+  const lastAssistant = [...messages].reverse().find((m) => m.role === 'assistant')
+  return !!lastAssistant?.parts.some((p) => p.type === 'notice' && p.severity === 'error')
+}
+function readChat(): ChatSnapshot {
+  const { drawerState, isGenerating, errorMessage, messages } = chatStore.getState()
+  return { open: drawerState === 'open', generating: isGenerating, failed: !!errorMessage || lastAnswerFailed(messages) }
+}
+// The store is the one holocron's documented hook, useChatWidget(), reads: the drawer is open
+// when drawerState is 'open', and toggling flips drawerState, exactly as the hook's toggle does.
+// The pet reads it directly because a hook needs a rendered component, and on a 404 no
+// component of this site renders (below).
 const port: ChatPort = {
-  isOpen: () => chatState.open,
-  toggle: () => toggleChat(),
+  isOpen: () => chatStore.getState().drawerState === 'open',
+  toggle: () => chatStore.setState({ drawerState: port.isOpen() ? 'closed' : 'open' }),
   onChange(listener) {
-    chatListeners.add(listener)
-    return () => { chatListeners.delete(listener) }
+    let last = readChat()
+    return chatStore.subscribe(() => {
+      const next = readChat()
+      if (next.open === last.open && next.generating === last.generating && next.failed === last.failed) return
+      last = next
+      listener(next)
+    })
   },
 }
+
+// ---------------- one pet per page lifetime, started by this module ----------------
+// Not from an effect of <GeniePet />: on a 404 the site layout runs but does not render, so no
+// component of this site renders there, yet the page still loads this module, through the 404's
+// payload in dev and through the client chunk it shares with holocron's own components in
+// production (src/server.tsx). A module runs once per page lifetime, so client navigation never
+// starts a second pet.
 let disposePet: (() => void) | null = null
 function startPet() {
   disposePet?.()
   disposePet = mountPet(port)
 }
-
-// An answer failed when the last assistant message carries an error notice, or when the
-// request itself failed: holocron then sets errorMessage (an HTTP error such as the site's
-// 413 or 400, a network error, an empty answer) and clears it on the next question.
-function lastAnswerFailed(messages: ChatMessages): boolean {
-  const lastAssistant = [...messages].reverse().find((m) => m.role === 'assistant')
-  return !!lastAssistant?.parts.some((p) => p.type === 'notice' && p.severity === 'error')
-}
-const requestFailed = () => !!chatStore.getState().errorMessage
-
-export function GeniePet(): null {
-  const { isOpen, isGenerating, messages, toggle } = useChatWidget()
-  const transportFailed = useSyncExternalStore(chatStore.subscribe, requestFailed, () => false)
-  const failed = transportFailed || lastAnswerFailed(messages)
-
-  useEffect(() => {
-    toggleChat = toggle
-    const prev = chatState
-    chatState = { open: isOpen, generating: isGenerating, failed }
-    if (prev.open !== isOpen || prev.generating !== isGenerating || prev.failed !== failed) {
-      for (const listener of chatListeners) listener(chatState)
-    }
-  }, [isOpen, isGenerating, failed, toggle])
-
-  useEffect(() => {
-    if (disposePet) return
+if (typeof document !== 'undefined') {
+  afterHydration(() => {
     startPet()
     // A reduced-motion change remounts the pet in the matching mode.
     window.matchMedia(REDUCE_MOTION_QUERY).addEventListener('change', startPet)
-  }, [])
+  })
+}
 
+/** Renders nothing: the site layout renders it to put this module on every page. */
+export function GeniePet(): null {
   return null
 }
