@@ -40,11 +40,12 @@
 //                       but the exceptions OFFSITE_ALLOWED names with a reason;
 //                     - a gateway outbound audit: `wrangler tail` on the gateway Worker runs
 //                       through the smoke and the turns, and the gateway's own `outbound` log
-//                       lines must name api.deepseek.com and the site origin, and no other host;
+//                       lines must name api.deepseek.com and the site origin, and no other host.
+//                       The tail drops events, so seeing one of the chat requests is enough
+//                       (coverage printed as "saw N of M"); a foreign host always fails;
 //                     - a missing page (NOT_FOUND_PATH) answers 404 with the site chrome: header
-//                       logo, sidebar navigation, footer and "Page not found". The pet is not
-//                       asked for: src/server.tsx keeps the site layout, and so the pet, out of
-//                       the 404 by design;
+//                       logo, sidebar navigation, footer and "Page not found", one pet whose
+//                       click opens the chat drawer, and the product logo menu;
 //                     - Lighthouse (LIGHTHOUSE, mobile, Playwright's Chromium) on each landing,
 //                       scores printed, a score under LIGHTHOUSE_MIN failing the run, but a miss
 //                       the owner accepted (LIGHTHOUSE_ACCEPTED), which prints an ACCEPTED line
@@ -94,6 +95,10 @@ const VIEWPORT = { width: 1440, height: 900 } // holocron shows the sidebar chat
 const NAV_TIMEOUT_MS = 60_000
 const HYDRATED_MS = 20_000 // components/product-brand.tsx mounts the header logo menu once React runs
 const HYDRATED = '.slot-navbar .genie-switcher'
+const PET = '.genie-pet' // components/genie-pet.tsx; .is-visible once it has arrived
+const PET_VISIBLE_MS = 10_000 // the pet shows after 6 s at the latest
+const DRAWER = '.holocron-chat-drawer-panel'
+const DRAWER_MS = 5_000
 const SIDEBAR_CHAT = '[data-chat-shell="sidebar"] textarea'
 const CHAT_PATH = '/holocron-api/chat'
 // The plan's bound. Real answers took 3 to 4 s on 2026-10-05, so it stays.
@@ -687,8 +692,9 @@ async function checkLandingChat(browser, base, product, audit, question) {
   }
 }
 
-// The site chrome around holocron's not-found page. The pet is not asked for: src/server.tsx
-// mounts the site layout, which carries the pet, after holocron so that it stays out of the 404.
+// A missing page: holocron's not-found document answered 404 inside the site chrome, with the
+// pet and the product logo menu (#98, owner: "Quero o pet na 404"). The pet must show once, and
+// a click on it must open holocron's chat drawer; the header shows one logo menu.
 async function checkNotFound(browser, base, audit) {
   const { page, res, close } = await openSitePage(browser, base, NOT_FOUND_PATH, audit)
   try {
@@ -703,7 +709,28 @@ async function checkNotFound(browser, base, audit) {
       }
     })
     for (const [part, present] of Object.entries(seen)) if (!present) fail(`${NOT_FOUND_PATH}: no ${part}`)
-    return `not found ${NOT_FOUND_PATH}: 404, header logo, sidebar navigation, footer, "Page not found" (no pet asked for: the site layout stays out of the 404)`
+
+    try {
+      await page.locator(`${PET}.is-visible`).waitFor({ timeout: PET_VISIBLE_MS })
+      const pets = await page.locator(PET).count()
+      if (pets !== 1) fail(`${NOT_FOUND_PATH}: ${pets} pets, expected 1`)
+      await page.locator(PET).click()
+      try {
+        await page.locator(DRAWER).waitFor({ timeout: DRAWER_MS })
+      } catch {
+        fail(`${NOT_FOUND_PATH}: a click on the pet did not open the chat drawer within ${DRAWER_MS / 1000}s`)
+      }
+    } catch {
+      fail(`${NOT_FOUND_PATH}: no visible pet within ${PET_VISIBLE_MS / 1000}s`)
+    }
+    try {
+      await page.locator(HYDRATED).waitFor({ timeout: HYDRATED_MS })
+      const menus = await page.locator(HYDRATED).evaluateAll((menus) => menus.filter((menu) => menu.getClientRects().length > 0).length)
+      if (menus !== 1) fail(`${NOT_FOUND_PATH}: ${menus} header logo menus show, expected 1`)
+    } catch {
+      fail(`${NOT_FOUND_PATH}: no product logo menu within ${HYDRATED_MS / 1000}s`)
+    }
+    return `not found ${NOT_FOUND_PATH}: 404, header logo, sidebar navigation, footer, "Page not found", one pet that opens the chat, the logo menu`
   } finally {
     await close()
   }
@@ -811,9 +838,15 @@ function startTail(gateway) {
 // The gateway logs `outbound <METHOD> <origin><path>` before each fetch it makes, and
 // `outbound refused …` or `outbound redirect refused …` when its allowlist stops one
 // (gateway/src/policy.ts). Every such line in the window counts, whichever event carries it.
+// Ruling (2026-10-05): Workers tail is best effort and drops events (a live run saw 2 of 4 chat
+// requests within 60 s, and an earlier probe lost one), so the audit asks for coverage, not
+// completeness: it passes when the tail saw at least one of the chat requests, every outbound
+// host it saw is api.deepseek.com or the site origin, and each of those two shows up at least
+// once across the run. It fails on 0 chat requests seen, and on any foreign host or refused
+// fetch, however few events arrived. The coverage is printed as "saw N of M".
 function auditOutbound(events, siteOrigin, chats) {
   const posts = events.filter(isChatPost)
-  if (posts.length < chats) fail(`gateway outbound: the tail saw ${posts.length} of the ${chats} chat requests within ${TAIL_DRAIN_MS / 1000}s`)
+  if (posts.length === 0) fail(`gateway outbound: the tail saw none of the ${chats} chat requests within ${TAIL_DRAIN_MS / 1000}s`)
   for (const event of posts)
     if (event.outcome !== 'ok' || event.exceptions?.length)
       fail(`gateway outbound: a chat request ended ${event.outcome} with ${event.exceptions?.length ?? 0} exception(s)`)
@@ -841,7 +874,7 @@ function auditOutbound(events, siteOrigin, chats) {
     fail(
       `gateway outbound: no line for ${siteOrigin}; the gateway keeps docs.zip 5 minutes per isolate, so a run within 5 minutes of another chat turn can miss the fetch (rerun after that)`,
     )
-  return `gateway outbound: ${posts.length} chat requests, ${[...hosts].map(([origin, count]) => `${origin} x${count}`).join(', ') || 'no outbound lines'}`
+  return `gateway outbound: saw ${posts.length} of ${chats} chat requests, ${[...hosts].map(([origin, count]) => `${origin} x${count}`).join(', ') || 'no outbound lines'}`
 }
 
 // Lighthouse 13 in its default mobile mode, on Playwright's Chromium (decision 6). --no-sandbox

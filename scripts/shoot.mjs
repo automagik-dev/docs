@@ -14,8 +14,8 @@
 //   switcher              the product logo menu open on the Genie quickstart (on a phone, inside
 //                         the navigation menu)
 //   genie-reduced-motion  the Genie landing with prefers-reduced-motion: reduce
-//   not-found             /genie/does-not-exist, which has no pet (the site layout stays out of
-//                         the 404); shot so the owner can rule on it
+//   not-found             /genie/does-not-exist, the 404 inside the site chrome, with the pet
+//                         and the logo menu
 //   chat                  the Genie quickstart with the chat drawer open after one real answer
 //                         to Genie's own chat suggestion. That is one chat turn on the site's
 //                         gateway; the mobile shot is the same answer with the window resized.
@@ -99,7 +99,6 @@ const petShown = async (page) => {
   await page.locator('.slot-navbar .genie-switcher').waitFor({ state: 'attached', timeout: HYDRATED_MS })
   await page.locator('.genie-pet.is-visible').waitFor({ timeout: PET_MS })
 }
-const loaded = async () => {}
 
 // The logo menu open: the header's on a wide screen, the navigation menu's on a phone.
 async function openSwitcher(page) {
@@ -193,7 +192,7 @@ async function main() {
       ...products.filter((product) => product !== genie).map((product) => ({ name: product.slug, path: product.landing, ready: petShown })),
       { name: 'switcher', path: quickstart, ready: petShown, act: openSwitcher },
       { name: 'genie-reduced-motion', path: genie.landing, ready: petShown, context: { reducedMotion: 'reduce' } },
-      { name: 'not-found', path: NOT_FOUND_PATH, ready: loaded, status: 404 },
+      { name: 'not-found', path: NOT_FOUND_PATH, ready: petShown, status: 404 },
     ]
     for (const kind of Object.keys(VIEWPORTS)) for (const shot of shots) await shoot(browser, base, outDir, kind, shot)
     const name = new RegExp(`\\b${genie.slug}\\b`, 'i')
