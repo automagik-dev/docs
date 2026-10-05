@@ -35,8 +35,9 @@
 //                       is <product>?") is typed into the sidebar chat; the answer must
 //                       finish within CHAT_ANSWER_MS, carry no error notice, and link to a page
 //                       of that product that answers 200. Each latency is printed;
-//                     - a browser host audit: every request every page makes goes to the site
-//                       origin, but the exceptions OFFSITE_ALLOWED names with a reason;
+//                     - a browser host audit: every request goes to the site origin, from the
+//                       pages, their popups, workers and service workers, and their WebSockets,
+//                       but the exceptions OFFSITE_ALLOWED names with a reason;
 //                     - a gateway outbound audit: `wrangler tail` on the gateway Worker runs
 //                       through the smoke and the turns, and the gateway's own `outbound` log
 //                       lines must name api.deepseek.com and the site origin, and no other host;
@@ -45,18 +46,23 @@
 //                       asked for: src/server.tsx keeps the site layout, and so the pet, out of
 //                       the 404 by design;
 //                     - Lighthouse (LIGHTHOUSE, mobile, Playwright's Chromium) on each landing,
-//                       scores printed, a score under LIGHTHOUSE_MIN failing the run.
+//                       scores printed, a score under LIGHTHOUSE_MIN failing the run, but a miss
+//                       the owner accepted (LIGHTHOUSE_ACCEPTED), which prints an ACCEPTED line
+//                       and passes while it stays at or above its lowered floor.
 //                     Against a deployed site --full needs GATEWAY_TOKEN, and the tail needs
 //                     wrangler's own credentials from the environment (CLOUDFLARE_API_TOKEN,
-//                     CLOUDFLARE_ACCOUNT_ID). With --serve the site has no gateway, so the chat
-//                     turns, the smoke and the outbound audit are skipped, and said so.
+//                     CLOUDFLARE_ACCOUNT_ID). If the tail does not connect, the smoke and the
+//                     chat turns are skipped, so no turn is spent unaudited. With --serve the
+//                     site has no gateway, so the chat turns, the smoke and the outbound audit
+//                     are skipped, and said so.
 //                     Needs `npx playwright install chromium`; npx fetches the pinned wrangler
 //                     and Lighthouse.
 //
-// Prints one line per failure and exits 1; exits 0 when all pass; exits 2 on a usage error.
-// Node 22 or later; `unzip` must be on PATH; only --full loads a dependency (playwright).
-// No secret is printed: tokens are read from the environment, and the tail's own output is
-// reduced to the gateway's log lines.
+// Prints one line per failure and exits 1; exits 0 when all pass, accepted misses included;
+// exits 2 on a usage error. Node 22 or later; `unzip` must be on PATH; only --full loads a
+// dependency (playwright). No secret is printed: tokens are read from the environment, every
+// printed line is redacted, and the tail's own output is reduced to the gateway's log lines. No
+// child process gets a secret it does not need (childEnv).
 
 import { execFileSync, spawn } from 'node:child_process'
 import fs from 'node:fs'
@@ -108,10 +114,23 @@ const TAIL_DRAIN_MS = 60_000 // a turn's tail event arrives once its waitUntil w
 const NOT_FOUND_PATH = '/genie/does-not-exist'
 const LIGHTHOUSE = 'lighthouse@13.5.0'
 const LIGHTHOUSE_MIN = { performance: 50, accessibility: 90, 'best-practices': 90, seo: 90 } // decision 6
+// Misses the owner has accepted, each with a lowered floor rather than a skip, so a further
+// regression still fails. A run that meets decision 6 again no longer needs the entry.
+const LIGHTHOUSE_ACCEPTED = [
+  {
+    landing: '/genie',
+    category: 'performance',
+    // Measured on workers.dev on 2026-10-05: 39 in five runs, 52 and 53 in two. 30 leaves room
+    // for Lighthouse's run-to-run spread and still catches a heavier hero or pet.
+    floor: 30,
+    accepted: 'Felipe, 2026-10-05: "Vira e otimiza depois"; a performance follow-up comes after the cutover',
+  },
+]
 const LIGHTHOUSE_TIMEOUT_MS = 240_000
 
 const failures = []
 const fail = (line) => failures.push(line)
+const accepted = []
 
 function usage(message) {
   console.error(`verify-site: ${message}`)
@@ -119,15 +138,24 @@ function usage(message) {
   process.exit(2)
 }
 
-// Progress for the long --full run, on stdout as each part finishes.
-const note = (line) => console.log(`verify-site: ${line}`)
-
-// Every secret the environment hands this script, so no output line can carry one.
-const SECRET_VARS = ['GATEWAY_TOKEN', 'CLOUDFLARE_API_TOKEN']
+// A variable whose name says it holds a credential (GATEWAY_TOKEN, CLOUDFLARE_API_TOKEN,
+// BWS_ACCESS_TOKEN, an *_API_KEY, …). Its value is redacted from every line this script prints,
+// and no child inherits it unless it needs it: each child gets childEnv(), which drops these
+// and wrangler's CLOUDFLARE_* variables but the ones `keep` names.
+const SECRET_NAME = /(?:^|_)(?:TOKEN|KEY|SECRET|PASSWORD|CREDENTIALS?)$/i
+const childEnv = (keep = () => false, extra = {}) => ({
+  ...Object.fromEntries(
+    Object.entries(process.env).filter(([name]) => keep(name) || !(SECRET_NAME.test(name) || name.startsWith('CLOUDFLARE_'))),
+  ),
+  ...extra,
+})
 const redact = (text) =>
-  SECRET_VARS.map((name) => process.env[name])
-    .filter((value) => value && value.length >= 8)
-    .reduce((out, secret) => out.replaceAll(secret, '[redacted]'), text)
+  Object.entries(process.env)
+    .filter(([name, value]) => SECRET_NAME.test(name) && value && value.length >= 8)
+    .reduce((out, [, secret]) => out.replaceAll(secret, '[redacted]'), String(text))
+
+// Progress for the long --full run, on stdout as each part finishes.
+const note = (line) => console.log(redact(`verify-site: ${line}`))
 
 function navigationPages(docs) {
   const pages = new Set()
@@ -286,7 +314,7 @@ async function checkZip(base, pages) {
   try {
     const zip = path.join(dir, 'docs.zip')
     fs.writeFileSync(zip, Buffer.from(await res.arrayBuffer()))
-    const entries = execFileSync('unzip', ['-Z1', zip], { encoding: 'utf8' })
+    const entries = execFileSync('unzip', ['-Z1', zip], { encoding: 'utf8', env: childEnv() })
       .split('\n')
       .filter((entry) => entry && !entry.endsWith('/'))
     for (const entry of entries) if (entry.includes('_internal')) fail(`/docs.zip: holds ${entry}`)
@@ -467,15 +495,37 @@ const pathOf = (url) => {
 // Children that must not outlive this script; each runs in its own process group.
 const children = new Set()
 
-// One command to its end, its stderr kept for a failure line; killed after timeoutMs.
-function run(command, args, { cwd, env, timeoutMs }) {
+// Kills a whole process group, quietly when it is already gone.
+const killGroup = (pid) => {
+  try {
+    process.kill(-pid, 'SIGKILL')
+  } catch {}
+}
+
+// One command to its end in a process group of its own, its stderr kept for a failure line.
+// After timeoutMs, or on a signal to this script, that group is killed, and so is every group
+// `groups()` names: Chrome, which Lighthouse starts as a group of its own.
+function run(command, args, { cwd, env, timeoutMs, groups = () => [] }) {
   return new Promise((resolve) => {
-    const child = spawn(command, args, { cwd, env, stdio: ['ignore', 'ignore', 'pipe'] })
+    const child = spawn(command, args, { cwd, env, detached: true, stdio: ['ignore', 'ignore', 'pipe'] })
     let stderr = ''
+    let timedOut = false
+    const kill = async () => {
+      for (const pid of [child.pid, ...groups()]) if (pid > 0) killGroup(pid)
+    }
+    children.add(kill)
     child.stderr.on('data', (chunk) => (stderr += chunk))
-    const timer = setTimeout(() => child.kill('SIGKILL'), timeoutMs)
-    child.once('error', (error) => (clearTimeout(timer), resolve({ code: `error ${error.code ?? error.name}`, stderr })))
-    child.once('exit', (code, signal) => (clearTimeout(timer), resolve({ code: code ?? signal, stderr })))
+    const timer = setTimeout(() => {
+      timedOut = true
+      kill()
+    }, timeoutMs)
+    const done = (code) => {
+      clearTimeout(timer)
+      children.delete(kill)
+      resolve({ code, stderr })
+    }
+    child.once('error', (error) => done(`error ${error.code ?? error.name}`))
+    child.once('close', (code, signal) => done(timedOut ? `killed after ${timeoutMs / 1000}s` : (code ?? signal)))
   })
 }
 
@@ -513,23 +563,27 @@ function questionFor(product, suggestions) {
   return own ? { text: own, from: 'its suggestion' } : { text: `What is ${product.slug}?`, from: 'no suggestion names it' }
 }
 
-// Every request of every page the browser opens, by origin.
+// Every request a browser context makes, by origin: its pages, the popups they open, their
+// workers and service workers (the context's request event covers them all), and each page's
+// WebSockets, whose ws: and wss: URLs count as the http: and https: origin they share a host with.
 function hostAudit(origin) {
   const offsite = new Map() // origin -> { count, first }
   let own = 0
   let inline = 0
   return {
-    watch(page, where) {
-      page.on('request', (req) => {
-        const url = new URL(req.url())
+    watch(context, where) {
+      const record = (raw) => {
+        const url = new URL(raw.replace(/^ws(s?):/i, 'http$1:'))
         if (url.protocol === 'data:' || url.protocol === 'blob:') inline++
         else if (url.origin === origin) own++
         else {
-          const seen = offsite.get(url.origin) ?? { count: 0, first: `${url.href.slice(0, 120)} on ${where}` }
+          const seen = offsite.get(url.origin) ?? { count: 0, first: `${raw.slice(0, 120)} on ${where}` }
           seen.count++
           offsite.set(url.origin, seen)
         }
-      })
+      }
+      context.on('request', (req) => record(req.url()))
+      context.on('page', (page) => page.on('websocket', (socket) => record(socket.url())))
     },
     report() {
       const allowed = []
@@ -545,8 +599,8 @@ function hostAudit(origin) {
 
 async function openSitePage(browser, base, pathname, audit) {
   const context = await browser.newContext({ viewport: VIEWPORT })
+  audit.watch(context, pathname)
   const page = await context.newPage()
-  audit.watch(page, pathname)
   try {
     const res = await page.goto(new URL(pathname, base).href, { waitUntil: 'load', timeout: NAV_TIMEOUT_MS })
     return { page, res, close: () => context.close() }
@@ -693,6 +747,7 @@ function startTail(gateway) {
   const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'verify-site-tail-'))
   const child = spawn('npx', ['--yes', WRANGLER, 'tail', GATEWAY_WORKER, '--format', 'json'], {
     cwd,
+    env: childEnv((name) => name.startsWith('CLOUDFLARE_')), // wrangler's credentials, never GATEWAY_TOKEN
     detached: true,
     stdio: ['ignore', 'pipe', 'pipe'],
   })
@@ -791,15 +846,33 @@ function auditOutbound(events, siteOrigin, chats) {
 
 // Lighthouse 13 in its default mobile mode, on Playwright's Chromium (decision 6). --no-sandbox
 // is the switch Playwright itself starts Chromium with on Linux: hosts that block unprivileged
-// user namespaces (Ubuntu 23.10+ AppArmor) cannot start Chrome's sandbox. Chrome's profile goes
-// to a temporary directory that is removed afterwards, crash or not.
+// user namespaces (Ubuntu 23.10+ AppArmor) cannot start Chrome's sandbox. Lighthouse and its
+// Chrome get no secret variable, and Chrome's profile goes to a temporary directory that is
+// removed afterwards. chrome-launcher starts Chrome as a process group of its own and writes its
+// pid to <profile>/chrome.pid, so a timeout, a crash or a signal kills that group too.
+// A score under decision 6 fails, unless LIGHTHOUSE_ACCEPTED holds the miss: then it is reported
+// as ACCEPTED while it stays at or above the accepted floor, and fails under it.
 async function checkLighthouse(url, chromePath) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'verify-site-lighthouse-'))
   const report = path.join(dir, 'report.json')
-  const where = `lighthouse ${new URL(url).pathname}`
+  const landing = new URL(url).pathname
+  const where = `lighthouse ${landing}`
+  const chromeGroups = () =>
+    fs
+      .readdirSync(dir)
+      .filter((name) => name.startsWith('lighthouse.'))
+      .flatMap((name) => {
+        try {
+          return [Number(fs.readFileSync(path.join(dir, name, 'chrome.pid'), 'utf8'))]
+        } catch {
+          return []
+        }
+      })
+  let code
   try {
     const categories = Object.keys(LIGHTHOUSE_MIN)
-    const { code, stderr } = await run(
+    let stderr
+    ;({ code, stderr } = await run(
       'npx',
       [
         '--yes',
@@ -811,8 +884,8 @@ async function checkLighthouse(url, chromePath) {
         '--chrome-flags=--headless=new --no-sandbox',
         '--quiet',
       ],
-      { cwd: dir, env: { ...process.env, CHROME_PATH: chromePath, TMPDIR: dir }, timeoutMs: LIGHTHOUSE_TIMEOUT_MS },
-    )
+      { cwd: dir, env: childEnv(undefined, { CHROME_PATH: chromePath, TMPDIR: dir }), timeoutMs: LIGHTHOUSE_TIMEOUT_MS, groups: chromeGroups },
+    ))
     if (code !== 0 || !fs.existsSync(report)) {
       const why = redact(stderr).trim().split('\n').filter(Boolean).slice(-2).join(' / ')
       fail(`${where}: lighthouse exited ${code}${why ? ` (${why.slice(0, 300)})` : ''}`)
@@ -825,12 +898,25 @@ async function checkLighthouse(url, chromePath) {
     })
     const line = scores.map((score) => `${score.title} ${score.value ?? 'none'}`).join(', ')
     note(`${where} (${result.configSettings?.formFactor ?? '?'}, lighthouse ${result.lighthouseVersion}): ${line}`)
-    for (const score of scores)
-      if (score.value === null || score.value < LIGHTHOUSE_MIN[score.id])
-        fail(`${where}: ${score.title} ${score.value ?? 'none'}, expected at least ${LIGHTHOUSE_MIN[score.id]}`)
+    for (const score of scores) {
+      const min = LIGHTHOUSE_MIN[score.id]
+      const allowed = LIGHTHOUSE_ACCEPTED.find((entry) => entry.landing === landing && entry.category === score.id)
+      if (score.value !== null && score.value >= min) {
+        if (allowed) note(`${where}: ${score.title} ${score.value} meets decision 6's ${min}; its accepted miss (floor ${allowed.floor}) was not needed this run`)
+        continue
+      }
+      if (allowed && score.value !== null && score.value >= allowed.floor)
+        accepted.push(`${where}: ${score.title} ${score.value}, under decision 6's ${min}, at or above the accepted floor ${allowed.floor} (${allowed.accepted})`)
+      else
+        fail(
+          `${where}: ${score.title} ${score.value ?? 'none'}, expected at least ${allowed ? `the accepted floor ${allowed.floor} (${allowed.accepted})` : min}`,
+        )
+    }
     if (result.runtimeError) fail(`${where}: ${result.runtimeError.code} ${result.runtimeError.message ?? ''}`.trim())
-    return `${new URL(url).pathname} ${scores.map((score) => score.value).join('/')}`
+    return `${landing} ${scores.map((score) => score.value).join('/')}`
   } finally {
+    // Lighthouse closes its Chrome on a clean exit; after anything else the group may be left.
+    if (code !== 0) for (const pid of chromeGroups()) if (pid > 0) killGroup(pid)
     fs.rmSync(dir, { recursive: true, force: true })
   }
 }
@@ -858,15 +944,18 @@ async function checkFull(base, docs, { deployed, gateway, token }) {
   let tail = null
   let products = []
   try {
-    browser = await chromium.launch()
+    browser = await chromium.launch({ env: childEnv() })
     const published = await publishedProducts(browser, base, docs, audit)
     products = published.products
     note(`products from ${published.source}: ${products.map((product) => `${product.slug} ${product.landing}`).join(', ')}`)
     if (products.length === 0) fail('no products to check')
 
+    // With no tail, nothing would audit the turns' outbound hosts, so none is spent: the landings
+    // are still loaded for the host audit, and the 404 and Lighthouse checks still run.
+    let live = false
     if (deployed) {
       tail = startTail(gateway)
-      const live = await tail.connected()
+      live = await tail.connected()
       if (live) note(`wrangler tail ${GATEWAY_WORKER} connected`)
       else {
         const why = tail.stderr()
@@ -875,7 +964,10 @@ async function checkFull(base, docs, { deployed, gateway, token }) {
           `gateway outbound: wrangler tail ${GATEWAY_WORKER} ${how}${why ? ` (${why.slice(0, 300)})` : ''}; ` +
             'wrangler reads CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID',
         )
+        await tail.stop()
       }
+    }
+    if (live) {
       let chats = 0
       const smoke = await checkGatewaySmoke(base, gateway, token) // an object on success, else it failed
       if (typeof smoke === 'object') {
@@ -886,16 +978,18 @@ async function checkFull(base, docs, { deployed, gateway, token }) {
       for (const product of products)
         if (await checkLandingChat(browser, base, product, audit, questionFor(product, published.suggestions))) chats++
       summary.push(`chat on ${products.length} landings`)
-      if (live) {
-        await tail.drain(chats)
-        await tail.stop()
-        const line = auditOutbound(tail.events(), origin, chats)
-        note(line)
-        summary.push('gateway outbound audited')
-      }
+      await tail.drain(chats)
+      await tail.stop()
+      const line = auditOutbound(tail.events(), origin, chats)
+      note(line)
+      summary.push('gateway outbound audited')
     } else {
       for (const product of products) await checkLandingChat(browser, base, product, audit, null)
-      note('skipped with --serve: the gateway smoke, the chat turns and the gateway outbound audit need a deployed site')
+      note(
+        deployed
+          ? 'skipped, as the tail did not connect: the gateway smoke and the chat turns, so no turn is spent unaudited'
+          : 'skipped with --serve: the gateway smoke, the chat turns and the gateway outbound audit need a deployed site',
+      )
     }
 
     const missing = failures.length
@@ -936,6 +1030,7 @@ async function portTaken() {
 function startPreview() {
   const child = spawn('npx', ['vite', 'preview', '--port', String(PREVIEW_PORT), '--strictPort'], {
     cwd: ROOT,
+    env: childEnv(),
     detached: true,
     stdio: ['ignore', 'pipe', 'pipe'],
   })
@@ -1020,7 +1115,7 @@ async function main() {
     const problem = await waitFor(base, '/genie', preview.exited, 90_000)
     if (problem) {
       await preview.stop()
-      console.error(preview.output().trimEnd())
+      console.error(redact(preview.output().trimEnd()))
       console.error(`FAIL serve: ${problem}`)
       process.exit(1)
     }
@@ -1054,12 +1149,25 @@ async function main() {
     await preview?.stop()
   }
 
+  // An accepted miss is reported on its own line and does not fail the run.
+  for (const line of accepted) console.log(redact(`ACCEPTED ${line}`))
   for (const line of failures) console.error(`FAIL ${redact(line)}`)
   if (failures.length) {
     console.error(`verify-site: ${failures.length} failure${failures.length === 1 ? '' : 's'} against ${base}`)
     process.exit(1)
   }
-  console.log(`verify-site: ok against ${base}: ${ok}`)
+  const misses = accepted.length ? ` (${accepted.length} accepted miss${accepted.length === 1 ? '' : 'es'})` : ''
+  console.log(redact(`verify-site: ok against ${base}${misses}: ${ok}`))
 }
 
-await main()
+// An error nothing above caught still prints only redacted text, after the failures found so
+// far, and stops every child before the run exits 1.
+try {
+  await main()
+} catch (error) {
+  await Promise.allSettled([...children].map((stop) => stop()))
+  for (const line of accepted) console.log(redact(`ACCEPTED ${line}`))
+  for (const line of failures) console.error(`FAIL ${redact(line)}`)
+  console.error(redact(`verify-site: stopped by an error: ${error?.stack ?? error}`))
+  process.exit(1)
+}

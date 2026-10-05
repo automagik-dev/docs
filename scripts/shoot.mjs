@@ -49,6 +49,12 @@ const ANSWER_DONE = `${ANSWER_MESSAGE} button[aria-label="Copy message"]`
 const failures = []
 const fail = (line) => failures.push(line)
 
+// The browser inherits no variable that names a credential, nor wrangler's CLOUDFLARE_* ones:
+// a shell that has just run verify-site --full may still hold them, and nothing here needs one.
+const SECRET_NAME = /(?:^|_)(?:TOKEN|KEY|SECRET|PASSWORD|CREDENTIALS?)$/i
+const browserEnv = () =>
+  Object.fromEntries(Object.entries(process.env).filter(([name]) => !(SECRET_NAME.test(name) || name.startsWith('CLOUDFLARE_'))))
+
 function usage(message) {
   console.error(`shoot: ${message}`)
   console.error('usage: node scripts/shoot.mjs <base-url> <out-dir>')
@@ -175,7 +181,7 @@ async function main() {
   const outDir = path.resolve(outArg)
   fs.mkdirSync(outDir, { recursive: true })
 
-  const browser = await chromium.launch()
+  const browser = await chromium.launch({ env: browserEnv() })
   try {
     const { products, suggestions } = await siteProducts(browser, base)
     const genie = products.find((product) => product.slug === 'genie') ?? products[0]
@@ -206,4 +212,10 @@ async function main() {
   console.log(`shoot: ok against ${base}: files in ${outDir}`)
 }
 
-await main()
+try {
+  await main()
+} catch (error) {
+  for (const line of failures) console.error(`FAIL ${line}`)
+  console.error(`shoot: stopped by an error: ${error?.message?.split('\n')[0] ?? error}`)
+  process.exit(1)
+}
