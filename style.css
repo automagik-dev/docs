@@ -388,6 +388,16 @@ div:has(> select[data-genie-logos]) { display: none !important; }
 
 .genie-switcher { position: relative; display: inline-flex; align-items: center; }
 .genie-switcher--compact { margin-left: -6px; } /* sits against the header logo it extends */
+.genie-docs-version {
+  display: none; flex-shrink: 0; margin-left: 8px; padding: 4px 8px;
+  border: 1px solid var(--gx-border); border-radius: 999px;
+  color: var(--gx-dim); font-family: var(--font-code); font-size: 11px; line-height: 1.3;
+  white-space: nowrap;
+}
+html[data-product="genie"] .genie-docs-version { display: inline-flex; }
+@media (max-width: 640px) {
+  .genie-docs-version { margin-left: 4px; padding: 4px 6px; font-size: 10px; }
+}
 .genie-switcher__button {
   display: inline-flex; align-items: center; gap: 8px; height: 30px; padding: 0 8px;
   border: 1px solid transparent; border-radius: 8px; background: transparent;

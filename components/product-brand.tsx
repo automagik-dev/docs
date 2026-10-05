@@ -28,6 +28,9 @@ type BrandWindow = Window & {
 }
 const SELECT = 'select[aria-label="Select section"]'
 
+// The release these Genie pages document, not the latest installed CLI.
+const GENIE_DOCS_VERSION = '6.261003.1'
+
 function productsFrom(select: HTMLSelectElement): Product[] {
   return [...select.options].map((o) => {
     const slug = o.text.trim().toLowerCase()
@@ -83,6 +86,10 @@ function syncShareImages(slug: string) {
 export function mountProductBrand(): () => void {
   let openMenu: (() => void) | null = null // closes whichever menu is open
   const syncers = new Set<() => void>()
+  const version = document.createElement('span')
+  version.className = 'genie-docs-version'
+  version.textContent = `v${GENIE_DOCS_VERSION}`
+  version.title = `Documentation for Genie v${GENIE_DOCS_VERSION}`
 
   function enhance(select: HTMLSelectElement) {
     if (select.dataset.genieLogos) return
@@ -182,6 +189,8 @@ export function mountProductBrand(): () => void {
       const logoLink = document.querySelector<HTMLAnchorElement>('a.slot-logo')
       const href = landing && folderUrl(landing)
       if (href && hydrated(logoLink) && logoLink!.getAttribute('href') !== href) logoLink!.setAttribute('href', href)
+      // The switcher is desktop-only; its logo row stays visible on mobile too.
+      if (hydrated(logoLink) && !version.isConnected) logoLink!.parentElement?.append(version)
       if (location.pathname !== lastPath) { lastPath = location.pathname; openMenu?.() }
     }
     const product = document.documentElement.getAttribute('data-product')
@@ -220,6 +229,7 @@ export function mountProductBrand(): () => void {
     delete (window as BrandWindow).__genieNavigate
     window.clearTimeout(waitTimer)
     observer.disconnect()
+    version.remove()
     window.removeEventListener('popstate', update)
     document.removeEventListener('click', onDocClick)
     document.querySelectorAll('.genie-switcher').forEach((el) => el.remove())
