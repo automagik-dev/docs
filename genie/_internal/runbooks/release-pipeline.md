@@ -9,7 +9,7 @@ A `v*` tag exists on origin but no Release object appears for that tag. Operator
 Check the orchestrator run for the failed job. The orchestrator sequences build, sign-attest, and publish in one run. Read the failed job logs.
 
 ```bash
-TAG="v4.260510.6"
+TAG="v6.261106.1"
 gh run list --workflow=release.yml --branch "$TAG"
 RUN_ID=12345          # paste the failing run id from the list above
 gh run view --log "$RUN_ID"
@@ -27,11 +27,11 @@ Re-run the failed jobs of that same run:
 gh run rerun <run-id> --failed
 ```
 
-Prefer re-running the whole run over a partial re-run. Every artifact's endorsement carries the signer run that produced it, and the stable security gate requires them all to agree; artifacts mixed across attempts fail the gate with `verified signer run disagreement`.
+Re-running only the failed jobs is fine for a transient GitHub error on a run created after the security gate left `main` (genie #3232, 2026-11-06 12:03 UTC). A re-run uses the workflow definition of the original run, so an older run still carries the stable security gate: re-run that run whole, because a partial re-run mixes signer attempts and fails the gate with `verified signer run disagreement`. A version that already published is still refused by the replay guard (#2674), the first step of `prepare-delivery-evidence`.
 
 ### A dev release whose tag is already pushed
 
-It cannot be republished. `version.yml` derives a fresh build number from the existing `v5.<yymmdd>.*` tags, pushes the version commit and the new tag with one `git push --atomic`, and only calls `release.yml` after that push succeeds. A re-run re-derives against the tag that now exists, so the atomic push is rejected and the run stops at:
+It cannot be republished. `version.yml` derives a fresh build number from the existing `v6.<yymmdd>.*` tags, pushes the version commit and the new tag with one `git push --atomic`, and only calls `release.yml` after that push succeeds. A re-run re-derives against the tag that now exists, so the atomic push is rejected and the run stops at:
 
 ```
 release-race.next-tag-pin-skipped.detected
@@ -41,6 +41,6 @@ The remedy is to land any commit on `dev` through a normal PR — the next green
 
 ### Stable
 
-Stable is never auto-dispatched. After the promotion PR merges, `version.yml` pushes the fresh promotion tag and writes the `release.yml` inputs into the run summary (`version`, `channel: stable`, `source_sha`, `source_branch: main`, `source_ci_run_id`). A maintainer then opens **Actions → Release → Run workflow** on `main` and supplies them; manual dispatch offers `stable` as the only channel. A different maintainer must approve the protected `production` environment — the initiator cannot.
+Stable is never auto-dispatched. After the promotion PR merges, `version.yml` pushes the fresh promotion tag and writes the `release.yml` inputs into the run summary (`version`, `channel: stable`, `source_sha`, `source_branch: main`, `source_ci_run_id`). A maintainer then opens **Actions → Release → Run workflow** on `main` and supplies them; manual dispatch offers `stable` as the only channel. That dispatch is the whole release step: there is no environment approval (the `release-manifests` environment the manifest job uses is restricted by branch and has no reviewers), so the maintainer who dispatches it does not wait for a second one. Between the build and the published release stand only signing, the signed delivery evidence and the compatibility check.
 
 If the orchestrator never fires at all, check that `version.yml` reached its release job.
