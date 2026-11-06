@@ -27,7 +27,7 @@ Re-run the failed jobs of that same run:
 gh run rerun <run-id> --failed
 ```
 
-Prefer re-running the whole run over a partial re-run. Every artifact's endorsement carries the signer run that produced it, and the stable security gate requires them all to agree; artifacts mixed across attempts fail the gate with `verified signer run disagreement`.
+Re-running only the failed jobs is fine for a transient GitHub error. A version that already published is still refused by the replay guard (#2674), the first step of `prepare-delivery-evidence`.
 
 ### A dev release whose tag is already pushed
 
@@ -41,6 +41,6 @@ The remedy is to land any commit on `dev` through a normal PR — the next green
 
 ### Stable
 
-Stable is never auto-dispatched. After the promotion PR merges, `version.yml` pushes the fresh promotion tag and writes the `release.yml` inputs into the run summary (`version`, `channel: stable`, `source_sha`, `source_branch: main`, `source_ci_run_id`). A maintainer then opens **Actions → Release → Run workflow** on `main` and supplies them; manual dispatch offers `stable` as the only channel. A different maintainer must approve the protected `production` environment — the initiator cannot.
+Stable is never auto-dispatched. After the promotion PR merges, `version.yml` pushes the fresh promotion tag and writes the `release.yml` inputs into the run summary (`version`, `channel: stable`, `source_sha`, `source_branch: main`, `source_ci_run_id`). A maintainer then opens **Actions → Release → Run workflow** on `main` and supplies them; manual dispatch offers `stable` as the only channel. That dispatch is the whole release step: there is no environment approval (the `release-manifests` environment the manifest job uses is restricted by branch and has no reviewers), so the maintainer who dispatches it does not wait for a second one. Between the build and the published release stand only signing, the signed delivery evidence and the compatibility check.
 
 If the orchestrator never fires at all, check that `version.yml` reached its release job.
