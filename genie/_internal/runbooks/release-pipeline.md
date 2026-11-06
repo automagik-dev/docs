@@ -31,7 +31,7 @@ Re-running only the failed jobs is fine for a transient GitHub error. A version 
 
 ### A dev release whose tag is already pushed
 
-It cannot be republished. `version.yml` derives a fresh build number from the existing `v5.<yymmdd>.*` tags, pushes the version commit and the new tag with one `git push --atomic`, and only calls `release.yml` after that push succeeds. A re-run re-derives against the tag that now exists, so the atomic push is rejected and the run stops at:
+It cannot be republished. `version.yml` derives a fresh build number from the existing `v6.<yymmdd>.*` tags, pushes the version commit and the new tag with one `git push --atomic`, and only calls `release.yml` after that push succeeds. A re-run re-derives against the tag that now exists, so the atomic push is rejected and the run stops at:
 
 ```
 release-race.next-tag-pin-skipped.detected
